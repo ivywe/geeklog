@@ -168,6 +168,7 @@ $PLG_staticpages_MESSAGE3002 = $LANG32[9];
 $LANG_staticpages_search = array(
     0  => '含まない',
     1  => 'デフォルト',
+    2  => '含む'
 );
 
 // Likes options for pages
