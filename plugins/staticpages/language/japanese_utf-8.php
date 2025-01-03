@@ -163,11 +163,28 @@ $PLG_staticpages_MESSAGE22 = '静的ページを削除できませんでした�
 $PLG_staticpages_MESSAGE3001 = 'プラグインはアップグレードをサポートしていません。';
 $PLG_staticpages_MESSAGE3002 = $LANG32[9];
 
+
+// Search options for pages
+$LANG_staticpages_search = array(
+    0  => '含まない',
+    1  => 'デフォルト',
+);
+
+// Likes options for pages
+// The same values for these options will match values for the config option "likes_pages"
+$LANG_staticpages_likes = array(
+    -1  => 'デフォルト',
+    0   => '無効',
+    1   => 'いいね と きらい',
+    2   => 'いいねのみ',
+);
+
 // Localization of the Admin Configuration UI
 $LANG_configsections['staticpages'] = array(
     'label' => '静的ページ',
     'title' => '静的ページの設定'
 );
+
 
 $LANG_confignames['staticpages'] = array(
     'allow_php' => 'PHPを許可する',
