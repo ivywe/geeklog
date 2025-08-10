@@ -610,10 +610,10 @@ class XMLSitemap
         $retval .= '      </news:publication>' . self::LB;
 
         // Time stamp
-        $date = date('Y-m-d', $entry['date-created']);
-        if (!empty($timezone)) {
-            $date .= 'T' . date('H:i:s', $entry['date-created']) . $timezone;
-        }
+        $date = (new DateTime('@' . $entry['date-modified']))
+            ->setTimezone(new DateTimeZone('Asia/Tokyo'))  // 必要に応じて変更
+            ->format('c'); // 例: 2020-09-07T23:15:00+09:00
+        
         $retval .= '      <news:publication_date>' . $date . '</news:publication_date>' . self::LB;
 
         // Title
