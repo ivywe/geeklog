@@ -9,9 +9,9 @@ global $_TABLES;
 $_SQL[] = "INSERT INTO {$_TABLES['routes']} (method, rule, route, priority) VALUES (1, '/article/@sid/@page', '/article.php?story=@sid&page=@page', 1000)"; // Priority should default to 120 but we need to mage sure it comes after the route for article print
 
 // Drop $_tables
-$_SQL[] = "DROP TABLE {$_TABLES['cookiecodes']}";
-$_SQL[] = "DROP TABLE {$_TABLES['dateformats']}";
-$_SQL[] = "DROP TABLE {$_TABLES['maillist']}";
+$_SQL[] = "DROP TABLE IF EXISTS {$_TABLES['cookiecodes']}";
+$_SQL[] = "DROP TABLE IF EXISTS {$_TABLES['dateformats']}";
+$_SQL[] = "DROP TABLE IF EXISTS {$_TABLES['maillist']}";
 
 // Old VARS table variables for Database Backup that are not used anymore (but could still get created in some cases)
 $_SQL[] = "DELETE FROM {$_TABLES['vars']} WHERE name = '_dbback_files'";
