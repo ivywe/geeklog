@@ -254,7 +254,7 @@ class Upload
      */
     private function _logItem($logType, $text)
     {
-        $timestamp = strftime("%c");
+        $timestamp = COM_strftime("%c");
         if (!$file = fopen($this->_logFile, 'a')) {
             // couldn't open log file for writing so let's disable logging and add an error
             $this->setLogging(false);
@@ -547,6 +547,8 @@ class Upload
 
         if (!$sizeOK) {
             // OK, resize
+            $retval = 0;
+
             $sizeFactor = $this->_calcSizeFactor($imageInfo['width'], $imageInfo['height']);
             $newWidth = (int) ($imageInfo['width'] * $sizeFactor);
             $newHeight = (int) ($imageInfo['height'] * $sizeFactor);
@@ -646,6 +648,13 @@ class Upload
                    0, 0, 0, 0, $newWidth, $newHeight,
                    $imageInfo['width'], $imageInfo['height']);
                 $this->_outputImageToFile_gdlib($image_dest, $filename);
+
+                $temp = getimagesize($filename);
+                if ($temp !== false) {
+                    $newSize = $temp[0] . 'x' . $temp[1];
+                } else {
+                    $newSize = '?';
+                }
             }
 
             if ($retval > 0) {
@@ -659,6 +668,10 @@ class Upload
                 $this->printErrors();
                 exit;
             } else {
+                if (empty($newSize)) {
+                    $newSize = '?';
+                }
+
                 $this->_addDebugMsg('Image, ' . $this->_currentFile['name'] . ' was resized from ' . $imageInfo['width'] . 'x' . $imageInfo['height'] . ' to ' . $newSize);
             }
         }
@@ -1202,8 +1215,8 @@ class Upload
         // IP address and, if so, verify the poster is originating from one of
         // those places
         if ($this->_limitByIP) {
-            if (!in_array($_SERVER['REMOTE_ADDR'], $this->_allowedIPS)) {
-                $this->_addError('The IP, ' . $_SERVER['REMOTE_ADDR'] . ' is not in the list of '
+            if (!in_array(\Geeklog\IP::getIPAddress(), $this->_allowedIPS)) {
+                $this->_addError('The IP, ' . \Geeklog\IP::getIPAddress() . ' is not in the list of '
                     . 'accepted IP addresses.  Refusing to allow file upload(s)');
 
                 return false;

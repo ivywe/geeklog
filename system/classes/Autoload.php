@@ -2,6 +2,8 @@
 
 namespace Geeklog;
 
+use InvalidArgumentException;
+
 /**
  * Class Autoload
  *
@@ -39,44 +41,13 @@ class Autoload
             $path = __DIR__ . self::DS . $className . '.php';
 
             if (file_exists($path)) {
-                /** @noinspection PhpIncludeInspection */
-                include $path;
-
-                if (method_exists($className, 'init')) {
-                    $className::init();
-                }
-            }
-        } elseif (stripos($className, 'MatthiasMullie\\') === 0) {
-            if (stripos($className, 'MatthiasMullie\\Minify\\') === 0) {
-                $path = __DIR__ . self::DS . 'MatthiasMullie' . self::DS . 'minify'
-                    . self::DS . 'src' . self::DS
-                    . str_ireplace('MatthiasMullie\\Minify\\', '', $className) . '.php';
-            } elseif (stripos($className, 'MatthiasMullie\\PathConverter\\') === 0) {
-                $path = __DIR__ . self::DS . 'MatthiasMullie' . self::DS . 'path-converter'
-                    . self::DS . 'src' . self::DS
-                    . str_ireplace('MatthiasMullie\\PathConverter\\', '', $className) . '.php';
-            } else {
-                $path = '';
-            }
-
-            if (file_exists($path)) {
-                /** @noinspection PhpIncludeInspection */
-                include $path;
-            }
-        } elseif (stripos($className, 'JSMin\\') === 0){
-            $path = __DIR__ . self::DS . 'JSMin' . self::DS
-                . str_ireplace('JSMin\\', '', $className) . '.php';
-
-            if (file_exists($path)) {
-                /** @noinspection PhpIncludeInspection */
                 include $path;
             }
         } else {
             // Legacy Geeklog classes
-            $path = __DIR__ . DIRECTORY_SEPARATOR . strtolower($className) . '.class.php';
+            $path = __DIR__ . self::DS . strtolower($className) . '.class.php';
 
             if (file_exists($path)) {
-                /** @noinspection PhpIncludeInspection */
                 include $path;
             } else {
                 if (stripos($className, 'timerobject') === 0) {
@@ -85,10 +56,6 @@ class Autoload
                     include __DIR__ . '/XML/RPC/Server.php';
                 } elseif (stripos($className, 'XML_RPC_') === 0) {
                     include __DIR__ . '/XML/RPC.php';
-                } elseif (stripos($className, 'Date_TimeZone') === 0) {
-                    include __DIR__ . '/Date/TimeZone.php';
-                } elseif (stripos($className, 'Mobile_Detect') === 0) {
-                    include __DIR__ . '/mobiledetect/Mobile_Detect.php';
                 }
             }
         }
@@ -112,7 +79,7 @@ class Autoload
      * @param  callable $autoLoader
      * @param  bool     $throw
      * @param  bool     $prepend
-     * @throws \InvalidArgumentException
+     * @throws InvalidArgumentException
      */
     public static function register($autoLoader, $throw = true, $prepend = false)
     {
@@ -121,11 +88,11 @@ class Autoload
         }
 
         if (!is_callable($autoLoader)) {
-            throw new \InvalidArgumentException(__METHOD__ . ': $autoLoader must be callable');
+            throw new InvalidArgumentException(__METHOD__ . ': $autoLoader must be callable');
         }
 
         if (!spl_autoload_register($autoLoader, $throw, $prepend)) {
-            throw new \InvalidArgumentException(__METHOD__ . ': could not register the autoloader function');
+            throw new InvalidArgumentException(__METHOD__ . ': could not register the autoloader function');
         }
     }
 }

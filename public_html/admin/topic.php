@@ -119,6 +119,8 @@ function edittopic($tid = '')
     }
     $topic_templates = COM_newTemplate(CTL_core_templatePath($_CONF['path_layout'] . 'admin/topic'));
     $topic_templates->set_file('editor', 'topiceditor.thtml');
+    $_SCRIPTS->setJavaScriptFile('admin.topic', '/javascript/admin.topic.js');
+
     if (!empty($tid) && SEC_hasRights('topic.edit')) {
         $topic_templates->set_var('allow_delete', true);
         $topic_templates->set_var('lang_delete', $LANG_ADMIN['delete']);
@@ -140,8 +142,9 @@ function edittopic($tid = '')
     
     $topic_templates->set_var('lang_parent_id', $LANG27[32]);
     $topic_templates->set_var('parent_id_options',
-        TOPIC_getTopicListSelect($A['parent_id'], 1, false, $A['tid'], true));
-
+        TOPIC_getTopicListSelect($A['parent_id'], 1, false, $A['tid'], true, 0, 1));
+    $topic_templates->set_var('lang_parent_desc', $LANG27['topics_edit_access_select']);
+    
     $topic_templates->set_var('lang_inherit', $LANG27[33]);
     $topic_templates->set_var('lang_inherit_info', $LANG27[34]);
     if ($A['inherit'] == 1) {
@@ -298,21 +301,14 @@ function changetopicid($tid, $old_tid)
     DB_change($_TABLES['topics'], 'parent_id', $tid, 'parent_id', $old_tid);
     DB_change($_TABLES['syndication'], 'header_tid', $tid, 'header_tid', $old_tid);
 
-    $result = DB_query("SELECT uid,tids,etids FROM {$_TABLES['userindex']} WHERE tids LIKE '%{$old_tid}%' OR etids LIKE '%{$old_tid}%'");
+    $result = DB_query(
+        "SELECT uid, etids FROM {$_TABLES['user_attributes']} "
+        . "WHERE etids LIKE '%{$old_tid}%'"
+    );
     $num_users = DB_numRows($result);
     for ($i = 0; $i < $num_users; $i++) {
         $changed = false;
-        list($uid, $tids, $etids) = DB_fetchArray($result);
-        // check list of excluded topics
-        $t = explode(' ', $tids);
-        if (count($t) > 0) {
-            $found = array_search($old_tid, $t);
-            if ($found !== false) {
-                $t[$found] = $tid;
-                $tids = implode(' ', $t);
-                $changed = true;
-            }
-        }
+        list($uid, $etids) = DB_fetchArray($result);
 
         // check topics for the Daily Digest
         if (!empty($etids) && ($etids !== '-')) {
@@ -328,12 +324,7 @@ function changetopicid($tid, $old_tid)
         }
 
         if ($changed) {
-            // etids can be both NULL and "", so special handling required
-            if ($etids === null) {
-                DB_change($_TABLES['userindex'], 'tids', $tids, 'uid', $uid);
-            } else {
-                DB_query("UPDATE {$_TABLES['userindex']} SET tids = '{$tids}', etids = '{$etids}' WHERE uid = $uid");
-            }
+            DB_query("UPDATE {$_TABLES['user_attributes']} SET etids = '{$etids}' WHERE uid = $uid");
         }
     }
 }
@@ -690,12 +681,21 @@ function reorderTopics()
  */
 function moveTopics($tid, $where)
 {
-    global $_TABLES;
+    global $_TABLES, $_CONF;
 
     if (empty($tid) || empty($where)) return;
 
-    $sortnum = DB_getItem($_TABLES['topics'], 'sortnum', "tid = '$tid'");
-    $parent_id = DB_getItem($_TABLES['topics'], 'parent_id', "tid = '$tid'");
+    $result = DB_query("SELECT * FROM {$_TABLES['topics']} WHERE tid ='$tid'");
+    $A = DB_fetchArray($result);
+    
+    $access = SEC_hasAccess($A['owner_id'], $A['group_id'], $A['perm_owner'], $A['perm_group'], $A['perm_members'], $A['perm_anon']);
+    if ($access < 3) {
+        COM_accessLog("User {$_USER['username']} tried to illegally change the sort order of topic $tid.");
+        COM_redirect($_CONF['site_admin_url'] . '/topic.php');
+    }    
+    
+    $sortnum = $A['sortnum'];
+    $parent_id = $A['parent_id'];
 
     if (empty($sortnum) || empty($parent_id)) return;
 
@@ -874,7 +874,7 @@ function handleIconUpload($tid)
     if (!empty($newIcon['name'])) {
         $pos = strrpos($newIcon['name'], '.') + 1;
         $fExtension = substr($newIcon['name'], $pos);
-        $filename = 'topic_' . $tid . '.' . $fExtension;
+        $filename = \Geeklog\FileSystem::normalizeFileName('topic_' . $tid . '.' . $fExtension);
     }
 
     // do the upload

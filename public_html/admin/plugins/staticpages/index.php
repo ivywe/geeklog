@@ -132,7 +132,8 @@ function staticpageeditor_form(array $A)
 {
     global $_CONF, $_TABLES, $_USER, $_GROUPS, $_SP_CONF, $mode, $sp_id,
            $LANG21, $LANG_STATIC, $LANG_ACCESS, $LANG_ADMIN, $LANG01, $LANG24,
-           $LANG_postmodes, $MESSAGE, $_IMAGE_TYPE, $_SCRIPTS;
+           $LANG_postmodes, $LANG_STRUCT_DATA,
+           $MESSAGE, $_IMAGE_TYPE, $_SCRIPTS;
 
     if (!empty($sp_id) && $mode === 'edit') {
         $access = SEC_hasAccess($A['owner_id'], $A['group_id'], $A['perm_owner'], $A['perm_group'], $A['perm_members'], $A['perm_anon']);
@@ -215,6 +216,23 @@ function staticpageeditor_form(array $A)
         COM_optionList($_TABLES['commentcodes'], 'code,name', $A['commentcode'])
     );
 
+    $sp_template->set_var('lang_structured_data_type', $LANG_STRUCT_DATA['lang_structured_data_type']);
+    $sp_template->set_var('structured_data_options',
+        COM_optionListFromLangVariables('LANG_structureddatatypes', $A['structured_data_type'])
+    );
+
+    $sp_template->set_var('lang_search', $LANG_STATIC['search']);
+    $sp_template->set_var('lang_search_desc', $LANG_STATIC['search_desc']);
+    $sp_template->set_var('search_options',
+        COM_optionListFromLangVariables('LANG_staticpages_search', $A['search'])
+    );
+	
+    $sp_template->set_var('lang_likes', $LANG_STATIC['likes']);
+    $sp_template->set_var('lang_likes_desc', $LANG_STATIC['likes_desc']);
+    $sp_template->set_var('likes_options',
+        COM_optionListFromLangVariables('LANG_staticpages_likes', $A['likes'])
+    );	
+
     $sp_template->set_var('lang_accessrights', $LANG_ACCESS['accessrights']);
     $sp_template->set_var('lang_owner', $LANG_ACCESS['owner']);
 
@@ -227,11 +245,10 @@ function staticpageeditor_form(array $A)
     $sp_template->set_var('owner_username', $owner_username);
 
     if ($A['owner_id'] > 1) {
-        $profile_link = $_CONF['site_url'] . '/users.php?mode=profile&amp;uid=' . $A['owner_id'];
-        $sp_template->set_var('start_owner_anchortag',
-            '<a href="' . $profile_link . '">');
-        $sp_template->set_var('end_owner_anchortag', '</a>');
-        $sp_template->set_var('owner_link', COM_createLink($owner_name, $profile_link));
+        $ownerDisplayTag = COM_getProfileLink($A['owner_id'], $owner_username, $owner_name, '');
+        $sp_template->set_var('start_owner_anchortag', $ownerDisplayTag);
+        $sp_template->set_var('end_owner_anchortag', '');
+        $sp_template->set_var('owner_link', $ownerDisplayTag);
 
         $photo = '';
         if ($_CONF['allow_user_photo']) {
@@ -241,6 +258,7 @@ function staticpageeditor_form(array $A)
                 $camera_icon = '<img src="' . $_CONF['layout_url']
                     . '/images/smallcamera.' . $_IMAGE_TYPE
                     . '" alt=""' . XHTML . '>';
+                $profile_link = $_CONF['site_url'] . '/users.php?mode=profile&amp;uid=' . $A['owner_id'];
                 $sp_template->set_var('camera_icon',
                     COM_createLink($camera_icon, $profile_link));
             }
@@ -428,12 +446,18 @@ function staticpageeditor_form(array $A)
         if (empty($sp_id) && $mode == 'edit') { // means new
             $topic_sp_id = '';
         }
-
-        $sp_template->set_var('topic_selection',
-            TOPIC_getTopicSelectionControl('staticpages', $topic_sp_id, true, false, true));
+		
+		if ($mode == $LANG_ADMIN['save']) { // This can happen if error on save for example with missing data like title
+			// Reload from control on page		
+			$sp_template->set_var('topic_selection',
+				TOPIC_getTopicSelectionControl('staticpages', '', true, false, true, true, 2));
+		} else {
+			$sp_template->set_var('topic_selection',
+				TOPIC_getTopicSelectionControl('staticpages', $topic_sp_id, true, false, true, true, 2));
+		}
     } else {
         $sp_template->set_var('topic_selection',
-            TOPIC_getTopicSelectionControl('staticpages', $A['clone_sp_id'], true, false, true));
+            TOPIC_getTopicSelectionControl('staticpages', $A['clone_sp_id'], true, false, true, true, 2));
     }
 
     $sp_template->set_var('lang_metadescription',
@@ -488,6 +512,9 @@ function staticpageeditor_form(array $A)
     } else {
         $sp_template->set_var('onlastupdate_checked', '');
     }
+    if ($_SP_CONF['show_date'] != 1) {
+        $sp_template->set_var('lang_show_on_page_date_disabled', $LANG_STATIC['show_on_page_disabled']);
+    }
 
     $sp_template->set_var('lang_label', $LANG_STATIC['label']);
     if (isset($A['sp_label'])) {
@@ -537,6 +564,9 @@ function staticpageeditor_form(array $A)
     $sp_template->set_var('lang_allowedhtml', $allowed);
     $sp_template->set_var('lang_allowed_html', $allowed);
     $sp_template->set_var('lang_show_on_page', $LANG_STATIC['show_on_page']);
+    if ($_SP_CONF['show_hits'] != 1) {
+        $sp_template->set_var('lang_show_on_page_hits_disabled', $LANG_STATIC['show_on_page_disabled']);
+    }
     $sp_template->set_var('lang_hits', $LANG_STATIC['hits']);
     if (empty($A['sp_hits'])) {
         $sp_template->set_var('sp_hits', '0');
@@ -687,14 +717,16 @@ function liststaticpages()
         'form_url'   => $_CONF['site_admin_url'] . '/plugins/staticpages/index.php',
     );
 
+    $sql = "SELECT *,UNIX_TIMESTAMP(modified) AS unixdate, {$_TABLES['users']}.username, {$_TABLES['users']}.fullname "
+        . "FROM {$_TABLES['staticpage']} "
+        . "LEFT JOIN {$_TABLES['users']} ON {$_TABLES['staticpage']}.owner_id = {$_TABLES['users']}.uid "
+        . "WHERE 1=1 ";
+
     $query_arr = array(
         'table'          => 'staticpage',
-        'sql'            => "SELECT *,UNIX_TIMESTAMP(modified) AS unixdate, {$_TABLES['users']}.username, {$_TABLES['users']}.fullname "
-            . "FROM {$_TABLES['staticpage']} "
-            . "LEFT JOIN {$_TABLES['users']} ON {$_TABLES['staticpage']}.owner_id = {$_TABLES['users']}.uid "
-            . "WHERE 1=1 ",
+        'sql'            => $sql,
         'query_fields'   => array('sp_title', 'sp_id'),
-        'default_filter' => COM_getPermSQL('AND', 0, 3),
+        'default_filter' => COM_getPermSQL('AND'), // COM_getPermSQL('AND', 0, 3),
     );
 
     $retval .= ADMIN_list('static_pages', 'plugin_getListField_staticpages',
@@ -728,7 +760,7 @@ function staticpageeditor($sp_id, $mode = '', $editor = '')
         // check if a new sp_id has been suggested
         $sp_new_id = Geeklog\Input::fGet('sp_new_id', '');
         if (empty($sp_new_id)) {
-            $A['sp_id'] = COM_makesid();
+            $A['sp_id'] = COM_makesid(true);
         } else {
             $A['sp_id'] = $sp_new_id;
         }
@@ -737,9 +769,13 @@ function staticpageeditor($sp_id, $mode = '', $editor = '')
         $A['sp_help'] = '';
         $A['sp_old_id'] = '';
         $A['commentcode'] = $_SP_CONF['comment_code'];
+        $A['structured_data_type'] = $_SP_CONF['structured_data_type_default'];
+        $A['search'] = 1; // Use Default config setting
+		$A['likes'] = -1; // Use Default config setting
         $A['sp_where'] = 1; // default new pages to "top of page"
         $A['draft_flag'] = $_SP_CONF['draft_flag'];
         $A['cache_time'] = $_SP_CONF['default_cache_time'];
+        $A['sp_php'] = 0;
         $A['template_flag'] = ''; // Defaults to not a template
         $A['template_id'] = ''; // Defaults to None
 
@@ -754,7 +790,7 @@ function staticpageeditor($sp_id, $mode = '', $editor = '')
         $result = DB_query("SELECT *,UNIX_TIMESTAMP(modified) AS unixdate FROM {$_TABLES['staticpage']} WHERE sp_id = '$sp_id'" . COM_getPermSQL('AND', 0, 3));
         if (DB_numRows($result) == 1) {
             $A = DB_fetchArray($result);
-            $A['sp_id'] = COM_makesid();
+            $A['sp_id'] = COM_makesid(true);
             $A['clone_sp_id'] = $sp_id; // need this so we can load the correct topics
             $A['owner_id'] = $_USER['uid'];
             $A['unixdate'] = time();
@@ -769,6 +805,39 @@ function staticpageeditor($sp_id, $mode = '', $editor = '')
         if (empty($A['unixdate'])) {
             $A['unixdate'] = time();
         }
+
+        // If error out in editor and uses checkbox reset to how it is stored in db so function staticpageeditor_form can process it properly
+        if ($A['sp_onmenu'] == 'on') {
+            $A['sp_onmenu'] = 1;
+        }
+        if ($A['sp_onhits'] == 'on') {
+            $A['sp_onhits'] = 1;
+        }
+        if ($A['sp_onlastupdate'] == 'on') {
+            $A['sp_onlastupdate'] = 1;
+        }
+        if ($A['template_flag'] == 'on') {
+            $A['template_flag'] = 1;
+        }
+        if ($A['draft_flag'] == 'on') {
+            $A['draft_flag'] = 1;
+        }
+        if ($A['sp_nf'] == 'on') {
+            $A['sp_nf'] = 1;
+        }
+        if ($A['sp_php'] == 'on') {
+            $A['sp_php'] = 1;
+        }
+        if ($A['sp_where'] == 'on') {
+            $A['sp_where'] = 1;
+        }
+        if ($A['sp_centerblock'] == 'on') {
+            $A['sp_centerblock'] = 1;
+        }
+        if ($A['sp_inblock'] == 'on') {
+            $A['sp_inblock'] = 1;
+        }
+
         $A['sp_content'] = COM_checkHTML(COM_checkWords($A['sp_content']), 'staticpages.edit');
     }
 
@@ -787,6 +856,12 @@ function staticpageeditor($sp_id, $mode = '', $editor = '')
         }
 
         $A['editor'] = $editor;
+
+        if ($A['template_id'] != '' OR $A['template_flag'] OR $A['sp_php']) {
+            if ($mode != '') { // this can happen if error on save and the staticpage editor is reloaded
+                $A['sp_content'] = $A['page_data'];
+            }
+        }
 
         $retval = staticpageeditor_form($A);
     } else {
@@ -810,6 +885,9 @@ function staticpageeditor($sp_id, $mode = '', $editor = '')
  * @param  string $sp_onlastupdate Flag to show last update
  * @param  string $sp_label        Menu Entry
  * @param  int    $commentCode     Comment Code
+ * @param  int    $structured_data_type     Structured Data Type
+ * @param  int    $search          Search option
+ * @param  int    $likes          Likes option
  * @param  int    $owner_id        Permission bits
  * @param  int    $group_id
  * @param  int    $perm_owner
@@ -833,12 +911,12 @@ function staticpageeditor($sp_id, $mode = '', $editor = '')
  * @return int
  */
 function submitstaticpage($sp_id, $sp_title, $sp_page_title, $sp_content, $sp_hits,
-                          $sp_format, $sp_onmenu, $sp_onhits, $sp_onlastupdate, $sp_label, $commentCode,
+                          $sp_format, $sp_onmenu, $sp_onhits, $sp_onlastupdate, $sp_label, $commentCode, $structured_data_type,
                           $owner_id, $group_id, $perm_owner, $perm_group,
                           $perm_members, $perm_anon, $sp_php, $sp_nf,
                           $sp_old_id, $sp_centerblock, $sp_help,
                           $sp_where, $sp_inblock, $postMode, $meta_description,
-                          $meta_keywords, $draft_flag, $template_flag, $template_id, $cache_time,
+                          $meta_keywords, $draft_flag, $search, $likes, $template_flag, $template_id, $cache_time,
                           $sp_prev, $sp_next, $sp_parent)
 {
     $retval = '';
@@ -855,11 +933,14 @@ function submitstaticpage($sp_id, $sp_title, $sp_page_title, $sp_content, $sp_hi
         'sp_onlastupdate'  => $sp_onlastupdate,
         'sp_label'         => $sp_label,
         'commentcode'      => $commentCode,
+        'structured_data_type'      => $structured_data_type,
         'meta_description' => $meta_description,
         'meta_keywords'    => $meta_keywords,
         'template_flag'    => $template_flag,
         'template_id'      => $template_id,
         'draft_flag'       => $draft_flag,
+        'search'           => $search,
+		'likes'           => $likes,
         'cache_time'       => $cache_time,
         'owner_id'         => $owner_id,
         'group_id'         => $group_id,
@@ -964,6 +1045,7 @@ if (!empty($LANG_ADMIN['delete']) && ($mode === $LANG_ADMIN['delete']) && SEC_ch
             Geeklog\Input::post('sp_onlastupdate'),
             Geeklog\Input::post('sp_label'),
             (int) Geeklog\Input::fPost('commentcode'),
+            Geeklog\Input::fPost('structured_data_type'),
             (int) Geeklog\Input::fPost('owner_id'),
             (int) Geeklog\Input::fPost('group_id'),
             Geeklog\Input::post('perm_owner'),
@@ -981,6 +1063,8 @@ if (!empty($LANG_ADMIN['delete']) && ($mode === $LANG_ADMIN['delete']) && SEC_ch
             Geeklog\Input::post('meta_description'),
             Geeklog\Input::post('meta_keywords'),
             Geeklog\Input::post('draft_flag'),
+            (int) Geeklog\Input::fPost('search'),
+			(int) Geeklog\Input::fPost('likes'),
             Geeklog\Input::post('template_flag'),
             Geeklog\Input::post('template_id'),
             (int) Geeklog\Input::fPost('cache_time'),

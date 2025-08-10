@@ -9,7 +9,7 @@
 # Tranlated by Geeklog Japanese group SaY and Ivy
 # Copyright (C) 2008 Takahiro Kambe
 # Additional translation to Japanese by taca AT back-street DOT net
-# Copyright (C) 2006,2007,2008 Geeklog.jp group
+# Copyright (C) 2006-2008, 2019-2020 Geeklog.jp group
 # Additional translation to Japanese by Geeklog.jp group info AT geeklog DOT jp
 #
 # This program is free software; you can redistribute it and/or
@@ -70,6 +70,8 @@ $LANG_STATIC = array(
     'results' => '静的ページ検索結果',
     'author' => '所有者',
     'no_title_or_content' => 'タイトルとコンテンツを入力し、話題を少なくとも1つ選択してください。',
+    'title_error_saving' => 'このページを保存する際にエラーが発生しました',
+    'template_xml_error' => '<em>XMLのマークアップ</em>にエラーがあります。このページは他のページをテンプレートとして使用するように設定されているため、XMLマークアップを使用するテンプレート変数を定義する必要があります。詳しくは、<a href="http://wiki.geeklog.net/Static_Pages_Plugin#Template_Static_Pages" target="_blank">Geeklog Wiki</a>をご覧ください。エラーを修正しないと、このページを保存することはできません。',
     'no_such_page_anon' => 'ログインしてください。',
     'no_page_access_msg' => "この問題は、まだログインしていないか、そもそもこのサイト({$_CONF['site_name']})のメンバーではないためだと考えられます。{$_CONF['site_name']}に<a href=\"{$_CONF['site_url']}/users.php?mode=new\"> メンバー登録</a>するか、適切なアクセス権を管理者から取得してください。",
     'php_msg' => 'PHP: ',
@@ -113,6 +115,7 @@ $LANG_STATIC = array(
     'copy' => 'コピー',
     'limit_results' => '絞込検索',
     'search' => '検索',
+    'likes' => 'Likes',
     'submit' => '登録',
     'no_new_pages' => '-',
     'pages' => 'ページ',
@@ -121,27 +124,40 @@ $LANG_STATIC = array(
     'use_template' => '選択',
     'template_msg' => 'チェックした場合、静的ページをテンプレートとしてします。',
     'none' => 'なし',
-    'use_template_msg' => 'この静的ページがテンプレートでなければ、テンプレートを選んで利用できます。利用する場合は、このページのコンテンツをXML形式で記述しなければならないので注意してください。 For more information see the <a href="http://wiki.geeklog.net/Static_Pages_Plugin#Template_Static_Pages" target="_blank">Geeklog Wiki</a>.',
+    'use_template_msg' => 'この静的ページがテンプレートでなければ、テンプレートを選んで利用できます。利用する場合は、このページのコンテンツをXML形式で記述しなければならないので注意してください。詳しくは <a href="http://wiki.geeklog.net/Static_Pages_Plugin#Template_Static_Pages" target="_blank">Geeklog Wiki</a>をご覧ください。',
     'draft' => 'ドラフト',
     'draft_yes' => '○',
     'draft_no' => '-',
     'show_on_page' => 'ページに表示する',
+    'show_on_page_disabled' => '注意: 現在、この設定はコンフィギュレーションですべてのページに対して無効になっています。',
     'cache_time' => 'キャッシュタイム',
     'cache_time_desc' => 'この静的ページコンテンツはここで指定された秒数以上にキャッシュされることはありません。もしキャッシュが0ならキャッシュ無効 (3600 = 1時間,  86400 = 1日)。静的ページPHPまたはテンプレートの場合はキャッシュされません。',
-    'autotag_desc_staticpage' => '[staticpage: id alternate title] - 静的ページタイトルで静的ページへのリンクを表示。アンカーテキストの指定は任意です。',
+    'autotag_desc_staticpage' => '[staticpage: id アンカーテキスト] - 静的ページタイトルで静的ページへのリンクを表示。「アンカーテキスト」の指定は任意です。',
     'autotag_desc_staticpage_content' => '[staticpage_content: id] - 静的ページのコンテンツを表示します。',
+    'autotag_desc_page' => '[page_content: id] - 静的ページのコンテンツを表示します。',
+    'autotag_desc_page_content' => '[page_content: id] - 静的ページのコンテンツを表示します。',
     'yes' => 'はい',
     'used_by' => 'このテンプレートを使用しているのは %s ページです。他のテンプレートの自動タグを経由して間接的に使用されている場合は、使用ページはもっと多いかもしれません。',
     'prev_page' => '前のページ',
     'next_page' => '次のページ',
     'parent_page' => '親ページ',
-    'page_desc' => 'Setting a previous and/or next page will add HTML link elements rel=”next” and rel=”prev” to the header to indicate the relationship between pages in a paginated series. Actual page navigation links are not added to the page. You have to add these yourself. NOTE: Parent page is currently not being used.'
+    'page_desc' => '「前のページ」や「次のページ」を指定すると、HTMLのヘッダーに rel=”next” と rel=”prev” を追加します。表示用のナビゲーションは別に追加してください。注意: 「親ページ」は現在、使用されていません。',
+    'num_pages' => '%s ページ',
+    'search_desc' => '検索対象にするかどうかを指定します。既定値はコンフィギュレーションの設定とページの種類(センターブロックに表示するか、テンプレートを使用するか、PHPを使用するかどうか)で決まります。',
+    'likes_desc' => 'likesコントロールの表示方法を決めます。既定値はプラグインの既定値で決まります。センターブロックに表示するページではlikesコントロールを表示しません。テンプレートのページではこの設定を使用しません。'
+);
+
+$LANG_staticpages_search = array(
+    0 => '除外する',
+    1 => '既定値を使用する',
+    2 => '含める'
 );
 
 $PLG_staticpages_MESSAGE15 = 'あなたのコメントは投稿スタッフによる承認待ちとなっていて、承認が済むとサイトに表示します。';
 $PLG_staticpages_MESSAGE19 = '静的ページを保存しました。';
 $PLG_staticpages_MESSAGE20 = '静的ページを削除しました。';
 $PLG_staticpages_MESSAGE21 = 'このページはまだ存在しません。ページを作成するには、下のフォームにすべてを入力してください。何かの間違いでしたらキャンセルボタンをクリックしてください。';
+$PLG_staticpages_MESSAGE22 = '静的ページを削除できませんでした。このページは他の静的ページのテンプレートとして使用されています。';
 
 // Messages for the plugin upgrade
 $PLG_staticpages_MESSAGE3001 = 'プラグインはアップグレードをサポートしていません。';
@@ -155,6 +171,7 @@ $LANG_configsections['staticpages'] = array(
 
 $LANG_confignames['staticpages'] = array(
     'allow_php' => 'PHPを許可する',
+    'enable_eval_php_save' => 'ページを保存するときにPHPをパースする',
     'sort_by' => 'センターブロックの並べ替え',
     'sort_menu_by' => 'メニューの並べ替え',
     'sort_list_by' => '管理者ページの並べ替え',
@@ -170,7 +187,9 @@ $LANG_confignames['staticpages'] = array(
     'aftersave' => 'ページ保存後の画面遷移',
     'atom_max_items' => 'フィードに書き出す最大ページ数',
     'meta_tags' => 'メタタグを有効にする',
+    'likes_pages' => 'ページのLikes',
     'comment_code' => '新規作成時のデフォルト',
+    'structured_data_type_default' => '構造化データタイプのデフォルト',
     'draft_flag' => 'ドラフトモードをデフォルトにする',
     'disable_breadcrumbs_staticpages' => 'パンくずリストを無効にする',
     'default_cache_time' => 'デフォルトキャッシュタイム',
@@ -181,7 +200,8 @@ $LANG_confignames['staticpages'] = array(
     'includephp' => 'PHPモードの静的ページを含む',
     'includesearch' => '静的ページを検索する',
     'includesearchcenterblocks' => 'センターブロックの静的ページを含む',
-    'includesearchphp' => '静的ページPHPを含む'
+    'includesearchphp' => '静的ページPHPを含む',
+    'includesearchtemplate' => 'テンプレートページを含む'
 );
 
 $LANG_configsubgroups['staticpages'] = array(
@@ -215,5 +235,7 @@ $LANG_configselects['staticpages'] = array(
     9 => array('ページを表示' => 'item', 'リストを表示' => 'list', 'ホームを表示' => 'home', '管理画面のトップを表示' => 'admin'),
     12 => array('アクセス不可' => 0, '表示' => 2, '表示・編集' => 3),
     13 => array('アクセス不可' => 0, '利用する' => 2),
-    17 => array('コメント有効' => 0, 'コメント無効' => -1)
+    17 => array('コメント有効' => 0, 'コメント無効' => -1),
+    39 => array('なし' => '', 'Webページ' => 'core-webpage', '記事' => 'core-article', 'ニュース記事' => 'core-newsarticle', 'ブログ記事' => 'core-blogposting'),
+    41 => array('なし' => 0, 'LikesとDislikes' => 1, 'Likesのみ' => 2)
 );

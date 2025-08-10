@@ -38,6 +38,8 @@
  * group membership.
  */
 
+use Geeklog\Input;
+
 /**
  * Geeklog common function library
  */
@@ -76,7 +78,7 @@ if (!SEC_hasRights('user.edit')) {
  */
 function edituser($uid = 0, $msg = 0)
 {
-    global $_CONF, $_TABLES, $_USER, $LANG28, $LANG04, $LANG_ACCESS, $LANG_ADMIN, $MESSAGE, $LANG_configselects, $LANG_confignames;
+    global $_CONF, $_TABLES, $_USER, $LANG28, $LANG04, $LANG12, $LANG_ACCESS, $LANG_ADMIN, $MESSAGE, $LANG_configselects, $LANG_confignames, $LANG_postmodes;
 
     require_once $_CONF['path_system'] . 'lib-admin.php';
 
@@ -110,7 +112,7 @@ function edituser($uid = 0, $msg = 0)
 
             return $retval;
         }
-        $resultB = DB_query("SELECT about, pgpkey, location FROM {$_TABLES['userinfo']} WHERE uid = $uid");
+        $resultB = DB_query("SELECT about, pgpkey, location FROM {$_TABLES['user_attributes']} WHERE uid = $uid");
         $B = DB_fetchArray($resultB);
         $newuser = false;
         $A['about'] = $B['about'];
@@ -118,7 +120,7 @@ function edituser($uid = 0, $msg = 0)
         $A['location'] = $B['location'];
 
         $curtime = COM_getUserDateTimeFormat($A['regdate']);
-        $lastlogin = DB_getItem($_TABLES['userinfo'], 'lastlogin', "uid = '$uid'");
+        $lastlogin = DB_getItem($_TABLES['user_attributes'], 'lastlogin', "uid = '$uid'");
         $lasttime = COM_getUserDateTimeFormat($lastlogin);
     } else {
         $newuser = true;
@@ -129,9 +131,10 @@ function edituser($uid = 0, $msg = 0)
         $lasttime = '';
         $A['status'] = USER_ACCOUNT_ACTIVE;
         $A['location'] = '';
-        $A['pgpkey'] = '';
+		$A['postmode'] = 'plaintext';
         $A['sig'] = '';
         $A['about'] = '';
+		$A['pgpkey'] = '';
     }
 
     // POST data can override, in case there was an error while editing a user
@@ -150,21 +153,35 @@ function edituser($uid = 0, $msg = 0)
     if (isset($_POST['location'])) {
         $A['location'] = GLText::stripTags($_POST['location']);
     }
-    if (isset($_POST['sig'])) {
-        $A['sig'] = GLText::stripTags($_POST['sig']);
-    }
+    if (isset($_POST['postmode'])) {
+		$A['postmode'] = ($A['postmode']=== 'html') ? 'html' : 'plaintext';
+	}
+    if ($A['postmode'] === 'html') {
+        // HTML
+		if (isset($_POST['sig'])) {
+			$A['sig'] = GLText::checkHTML(GLText::remove4byteUtf8Chars($_POST['sig']), '');
+		}
+		if (isset($_POST['about'])) {
+			$A['about'] = GLText::checkHTML(GLText::remove4byteUtf8Chars($_POST['about']), '');
+		}
+    } else {
+        // Plaintext
+		if (isset($_POST['sig'])) {
+			$A['sig'] = GLText::stripTags(GLText::remove4byteUtf8Chars($_POST['sig']));
+		}
+		if (isset($_POST['about'])) {
+			$A['about'] = GLText::stripTags(GLText::remove4byteUtf8Chars($_POST['about']));
+		}
+    }	
     if (isset($_POST['pgpkey'])) {
         $A['pgpkey'] = GLText::stripTags($_POST['pgpkey']);
-    }
-    if (isset($_POST['about'])) {
-        $A['about'] = GLText::stripTags($_POST['about']);
     }
     if (isset($_POST['userstatus'])) {
         $A['status'] = COM_applyFilter($_POST['userstatus'], true);
     }
     if (isset($_POST['twofactorauth_enabled'])) {
         $A['twofactorauth_enabled'] = COM_applyFilter($_POST['twofactorauth_enabled'], true);
-    }    
+    }
 
     $token = SEC_createToken();
 
@@ -220,8 +237,16 @@ function edituser($uid = 0, $msg = 0)
             $remoteservice = '@' . $A['remoteservice'];
         }
     }
+    // Always show if account is a remote service
+    if (!empty($A['remoteservice'])) {
+        $user_templates->set_var('lang_convert_remote', $LANG28['convert_remote']);
+        $user_templates->set_var('lang_convert_remote_tooltip', COM_getTooltip('', $LANG28['convert_remote_desc'], '', '', 'information'));
+        $user_templates->set_var('lang_convert_remote_desc', $LANG28['convert_remote_desc']);
+    }
+
     $user_templates->set_var('remoteservice', $remoteservice);
 
+    $user_templates->clear_var('show_delete_photo');
     if ($_CONF['allow_user_photo'] && ($A['uid'] > 0)) {
         $photo = USER_getPhoto($A['uid'], $A['photo'], $A['email'], -1);
         $user_templates->set_var('user_photo', $photo);
@@ -229,6 +254,7 @@ function edituser($uid = 0, $msg = 0)
             $user_templates->clear_var('lang_delete_photo');
         } else {
             $user_templates->set_var('lang_delete_photo', $LANG28[28]);
+            $user_templates->set_var('show_delete_photo', true); // Only show delete photo if no user photo or no site default user photo
         }
     } else {
         $user_templates->clear_var('user_photo');
@@ -262,7 +288,7 @@ function edituser($uid = 0, $msg = 0)
     } else {
         $user_templates->set_var('user_email', '');
     }
-    
+
     // Two Factor Auth
     if (!$newuser && isset($_CONF['enable_twofactorauth']) && $_CONF['enable_twofactorauth']) {
         $enableTfaOptions = '';
@@ -271,19 +297,19 @@ function edituser($uid = 0, $msg = 0)
             $enableTfaOptions .= '<option value="' . $value . '"'
                 . ($selected ? ' selected="selected"' : '') . '>'
                 . $text . '</option>' . PHP_EOL;
-        }    
-        
+        }
+
         $user_templates->set_var(array(
             'enable_twofactorauth'      => true,
-            'lang_tfa_two_factor_auth'  => $LANG04['tfa_two_factor_auth'], 
-            'lang_tfa_user_edit_desc'   => $LANG04['lang_tfa_user_edit_desc'], 
+            'lang_tfa_two_factor_auth'  => $LANG04['tfa_two_factor_auth'],
+            'lang_tfa_user_edit_desc'   => $LANG04['lang_tfa_user_edit_desc'],
             'lang_enable_twofactorauth' => $LANG_confignames['Core']['enable_twofactorauth'],
             'enable_tfa_options'        => $enableTfaOptions
         ));
     } else {
         $user_templates->set_var('enable_twofactorauth', false);
     }
-    
+
     $user_templates->set_var('lang_homepage', $LANG28[8]);
     if (isset($A['homepage'])) {
         $user_templates->set_var('user_homepage',
@@ -295,17 +321,37 @@ function edituser($uid = 0, $msg = 0)
 
     $user_templates->set_var('lang_location', $LANG04[106]);
     $user_templates->set_var('user_location', htmlspecialchars($A['location']));
+	$user_templates->set_var('lang_postmode', $LANG12[36]);
+    $user_templates->set_var('lang_plaintext', $LANG_postmodes['plaintext']);
+    $user_templates->set_var('lang_html', $LANG_postmodes['html']);
+    $user_templates->set_var('lang_postmode_text', $LANG04[171]);
+	$postMode = $A['postmode'];
+    $user_templates->set_var(array(
+        'plaintext_selected' => (($postMode === 'plaintext') ? ' selected="selected"' : ''),
+        'html_selected'      => (($postMode === 'html') ? ' selected="selected"' : ''),
+    ));
     $user_templates->set_var('lang_signature', $LANG04[32]);
-    $user_templates->set_var('user_signature', htmlspecialchars($A['sig']));
+    $user_templates->set_var(
+        'user_signature',
+        GLText::getEditText($A['sig'], $postMode, GLTEXT_LATEST_VERSION)
+    );	
+    $user_templates->set_var('lang_about', $LANG04[7]);
+    $user_templates->set_var(
+        'user_about',
+        GLText::getEditText($A['about'], $postMode, GLTEXT_LATEST_VERSION)
+    );	
     $user_templates->set_var('lang_pgpkey', $LANG04[8]);
     $user_templates->set_var('user_pgpkey', htmlspecialchars($A['pgpkey']));
-    $user_templates->set_var('lang_about', $LANG04[130]);
-    $user_templates->set_var('user_about', htmlspecialchars($A['about']));
 
     $statusarray = array(
-        USER_ACCOUNT_AWAITING_ACTIVATION => $LANG28[43],
         USER_ACCOUNT_ACTIVE              => $LANG28[45],
     );
+
+    // Only show Awaiting Activation status if user already this status as this is an automated status and should not be set by Admin
+    // Admin should use USER_ACCOUNT_NEW_EMAIL instead
+    if ($A['status'] == USER_ACCOUNT_AWAITING_ACTIVATION && !empty($uid)) {
+        $statusarray[USER_ACCOUNT_AWAITING_ACTIVATION] = $LANG28[43];
+    }
 
     $allow_other_statuses = true;
     // do not allow to ban yourself or forcing new email or password
@@ -332,7 +378,9 @@ function edituser($uid = 0, $msg = 0)
         }
     }
 
-    if (($_CONF['usersubmission'] == 1) && !empty($uid)) {
+    // If this status then $_CONF['usersubmission'] == 1 better be true
+    // Only show Awaiting Authorization status if user already this status as this is an automated status and should not be set by Admin
+    if (($A['status'] == USER_ACCOUNT_AWAITING_APPROVAL) && !empty($uid)) {
         $statusarray[USER_ACCOUNT_AWAITING_APPROVAL] = $LANG28[44];
     }
     asort($statusarray);
@@ -351,6 +399,7 @@ function edituser($uid = 0, $msg = 0)
     ));
     $user_templates->set_var('user_status', $statusselect);
     $user_templates->set_var('lang_user_status', $LANG28[46]);
+    $user_templates->set_var('lang_user_status_desc', $LANG28['user_status_desc']);
 
     if ($_CONF['custom_registration'] AND function_exists('CUSTOM_userEdit')) {
         if (!empty($uid) && ($uid > 1)) {
@@ -520,7 +569,7 @@ function listusers()
     $join_userinfo = '';
     $select_userinfo = '';
     if ($_CONF['lastlogin']) {
-        $join_userinfo .= "LEFT JOIN {$_TABLES['userinfo']} ON {$_TABLES['users']}.uid={$_TABLES['userinfo']}.uid ";
+        $join_userinfo .= "LEFT JOIN {$_TABLES['user_attributes']} ON {$_TABLES['users']}.uid={$_TABLES['user_attributes']}.uid ";
         $select_userinfo .= ",lastlogin";
     }
     if ($_CONF['user_login_method']['openid'] ||
@@ -556,20 +605,24 @@ function listusers()
  * @param    string $homepage     user's homepage URL
  * @param    array  $groups       groups the user belongs to
  * @param    string $delete_photo delete user's photo if == 'on'
+ * @param    string $convert_remote  Convert remote account to local if 'on'
  * @return   string                  HTML redirect or error message
  */
-function saveusers($uid, $username, $fullname, $passwd, $passwd_conf, $email, $regdate, $homepage, $location, $signature, $pgpkey, $about, $groups, $delete_photo = '', $userstatus = 3, $oldstatus = 3, $enable_twofactorauth = 0)
+function saveusers($uid, $username, $fullname, $passwd, $passwd_conf, $email, $regdate, $homepage, $location, $postmode, $signature, $pgpkey, $about, $groups, $delete_photo = '', $convert_remote = '', $userstatus = 3, $oldstatus = 3, $enable_twofactorauth = 0)
 {
-    global $_CONF, $_TABLES, $_USER, $LANG04, $LANG28, $_USER_VERBOSE;
+    global $_CONF, $_TABLES, $_USER, $LANG04, $LANG28, $LANG31, $_USER_VERBOSE;
 
     $retval = '';
     $userChanged = false;
+
+    $username = trim($username);
 
     if ($_USER_VERBOSE) {
         COM_errorLog("**** entering saveusers****", 1);
         COM_errorLog("group size at beginning = " . count($groups), 1);
     }
 
+	$passwd_changed = false;
     $service = DB_getItem($_TABLES['users'], 'remoteservice', "uid = $uid");
     // If remote service then assume blank password
     if (!empty($service)) {
@@ -580,17 +633,37 @@ function saveusers($uid, $username, $fullname, $passwd, $passwd_conf, $email, $r
         if ($userstatus == USER_ACCOUNT_NEW_PASSWORD) {
              $userstatus = USER_ACCOUNT_ACTIVE;
         }
-    }
+    } else {
+		if (empty($uid)) {
+			// New User
+			$passwd_changed = true;
+		} else {
+			// See if existing user and text in password field
+			if (empty($passwd)) {
+				$passwd = '';
+				$passwd_conf = '';
+			} else {
+				$passwd_changed = true;
+			}
+		}
 
-    $passwd_changed = true;
-    if (empty($service) && (SEC_encryptUserPassword($passwd, $uid) === 0) && ($passwd_conf === '')) {
-        $passwd_changed = false;
-    }
+		// Allows actual current password to be entered and validated if password confirmed field is empty
+		// Not sure the reason for this but left it in but added check for existing user... (as of Geeklog 2.2.2)
+		if (!empty($uid)) { // Only for existing users
+			if ((SEC_encryptUserPassword($passwd, $uid) === 0) && ($passwd_conf === '')) {
+				$passwd_changed = false;
+			}
+		}
 
-    if ($passwd_changed && ($passwd != $passwd_conf)) { // passwords don't match
-        return edituser($uid, 67);
-    }
-
+		if ($passwd_changed && ($passwd != $passwd_conf)) { // passwords don't match
+			return edituser($uid, 67);
+		}
+		
+		if ($passwd_changed && !SEC_checkPasswordStrength($passwd)) { // Strong Passwords
+			return edituser($uid, 504);
+		}
+	}
+	
     $nameAndEmailOkay = true;
     if (empty($username)) {
         $nameAndEmailOkay = false;
@@ -610,17 +683,11 @@ function saveusers($uid, $username, $fullname, $passwd, $passwd_conf, $email, $r
         }
 
         $uname = DB_escapeString($username);
+        // Remember some database collations are case and accent insensitive and some are not. They would consider "nina", "nina  ", "Nina", and, "niña" as the same
         if (empty($uid)) {
-            $ucount = DB_getItem($_TABLES['users'], 'COUNT(*)', "username = '$uname'");
+            $ucount = DB_getItem($_TABLES['users'], 'COUNT(*)', "TRIM(LOWER(username)) = TRIM(LOWER('$uname'))");
         } else {
-            if (!empty($service)) {
-                $uservice = DB_escapeString($service);
-                $ucount = DB_getItem($_TABLES['users'], 'COUNT(*)',
-                    "username = '$uname' AND uid <> $uid AND remoteservice = '$uservice'");
-            } else {
-                $ucount = DB_getItem($_TABLES['users'], 'COUNT(*)',
-                    "username = '$uname' AND uid <> $uid AND (remoteservice = '' OR remoteservice IS NULL)");
-            }
+            $ucount = DB_getItem($_TABLES['users'], 'COUNT(*)', "TRIM(LOWER(username)) = TRIM(LOWER('$uname')) AND uid <> $uid");
         }
         if ($ucount > 0) {
             // Admin just changed a user's username to one that already exists
@@ -662,17 +729,26 @@ function saveusers($uid, $username, $fullname, $passwd, $passwd_conf, $email, $r
         }
 
         // basic filtering only (same as in usersettings.php)
-        $fullname = GLText::stripTags(GLText::remove4byteUtf8Chars(COM_stripslashes($fullname)));
-        $location = GLText::stripTags(GLText::remove4byteUtf8Chars(COM_stripslashes($location)));
-        $signature = GLText::stripTags(GLText::remove4byteUtf8Chars(COM_stripslashes($signature)));
-        $about = GLText::stripTags(GLText::remove4byteUtf8Chars(COM_stripslashes($about)));
-        $pgpkey = GLText::stripTags(GLText::remove4byteUtf8Chars(COM_stripslashes($pgpkey)));
+        $fullname = GLText::stripTags(GLText::remove4byteUtf8Chars($fullname));
+        $location = GLText::stripTags(GLText::remove4byteUtf8Chars($location));
+		$postmode = ($postmode === 'html') ? 'html' : 'plaintext';
+		if ($postmode === 'html') {
+			// HTML
+			$A['sig'] = GLText::checkHTML(GLText::remove4byteUtf8Chars($signature), '');
+			$A['about'] = GLText::checkHTML(GLText::remove4byteUtf8Chars($about), '');
+		} else {
+			// Plaintext
+			$A['sig'] = GLText::stripTags(GLText::remove4byteUtf8Chars($signature));
+			$A['about'] = GLText::stripTags(GLText::remove4byteUtf8Chars($about));
+		}
+        $pgpkey = GLText::stripTags(GLText::remove4byteUtf8Chars($pgpkey));
 
         // Escape these here since used both in new and updates
         $location = DB_escapeString($location);
+		$postmode = DB_escapeString($postmode);
         $signature = DB_escapeString($signature);
-        $pgpkey = DB_escapeString($pgpkey);
         $about = DB_escapeString($about);
+		$pgpkey = DB_escapeString($pgpkey);
 
         $emailData = array(
             'username' => $username,
@@ -689,8 +765,8 @@ function saveusers($uid, $username, $fullname, $passwd, $passwd_conf, $email, $r
             }
 
             $uid = USER_createAccount($username, $email, $passwd, $fullname, $homepage);
-            DB_query("UPDATE {$_TABLES['users']} SET sig = '$signature' WHERE uid = $uid");
-            DB_query("UPDATE {$_TABLES['userinfo']} SET pgpkey='$pgpkey',about='$about',location='$location' WHERE uid=$uid");
+            DB_query("UPDATE {$_TABLES['users']} SET sig = '$signature', postmode='$postmode' WHERE uid = $uid");
+            DB_query("UPDATE {$_TABLES['user_attributes']} SET pgpkey='$pgpkey',about='$about',location='$location' WHERE uid=$uid");
 
             if ($uid > 1) {
                 DB_query("UPDATE {$_TABLES['users']} SET status = $userstatus WHERE uid = $uid");
@@ -699,7 +775,7 @@ function saveusers($uid, $username, $fullname, $passwd, $passwd_conf, $email, $r
             $emailData['is_new_user'] = false;
 
             // Do these ones here since USER_createAccount will do its own filtering
-            $fullname = DB_escapeString($fullname);
+            $escFullName = DB_escapeString($fullname);
             $homepage = DB_escapeString($homepage);
 
             $curphoto = DB_getItem($_TABLES['users'], 'photo', "uid = $uid");
@@ -725,9 +801,9 @@ function saveusers($uid, $username, $fullname, $passwd, $passwd_conf, $email, $r
             }
 
             $username = GLText::remove4byteUtf8Chars($username);
-            $username = DB_escapeString($username);
+            $escUserName = DB_escapeString($username);
             $curphoto = DB_escapeString($curphoto);
-            
+
             // Only allow Admins to disable other users 2 Factor Authentication (if enabled for entire site)
             if (!$enable_twofactorauth && isset($_CONF['enable_twofactorauth']) && $_CONF['enable_twofactorauth']) {
                 $sql_enable_twofactorauth = ", twofactorauth_enabled = $enable_twofactorauth, twofactorauth_secret = '' ";
@@ -736,20 +812,27 @@ function saveusers($uid, $username, $fullname, $passwd, $passwd_conf, $email, $r
                 $sql_enable_twofactorauth = ""; // Only allowed to disable
             }
 
-            DB_query("UPDATE {$_TABLES['users']} SET username = '$username', fullname = '$fullname', email = '$email', homepage = '$homepage', sig = '$signature', photo = '$curphoto', status = '$userstatus' $sql_enable_twofactorauth WHERE uid = $uid");
-            DB_query("UPDATE {$_TABLES['userinfo']} SET pgpkey='$pgpkey',about='$about',location='$location' WHERE uid=$uid");
-            if ($passwd_changed && !empty($passwd)) {
+            DB_query("UPDATE {$_TABLES['users']} SET username = '{$escUserName}', fullname = '{$escFullName}', email = '$email', homepage = '$homepage', sig = '$signature', postmode='$postmode', photo = '$curphoto', status = '$userstatus' $sql_enable_twofactorauth WHERE uid = {$uid}");
+            DB_query("UPDATE {$_TABLES['user_attributes']} SET pgpkey='$pgpkey',about='$about',location='$location' WHERE uid=$uid");
+            if ($passwd_changed) {
                 SEC_updateUserPassword($passwd, $uid);
             }
             if ($_CONF['custom_registration'] AND (function_exists('CUSTOM_userSave'))) {
                 CUSTOM_userSave($uid);
             }
-            if (($_CONF['usersubmission'] == 1) && ($oldstatus == USER_ACCOUNT_AWAITING_APPROVAL)
-                && ($userstatus == USER_ACCOUNT_ACTIVE)
-            ) {
+
+            $curremote = DB_getItem($_TABLES['users'], 'remoteservice', "uid = $uid");
+            $user_convert = 0;
+            if (!empty($curremote) && ($convert_remote == 'on')) {
+                $user_convert = USER_convertRemote($uid);
+                $curremote = '';
+            }
+
+            // If user submission that meets conditions make sure password email not already sent with remote account conversion
+            if (($_CONF['usersubmission'] == 1) && ($oldstatus == USER_ACCOUNT_AWAITING_APPROVAL) && ($userstatus == USER_ACCOUNT_ACTIVE) && ($user_convert != 2)) {
                 USER_createAndSendPassword($username, $email, $uid);
             }
-            
+
             // When the admin has disabled Two Factor Authentication, invalidate secret code and all the backup codes he/she might have
             if (!$enable_twofactorauth) {
                 DB_query(
@@ -758,10 +841,10 @@ function saveusers($uid, $username, $fullname, $passwd, $passwd_conf, $email, $r
                 );
                 $tfa = new Geeklog\TwoFactorAuthentication($uid);
                 $tfa->invalidateBackupCodes();
-            }            
+            }
 
             if ($userstatus == USER_ACCOUNT_DISABLED) {
-                SESS_endUserSession($uid);
+                SESS_deleteUserSessions($uid);
             }
             $userChanged = true;
         }
@@ -818,28 +901,38 @@ function saveusers($uid, $username, $fullname, $passwd, $passwd_conf, $email, $r
         }
 
         // Send password to the user
-        if (!empty($uid) && ($uid > 1) &&
-            (\Geeklog\Input::fPost('send_passwd') === 'on') &&
-            ($emailData['is_new_user'] || $passwd_changed)) {
-            $subject = $_CONF['site_name'] . ': ' . $LANG04[16];
-            $mailText = $emailData['is_new_user'] ? $LANG04[15] : $LANG04[170];
-            $mailText .= "\n\n"
-                . $LANG04[2] . ": {$emailData['username']}\n"
-                . $LANG04[4] . ": {$emailData['password']}\n\n"
-                . $LANG04[14] . "\n\n"
-                . $_CONF['site_name'] . "\n"
-                . $_CONF['site_url'] . "\n";
+        if (!empty($uid) && ($uid > 1) && (Input::fPost('send_passwd') === 'on') && ($emailData['is_new_user'] || $passwd_changed)) {
+			// Create HTML and plaintext version of email
+			$t = COM_newTemplate(CTL_core_templatePath($_CONF['path_layout'] . 'emails/'));
+			
+			$t->set_file(array('email_html' => 'user_send_password-html.thtml'));
+			// Remove line feeds from plain text templates since required to use {LB} template variable
+			$t->preprocess_fn = "CTL_removeLineFeeds"; // Set preprocess_fn before the template file you want to use it on		
+			$t->set_file(array('email_plaintext' => 'user_send_password-plaintext.thtml'));
 
-            if (!empty($_CONF['noreply_mail']) && ($_CONF['site_mail'] !== $_CONF['noreply_mail'])) {
-                $mailFrom = $_CONF['noreply_mail'];
-                $mailText .= "\n\n\n\n" . $LANG04[159];
-            } else {
-                $mailFrom = $_CONF['site_mail'];
-            }
+			$t->set_var('email_divider', $LANG31['email_divider']);
+			$t->set_var('email_divider_html', $LANG31['email_divider_html']);
+			$t->set_var('LB', LB);
+			
+			$t->set_var('lang_user_password_msg', $emailData['is_new_user'] ? $LANG04[15] : $LANG04[170]);
+			$t->set_var('lang_username', $LANG04[2]);
+			$t->set_var('username', $username);			
+			$t->set_var('lang_new_password', $LANG04[4]);
+			$t->set_var('password', $emailData['password']);			
+			$t->set_var('lang_password_msg', $LANG04[14]);
+			$t->set_var('site_name', $_CONF['site_name']);
+			$t->set_var('site_url', $_CONF['site_url']);
+			$t->set_var('site_slogan', $_CONF['site_slogan']);			
 
-            if (!COM_mail($emailData['email'], $subject, $mailText, $mailFrom)) {
+			// Output final content
+			$message[] = $t->parse('output', 'email_html');	
+			$message[] = $t->parse('output', 'email_plaintext');
+			
+			$mailSubject = $_CONF['site_name'] . ': ' . $LANG04[16];
+			
+			if (!COM_mail($emailData['email'], $mailSubject, $message, '', true)) {			
                 COM_errorLog(sprintf('failed to send a new password to user (uid: %d)', $uid));
-            }
+            }			
         }
 
         if ($userChanged) {
@@ -1008,6 +1101,7 @@ function batchdelete()
     }
 
     $header_arr[] = array('text' => $LANG28[7], 'field' => 'email', 'sort' => true);
+    $header_arr[] = array('text' => $LANG28['contributed'], 'field' => 'contributed', 'sort' => false);
     $header_arr[] = array('text' => $LANG28[87], 'field' => 'num_reminders', 'sort' => true);
     $menu_arr = array(
         array('url'  => $_CONF['site_admin_url'] . '/user.php',
@@ -1033,7 +1127,7 @@ function batchdelete()
         'direction' => 'ASC',
     );
 
-    $join_userinfo = "LEFT JOIN {$_TABLES['userinfo']} ON {$_TABLES['users']}.uid={$_TABLES['userinfo']}.uid ";
+    $join_userinfo = "LEFT JOIN {$_TABLES['user_attributes']} ON {$_TABLES['users']}.uid={$_TABLES['user_attributes']}.uid ";
     $select_userinfo = ", lastlogin as lastlogin_short $list_sql ";
 
     $sql = "SELECT {$_TABLES['users']}.uid,username,fullname,email,photo,status,regdate,num_reminders$select_userinfo "
@@ -1123,7 +1217,7 @@ function batchdeleteexec()
  */
 function batchreminders()
 {
-    global $_CONF, $_TABLES, $LANG04, $LANG28;
+    global $_CONF, $_TABLES, $LANG04, $LANG28, $LANG31;
 
     $msg = '';
     $user_list = Geeklog\Input::fPost('delitem', array());
@@ -1138,40 +1232,45 @@ function batchreminders()
             $userid = (int) $delitem;
             $useremail = DB_getItem($_TABLES['users'], 'email', "uid = '{$userid}'");
             $username = DB_getItem($_TABLES['users'], 'username', "uid = '{$userid}'");
-            $lastlogin = DB_getItem($_TABLES['userinfo'], 'lastlogin', "uid = '{$userid}'");
+            $lastlogin = DB_getItem($_TABLES['user_attributes'], 'lastlogin', "uid = '{$userid}'");
             $lasttime = COM_getUserDateTimeFormat($lastlogin);
-            if (file_exists($_CONF['path_data'] . 'reminder_email.txt')) {
-                $template = COM_newTemplate(CTL_core_templatePath($_CONF['path_data']));
-                $template->set_file(array('mail' => 'reminder_email.txt'));
-                $template->set_var('site_name', $_CONF['site_name']);
-                $template->set_var('site_slogan', $_CONF['site_slogan']);
-                $template->set_var('lang_username', $LANG04[2]);
-                $template->set_var('username', $username);
-                $template->set_var('name', COM_getDisplayName($userid));
-                $template->set_var('lastlogin', $lasttime[0]);
+			
+			// Create HTML and plaintext version of email
+			$t = COM_newTemplate(CTL_core_templatePath($_CONF['path_layout'] . 'emails/'));
+			
+			$t->set_file(array('email_html' => 'user_login_reminder-html.thtml'));
+			// Remove line feeds from plain text templates since required to use {LB} template variable
+			$t->preprocess_fn = "CTL_removeLineFeeds"; // Set preprocess_fn before the template file you want to use it on		
+			$t->set_file(array('email_plaintext' => 'user_login_reminder-plaintext.thtml'));
 
-                $template->parse('output', 'mail');
-                $mailtext = $template->finish($template->get_var('output'));
-            } else {
-                if ($lastlogin == 0) {
-                    $mailtext = $LANG28[83] . "\n\n";
-                } else {
-                    $mailtext = sprintf($LANG28[82], $lasttime[0]) . "\n\n";
-                }
-                $mailtext .= sprintf($LANG28[84], $username) . "\n";
-                $mailtext .= sprintf($LANG28[85], $_CONF['site_url']
-                        . '/users.php?mode=getpassword') . "\n\n";
+			$t->set_var('email_divider', $LANG31['email_divider']);
+			$t->set_var('email_divider_html', $LANG31['email_divider_html']);
+			$t->set_var('LB', LB);
+			
+			if ($lastlogin == 0) {
+				$t->set_var('lang_account_access_msg', $LANG28[83]); 
+			} else {
+				$t->set_var('lang_account_access_msg', sprintf($LANG28[82], $lasttime[0])); 
+			}			
+			$t->set_var('lang_login_info_msg', sprintf($LANG28[84], $username)); 
+			$t->set_var('lang_retrieve_password_msg', $LANG28[85]);
+			$t->set_var('new_password_url', $_CONF['site_url'] . '/users.php?mode=getpassword'); 
 
-            }
-            $subject = sprintf($LANG28[81], $_CONF['site_name']);
-            if ($_CONF['site_mail'] !== $_CONF['noreply_mail']) {
-                $mailfrom = $_CONF['noreply_mail'];
-                $mailtext .= LB . LB . $LANG04[159];
-            } else {
-                $mailfrom = $_CONF['site_mail'];
-            }
+			$t->set_var('lang_username', $LANG04[2]);
+			$t->set_var('username', $username);
+			$t->set_var('name', COM_getDisplayName($userid));
+			
+			$t->set_var('site_name', $_CONF['site_name']);
+			$t->set_var('site_url', $_CONF['site_url']);
+			$t->set_var('site_slogan', $_CONF['site_slogan']);			
 
-            if (COM_mail($useremail, $subject, $mailtext, $mailfrom)) {
+			// Output final content
+			$message[] = $t->parse('output', 'email_html');	
+			$message[] = $t->parse('output', 'email_plaintext');
+			
+			$mailSubject = sprintf($LANG28[81], $_CONF['site_name']);
+			
+			if (COM_mail($useremail, $mailSubject, $message, '', true)) {
                 DB_query("UPDATE {$_TABLES['users']} SET num_reminders=num_reminders+1 WHERE uid=$userid");
                 $c++;
             } else {
@@ -1403,6 +1502,7 @@ if (($mode == $LANG_ADMIN['delete']) && !empty($LANG_ADMIN['delete'])) { // dele
     }
 } elseif (!empty($LANG_ADMIN['save']) && ($mode == $LANG_ADMIN['save']) && SEC_checkToken()) { // save
     $delphoto = Geeklog\Input::post('delete_photo', '');
+    $convertremote = Geeklog\Input::post('convert_remote', '');
     if (!isset($_POST['oldstatus'])) {
         $_POST['oldstatus'] = USER_ACCOUNT_ACTIVE;
     }
@@ -1416,11 +1516,11 @@ if (($mode == $LANG_ADMIN['delete']) && !empty($LANG_ADMIN['delete'])) { // dele
     } else {
         $passwd = Geeklog\Input::post('passwd', '');
         $passwd_conf = Geeklog\Input::post('passwd_conf', '');
-        
+
         $enable_twofactorauth = (int) Geeklog\Input::fPost('enable_twofactorauth', 0);
         if (($enable_twofactorauth !== 0) && ($enable_twofactorauth !== 1)) {
             $enable_twofactorauth = 0;
-        }        
+        }
 
         $display = saveusers(
             $uid,
@@ -1431,10 +1531,11 @@ if (($mode == $LANG_ADMIN['delete']) && !empty($LANG_ADMIN['delete'])) { // dele
             Geeklog\Input::post('regdate'),
             Geeklog\Input::post('homepage'),
             Geeklog\Input::post('location'),
+			Geeklog\Input::post('postmode'),
             Geeklog\Input::post('sig'),
             Geeklog\Input::post('pgpkey'),
             Geeklog\Input::post('about'),
-            Geeklog\Input::post('groups'), $delphoto,
+            Geeklog\Input::post('groups'), $delphoto, $convertremote,
             Geeklog\Input::post('userstatus'),
             Geeklog\Input::post('oldstatus'),
             $enable_twofactorauth

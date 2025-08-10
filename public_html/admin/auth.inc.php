@@ -8,7 +8,7 @@
 // |                                                                           |
 // | Geeklog admin authentication module                                       |
 // +---------------------------------------------------------------------------+
-// | Copyright (C) 2000-2010 by the following authors:                         |
+// | Copyright (C) 2000-2019 by the following authors:                         |
 // |                                                                           |
 // | Authors: Tony Bibbs        - tony AT tonybibbs DOT com                    |
 // |          Mark Limburg      - mlimburg AT users DOT sourceforge DOT net    |
@@ -36,9 +36,19 @@ if (strpos(strtolower($_SERVER['PHP_SELF']), 'auth.inc.php') !== false) {
     die('This file can not be used on its own.');
 }
 
+global $_TABLES;
+
 // MAIN
 COM_clearSpeedlimit($_CONF['login_speedlimit'], 'login');
-if (COM_checkSpeedlimit('login', $_CONF['login_attempts']) > 0) {
+$ipAddress = \Geeklog\IP::getIPAddress();
+
+if (COM_checkSpeedlimit('login', $_CONF['login_attempts'], $ipAddress) > 0) {
+    COM_clearSpeedlimit($_CONF['speedlimit_window_error-403'], 'error-403');
+    COM_checkSpeedlimit('error-403', $_CONF['speedlimit_max_error-403'], $ipAddress, $isSpeeding);
+    if (!$isSpeeding) {
+        COM_updateSpeedlimit('error-403', $ipAddress);
+    }
+
     COM_displayMessageAndAbort(82, '', 403, 'Access denied');
 }
 
@@ -65,23 +75,11 @@ $display = '';
 if ($status == USER_ACCOUNT_ACTIVE) {
     DB_query("UPDATE {$_TABLES['users']} SET pwrequestid = NULL WHERE uid = $uid");
     $_USER = SESS_getUserDataFromId($uid);
-    $sessid = SESS_newSession($_USER['uid'], $_SERVER['REMOTE_ADDR'],
-            $_CONF['session_cookie_timeout'], $_CONF['cookie_ip']);
-    SESS_setSessionCookie($sessid, $_CONF['session_cookie_timeout'],
-            $_CONF['cookie_session'], $_CONF['cookie_path'],
-            $_CONF['cookiedomain'], $_CONF['cookiesecure']);
+    SESS_newSession($_USER['uid'], \Geeklog\IP::getIPAddress());
     PLG_loginUser($_USER['uid']);
 
-    // Now that we handled session cookies, handle longterm cookie
-    if (!isset($_COOKIE[$_CONF['cookie_name']])) {
-        // Either their cookie expired or they are new
-        $cooktime = COM_getUserCookieTimeout();
-
-        if (!empty($cooktime)) {
-            // They want their cookie to persist for some amount of time so set it now
-            SEC_setCookie($_CONF['cookie_name'], $_USER['uid'], time() + $cooktime);
-        }
-    }
+    // Issue an auto-login key user cookie and record hash in db if needed
+	SESS_issueAutoLogin($_USER['uid']);
 
     if (!SEC_hasRights('story.edit,block.edit,topic.edit,user.edit,plugin.edit,syndication.edit,theme.edit','OR')) {
         COM_redirect($_CONF['site_admin_url'] . '/index.php');
@@ -94,15 +92,21 @@ if ($status == USER_ACCOUNT_ACTIVE) {
 
     $template = COM_newTemplate(CTL_core_templatePath($_CONF['path_layout'] . 'users'));
     $template->set_file(array('authenticationrequired' => 'authenticationrequired.thtml'));
-    
+
     if (!empty($error_msg)) {
         $display .= COM_errorLog($error_msg, 2);
     }
-    
+
     $display .= COM_startBlock($LANG20[1]);
     if (!$_CONF['user_login_method']['standard']) {
+        // If standard User Login not available show generic access required message
+        // Note: Remote Admin users (openid, oauth, 3rd Party) cannot login with this page, only Standard accounts
         $template->set_var('lang_nonstandardlogin', $LANG_LOGIN[2]);
+    } elseif ($_USER['uid'] > 1) {
+        // User already logged in (or just logged in) but does not have access
+        $template->set_var('lang_nonstandardlogin', $LANG20[9]);
     } else {
+        // User not logged in so show login form
         $template->set_var('lang_username', $LANG20[4]);
         $template->set_var('lang_password', $LANG20[5]);
         $template->set_var('lang_warning', $LANG20[6]);
@@ -111,13 +115,13 @@ if ($status == USER_ACCOUNT_ACTIVE) {
         if (isset($_POST['warn'])) {
             $template->set_var('lang_incorrectlogin', $LANG20[2]);
             COM_accessLog($LANG20[3] . ' ' . Geeklog\Input::post('loginname'));
-        }        
+        }
     }
-    
-    // For Captcha 
+
+    // For Captcha
     PLG_templateSetVars('loginform', $template);
-    
-    $display .= $template->finish($template->parse('output', 'authenticationrequired'));        
+
+    $display .= $template->finish($template->parse('output', 'authenticationrequired'));
 
     $display .= COM_endBlock();
     $display = COM_createHTMLDocument($display);

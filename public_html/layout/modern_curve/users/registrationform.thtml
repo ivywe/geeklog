@@ -25,10 +25,15 @@
         <li>
           <input type="hidden" name="mode" value="create"{xhtml}>
           <button type="submit" value="{lang_register}" class="g-recaptcha"{!if invisible_recaptcha}{invisible_recaptcha}{!endif}>{lang_register}</button>
+          {recaptcha_v3}
         </li>
       </ul>
     </fieldset>
   </form>
+  
+  {!if lang_remote_register_instructions}
+  <p>{lang_remote_register_instructions}</p>
+  {!endif}  
 {end_block}
 
 {# end {templatelocation} #}

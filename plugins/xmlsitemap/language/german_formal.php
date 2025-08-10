@@ -31,7 +31,14 @@ global $LANG32;
 
 $LANG_XMLSMAP = array(
     'plugin' => 'XMLSitemap',
-    'admin' => 'XMLSitemap Admin'
+    'admin' => 'XMLSitemap Admin',
+    'description' => 'Usually, all the sitemap files will automatically be updated whenever an item is added, changed or deleted.  If something went wrong, please update sitemap files manually by pressing the button bellow.',
+    'filename' => 'File name',
+    'updated' => 'Updated',
+    'not_saved' => 'Not Saved',
+    'update_now' => 'Update all the sitemap files now!',
+    'update_success' => 'All the sitemap files were successfully updated.',
+    'update_fail' => 'Failed to update sitemap files.  Please refer to the "error.log" for details.'
 );
 
 // Localization of the Admin Configuration UI
@@ -43,13 +50,18 @@ $LANG_configsections['xmlsitemap'] = array(
 $LANG_confignames['xmlsitemap'] = array(
     'sitemap_file' => 'Dateiname der Sitemap',
     'mobile_sitemap_file' => 'Dateiname der Mobile Sitemap',
+    'include_homepage' => 'Homepage in Sitemap',
     'types' => 'Inhalt der Sitemap',
-    'exclude' => 'Plugins, die nicht in der Sitemap erscheinen sollen',
     'lastmod' => 'Content Types to include lastmod element',
     'priorities' => 'Priority',
     'frequencies' => 'Frequency',
     'ping_google' => 'Send ping to Google',
-    'ping_bing' => 'Send ping to Bing'
+    'indexnow' => 'Enable IndexNow',
+    'indexnow_key' => 'IndexNow Key',
+    'indexnow_key_location' => 'IndexNow Key Location',
+    'news_sitemap_file' => 'News Sitemap file name',
+    'news_sitemap_topics' => 'Include Articles from these Topics',
+    'news_sitemap_age' => 'Max Age of Articles'
 );
 
 $LANG_configsubgroups['xmlsitemap'] = array(
@@ -60,14 +72,16 @@ $LANG_tab['xmlsitemap'] = array(
     'tab_main' => 'XMLSitemap Main Settings',
     'tab_pri' => 'Priority',
     'tab_freq' => 'Update frequency',
-    'tab_ping' => 'Ping'
+    'tab_ping' => 'Ping',
+    'tab_news' => 'News Sitemap'
 );
 
 $LANG_fs['xmlsitemap'] = array(
     'fs_main' => 'XMLSitemap Haupteinstellung',
-    'fs_pri' => 'Vorrang (Grundeinstellung = 0.5, niedrigste = 0.0, höchste = 1.0)',
-    'fs_freq' => 'Updatehäufigkeit',
-    'fs_ping' => 'Send ping on updating sitemap'
+    'fs_pri' => 'Vorrang (Grundeinstellung = 0.5, niedrigste = 0.0, hï¿½chste = 1.0)',
+    'fs_freq' => 'Updatehï¿½ufigkeit',
+    'fs_ping' => 'Send ping on updating sitemap',
+    'fs_news' => 'News Sitemap Settings'
 );
 
 // Note: entries 0, 1, 9, and 12 are the same as in $LANG_configselects['Core']
@@ -76,5 +90,5 @@ $LANG_configselects['xmlsitemap'] = array(
     1 => array('Richtig' => true, 'Falsch' => false),
     9 => array('Weiterleiten zu Seite' => 'item', 'Liste anzeigen' => 'list', 'Home anzeigen' => 'home', 'Admin anzeigen' => 'admin'),
     12 => array('Kein Zugang' => 0, 'Nur lesen' => 2, 'Lesen-schreiben' => 3),
-    20 => array('immer' => 'always', 'stündlich' => 'hourly', 'täglich' => 'daily', 'wöchentlich' => 'weekly', 'monatlich' => 'monthly', 'jährlich' => 'yearly', 'nie' => 'never', 'hidden' => 'hidden')
+    20 => array('immer' => 'always', 'stï¿½ndlich' => 'hourly', 'tï¿½glich' => 'daily', 'wï¿½chentlich' => 'weekly', 'monatlich' => 'monthly', 'jï¿½hrlich' => 'yearly', 'nie' => 'never', 'hidden' => 'hidden')
 );

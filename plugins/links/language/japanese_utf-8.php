@@ -12,7 +12,7 @@
 # Tranlated by Geeklog Japanese group
 # Copyright (C) 2008 Takahiro Kambe
 # Additional translation to Japanese by taca AT back-street DOT net
-# Copyright (C) 2006,2007,2008 Geeklog.jp group
+# Copyright (C) 2006-2020 Geeklog.jp group
 # Additional translation to Japanese by Geeklog.jp group info AT geeklog DOT jp
 #
 # This program is free software; you can redistribute it and/or
@@ -175,7 +175,8 @@ $LANG_LINKS_ADMIN = array(
     58 => 'リンクの確認',
     59 => '<p>表示しているすべてのリンクを確認する場合は、下の「リンクの確認」をクリックしてください。この処理はリンクの数に応じてかなりの時間がかかるかもしれません。</p>',
     60 => 'ユーザー %s は権限なしにカテゴリ %s を編集しようとしました。',
-    61 => 'このカテゴリのリンク数'
+    61 => 'このカテゴリのリンク数',
+    'num_links' => '%s 件のリンク'
 );
 
 
@@ -243,6 +244,8 @@ $LANG_confignames['links'] = array(
     'aftersave' => 'リンク保存後の画面遷移',
     'show_category_descriptions' => 'カテゴリの説明を表示する',
     'new_window' => 'リンクを新しいウィンドウで開く',
+    'recaptcha' => 'reCAPTCHA',
+    'recaptcha_score' => 'reCAPTCHAスコア',
     'root' => 'トップカテゴリのID',
     'default_permissions' => 'パーミッション',
     'category_permissions' => 'パーミッション',
@@ -275,5 +278,6 @@ $LANG_configselects['links'] = array(
     1 => array('はい' => true, 'いいえ' => false),
     9 => array('ページを表示する' => 'item', 'リストを表示する' => 'list', 'プラグイントップを表示する' => 'plugin', 'ホームを表示する' => 'home', '管理画面トップを表示する' => 'admin'),
     12 => array('アクセス不可' => 0, '表示' => 2, '表示・編集' => 3),
-    13 => array('アクセス不可' => 0, '利用する' => 2)
+    13 => array('アクセス不可' => 0, '利用する' => 2),
+    14 => array('無効' => 0, 'reCAPTCHA V2' => 1, 'reCAPTCHA V2 Invisible' => 2, 'reCAPTCHA V3' => 4)
 );

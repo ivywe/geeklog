@@ -10,7 +10,7 @@
 // | API method and 2) implements all the common code needed by the Links      |
 // | Plugins' PHP files.                                                       |
 // +---------------------------------------------------------------------------+
-// | Copyright (C) 2000-2017 by the following authors:                         |
+// | Copyright (C) 2000-2020 by the following authors:                         |
 // |                                                                           |
 // | Authors: Tony Bibbs         - tony AT tonybibbs DOT com                   |
 // |          Mark Limburg       - mlimburg AT users.sourceforge DOT net       |
@@ -70,12 +70,10 @@ Language::override(array(
 * Check and see if we need to load the plugin configuration
 */
 if (!isset($_LI_CONF['linksloginrequired'])) {
-    require_once $_CONF['path_system'] . 'classes/config.class.php';
-
     $li_config = config::get_instance();
     $_LI_CONF = $li_config->get_config('links');
+	$_LI_CONF['recaptcha'] = (isset($_LI_CONF['recaptcha'])) ? (int) $_LI_CONF['recaptcha'] : 0;
 }
-
 
 // +---------------------------------------------------------------------------+
 // | Geeklog Plugin API Implementation                                         |
@@ -100,7 +98,7 @@ function plugin_getmenuitems_links()
         return false;
     }
 
-    $menuitems[$LANG_LINKS[114]] = $_CONF['site_url'] . '/links/index.php';
+    $menuitems[$LANG_LINKS[114]] = COM_buildURL($_CONF['site_url'] . '/links/index.php');
 
     return $menuitems;
 }
@@ -135,7 +133,7 @@ function plugin_whatsnewsupported_links()
 */
 function plugin_getwhatsnew_links()
 {
-    global $_CONF, $_TABLES, $_USER, $_LI_CONF, $LANG_LINKS,$_DB_dbms;
+    global $_CONF, $_TABLES, $_LI_CONF, $LANG_LINKS,$_DB_dbms;
 
     $retval = '';
 
@@ -171,7 +169,7 @@ function plugin_getwhatsnew_links()
             $newlinks[] = COM_createLink($title, $lcount, $link_title) . LB;
         }
 
-        $retval .= COM_makeList($newlinks, 'list-new-plugins');
+        $retval .= COM_makeList($newlinks, PLG_getThemeItem('core-css-list-new', 'core'));
     } else {
         $retval .= $LANG_LINKS[88] . '<br' . XHTML . '>' . LB;
     }
@@ -180,15 +178,15 @@ function plugin_getwhatsnew_links()
 }
 
 /**
-* Implements the [link:] autotag.
-*
-* @param    string  $op         operation to perform
-* @param    string  $content    item (e.g. story text), including the autotag
-* @param    array   $autotag    parameters used in the autotag
-* @param    mixed               tag names (for $op='tagname') or formatted content
-*
-*/
-function plugin_autotags_links($op, $content = '', $autotag = '')
+ * Implements the [link:] autotag.
+ *
+ * @param    string  $op         operation to perform
+ * @param    string  $content    item (e.g. story text), including the autotag
+ * @param    array   $autotag    parameters used in the autotag
+ * @return   string|array
+ * @throws  InvalidArgumentException
+ */
+function plugin_autotags_links($op, $content = '', $autotag = array())
 {
     global $_CONF, $_TABLES, $LANG_DIRECTION, $LANG_LINKS, $_LI_CONF, $_GROUPS;
 
@@ -221,7 +219,7 @@ function plugin_autotags_links($op, $content = '', $autotag = '')
         return array (
             'link' => $LANG_LINKS['autotag_desc_link']
             );
-    } else if ($op == 'parse') {
+    } elseif ($op == 'parse') {
         $lid = COM_applyFilter($autotag['parm1']);
         if (! empty($lid)) {
             $result = DB_query("SELECT COUNT(*) AS count "
@@ -253,6 +251,10 @@ function plugin_autotags_links($op, $content = '', $autotag = '')
         }
 
         return $content;
+    } elseif ($op === 'closetag') {
+        return array();
+    } else {
+        throw new InvalidArgumentException('Bad argument for "$op"');
     }
 }
 
@@ -301,11 +303,9 @@ function LINKS_countLinksAndClicks()
 * If $showsitestats is 1 then we are to only print the overall stats in the
 * 'site statistics box' otherwise we show the detailed stats
 *
-* @param    int     $showsitestate  Flag to let us know which stats to get
-* @param    string                  HTML for the stats section
-*
+* @return   string
 */
-function plugin_showstats_links ($showsitestats)
+function plugin_showstats_links ()
 {
     global $_CONF, $_TABLES, $LANG_LINKS_STATS;
 
@@ -462,7 +462,7 @@ function plugin_cclabel_links()
 /**
 * returns the administrative option for this plugin
 *
-* @return   mixed   array(title, url, num. links), or void when not allowed
+* @return   mixed   array(title, url, num. links), or array() when not allowed
 *
 */
 function plugin_getadminoption_links()
@@ -476,6 +476,8 @@ function plugin_getadminoption_links()
         return array ($LANG_LINKS[14],
                       $_CONF['site_admin_url'] . '/plugins/links/index.php',
                       $total_links);
+    } else {
+        return array();
     }
 }
 
@@ -490,6 +492,9 @@ function plugin_getadminoption_links()
 function plugin_user_delete_links ($uid)
 {
     global $_TABLES, $_LI_CONF;
+	
+	// Delete any submission records
+	DB_delete($_TABLES['linksubmission'], 'owner_id', $uid);
 
     if (DB_count ($_TABLES['links'], 'owner_id', $uid) == 0) {
         return;
@@ -540,8 +545,8 @@ function plugin_getfeednames_links()
 * Provide feed data
 *
 * @param    int     $feed       feed ID
-* @param    ref     $link
-* @param    ref     $update
+* @param    string  &$link
+* @param    string  &$update
 * @return   array               feed entries
 *
 */
@@ -698,9 +703,9 @@ function plugin_upgrade_links()
     if (! plugin_compatible_with_this_version_links('links')) {
         return 3002;
     }
-    
-    // Retrieve other plugin info like min geeklog version and homepage 
-    $inst_parms = plugin_autoinstall_links('links');      
+
+    // Retrieve other plugin info like min geeklog version and homepage
+    $inst_parms = plugin_autoinstall_links('links');
 
     require_once $_CONF['path'] . 'plugins/links/sql/'
                                 . $_DB_dbms . '_updates.php';
@@ -713,8 +718,6 @@ function plugin_upgrade_links()
     while (! $done) {
         switch ($current_version) {
         case '1.0.1':
-            require_once $_CONF['path_system'] . 'classes/config.class.php';
-
             $plugin_path = $_CONF['path'] . 'plugins/links/';
             require_once $plugin_path . 'install_defaults.php';
 
@@ -808,16 +811,27 @@ function plugin_upgrade_links()
         case '2.1.3':
             $current_version = '2.1.4';
             break;
-            
+
         case '2.1.4':
-            $current_version = '2.1.5'; // Shipped with Geeklog-2.1.3
-            break;    
+            $current_version = '2.1.5'; // Shipped with Geeklog 2.1.3
+            break;
 
         case '2.1.5':
-            $current_version = '2.1.6'; // Shipped with Geeklog-2.2.0
-            break;               
+            $current_version = '2.1.6'; // Shipped with Geeklog 2.2.0
+            break;
 
-        default:
+        case '2.1.6':
+            links_update_ConfValues_2_1_6();
+            $current_version = '2.1.7'; // Shipped with Geeklog 2.2.1
+            break;
+
+        case '2.1.7':
+        case '2.1.8':
+            links_update_ConfValues_2_1_7();
+            $current_version = '2.1.9'; // Shipped with Geeklog 2.2.2
+            break;
+
+            default:
             $done = true;
         }
     }
@@ -825,7 +839,7 @@ function plugin_upgrade_links()
     // update plugin version number and other info
     DB_query("UPDATE {$_TABLES['plugins']} SET pi_version = '$code_version', pi_gl_version = '{$inst_parms['info']['pi_gl_version']}', pi_homepage = '{$inst_parms['info']['pi_homepage']}' WHERE pi_name = 'links'");
 
-    COM_errorLog( "Updated links plugin from v$installed_version to v$code_version", 1 );      
+    COM_errorLog( "Updated links plugin from v$installed_version to v$code_version", 1 );
 
     return true;
 }
@@ -834,8 +848,7 @@ function plugin_upgrade_links()
 * Called during site migration - handle changed URLs or paths
 *
 * @param    array   $old_conf   contents of the $_CONF array on the old site
-* @param    boolean             true on success, otherwise false
-*
+* @return   bool                true on success, otherwise false
 */
 function plugin_migrate_links($old_conf)
 {
@@ -961,7 +974,7 @@ function plugin_moderationvalues_links()
 */
 function plugin_moderationapprove_links($id)
 {
-    global $_TABLES, $_USER, $_GROUPS, $_LI_CONF;
+    global $_TABLES, $_GROUPS, $_LI_CONF;
 
     // The linksubmission only keeps track of the submitter's uid, but not
     // of grous and permissions. So set those to sensible defaults.
@@ -1081,7 +1094,7 @@ function plugin_save_submit_links($A)
     }
     $spamCheck = '<p>'. $link .' (' . $A['categorydd'] . ')<br' . XHTML . '>'
                . $A['description'] . '</p>';
-               
+
     $permanentlink = null; // Setting this to null as links can appear on a number of different pages like Category view and links homepage in topten list (there is no true permanent page that the link is being added too)
     $authorname = null;
     $authoremail = null;
@@ -1095,7 +1108,7 @@ function plugin_save_submit_links($A)
             $authorurl = $_USER['homepage'];
         }
     }
-    
+
     $result = PLG_checkForSpam($spamCheck, $_CONF['spamx'], $permanentlink, Geeklog\Akismet::COMMENT_TYPE_LINK, $authorname, $authoremail, $authorurl);
 
     if ($result > PLG_SPAM_NOT_FOUND) {
@@ -1113,7 +1126,7 @@ function plugin_save_submit_links($A)
         return $retval;
     }
 
-    $A['cid'] = GLText::stripTags(COM_stripslashes($A['categorydd']));
+    $A['cid'] = GLText::stripTags($A['categorydd']);
 
     $validcat = false;
     if (!empty($A['cid'])) {
@@ -1135,7 +1148,10 @@ function plugin_save_submit_links($A)
     $A['cid'] = DB_escapeString($A['cid']);
     // Remove any autotags the user doesn't have permission to use
     $A['description'] = PLG_replaceTags($A['description'], '', true);
-    $A['description'] = DB_escapeString(htmlspecialchars(COM_checkWords($A['description'])));
+	$A['description'] = GLText::remove4byteUtf8Chars($A['description']);
+	$A['description'] = GLText::stripTags(COM_checkWords($A['description']));
+	$description = DB_escapeString($A['description']); // Can't escape array as that gets used after by notification and need line breaks
+	$A['title'] = GLText::remove4byteUtf8Chars($A['title']);
     $A['title'] = DB_escapeString(GLText::stripTags(COM_checkWords($A['title'])));
     $A['url'] = DB_escapeString(COM_sanitizeUrl($A['url']));
     $A['lid'] = DB_escapeString(COM_makeSid());
@@ -1148,9 +1164,10 @@ function plugin_save_submit_links($A)
     }
 
     if (($_LI_CONF['linksubmission'] == 1) && !SEC_hasRights('links.submit')) {
-        $result = DB_save($_TABLES['linksubmission'],
-                    'lid,cid,url,description,title,date,owner_id',
-                    "{$A['lid']},'{$A['cid']}','{$A['url']}','{$A['description']}','{$A['title']}',NOW(),$owner_id");
+        DB_save(
+            $_TABLES['linksubmission'], 'lid,cid,url,description,title,date,owner_id',
+    "{$A['lid']},'{$A['cid']}','{$A['url']}','$description','{$A['title']}',NOW(),$owner_id"
+        );
 
         if ($_LI_CONF['notification'] == 1) {
             LINKS_sendNotification($_TABLES['linksubmission'], $A);
@@ -1166,9 +1183,10 @@ function plugin_save_submit_links($A)
         }
         SEC_setDefaultPermissions($A, $_LI_CONF['default_permissions']);
 
-        $result = DB_save($_TABLES['links'],
-                    'lid,cid,url,description,title,date,owner_id,group_id,perm_owner,perm_group,perm_members,perm_anon',
-                    "{$A['lid']},'{$A['cid']}','{$A['url']}','{$A['description']}','{$A['title']}',NOW(),$owner_id,{$A['group_id']},{$A['perm_owner']},{$A['perm_group']},{$A['perm_members']},{$A['perm_anon']}");
+        DB_save(
+            $_TABLES['links'], 'lid,cid,url,description,title,date,owner_id,group_id,perm_owner,perm_group,perm_members,perm_anon',
+    "{$A['lid']},'{$A['cid']}','{$A['url']}','$description','{$A['title']}',NOW(),$owner_id,{$A['group_id']},{$A['perm_owner']},{$A['perm_group']},{$A['perm_members']},{$A['perm_anon']}"
+        );
 
         PLG_itemSaved($A['lid'], 'links');
 
@@ -1191,27 +1209,61 @@ function plugin_save_submit_links($A)
 */
 function LINKS_sendNotification ($table, $A)
 {
-    global $_CONF, $_TABLES, $LANG_LINKS, $LANG_LINKS_SUBMIT, $LANG08;
+    global $_CONF, $_TABLES, $_USER, $LANG_LINKS, $LANG_LINKS_SUBMIT, $LANG08, $LANG01, $LANG31;
 
-    $title = stripslashes ($A['title']);
-    $description = PLG_replaceTags( stripslashes($A['description']) );
+	// Create HTML and plaintext version of submission email
+	$t = COM_newTemplate(CTL_plugin_templatePath('links', 'emails'));
+	
+	$t->set_file(array('email_html' => 'link_submission-html.thtml'));
+	// Remove line feeds from plain text templates since required to use {LB} template variable
+	$t->preprocess_fn = "CTL_removeLineFeeds"; // Set preprocess_fn before the template file you want to use it on		
+	$t->set_file(array('email_plaintext' => 'link_submission-plaintext.thtml'));
 
-    $mailbody = "$LANG_LINKS_SUBMIT[8]: $title\n"
-              . "$LANG_LINKS_SUBMIT[9]: <{$A['url']}>\n"
-              . "$LANG_LINKS_SUBMIT[3]: {$A['category']}\n\n"
-              . $description . "\n\n";
+	$t->set_var('email_divider', $LANG31['email_divider']);
+	$t->set_var('email_divider_html', $LANG31['email_divider_html']);
+	$t->set_var('LB', LB);
+	
+	$t->set_var('lang_title', $LANG_LINKS_SUBMIT[8]);
+	$t->set_var('submission_title', $A['title']);
+	$t->set_var('lang_contributed_by', $LANG01[1]);
+	$t->set_var('link_contributer_name', COM_getDisplayName($_USER['uid']));	
+	$t->set_var('lang_url', $LANG_LINKS_SUBMIT[9]);
+	$t->set_var('submission_url', $A['url']);
+	$t->set_var('lang_category', $LANG_LINKS_SUBMIT[3]);
+	$t->set_var('submission_category', $A['categorydd']);
+	
+	$description = PLG_replaceTags($A['description']);
+	// Just like comments, link description really should have a postmode that is saved with the description (ie store either 'html' or 'plaintext') OR just remove HTML but they don't so lets figure out if description is html by searching for html tags. This is done during displaying of links as well
+	// Needs to be done after autotags incase they insert HTML
+	if (preg_match('/<.*>/', $description) == 0) {
+		$description_plaintext = $description;
+		$description_html = COM_nl2br($description);
+	} else {	
+		$description_html = GLText::htmlFixURLs($description);
+		$description_plaintext = GLText::html2Text($description_html);
+	}
+	$t->set_var('submission_description_plaintext', $description_plaintext);
+	$t->set_var('submission_description_html', $description_html);
+
+	// Add link to content
     if ($table == $_TABLES['linksubmission']) {
-        $mailbody .= "$LANG_LINKS[10] <{$_CONF['site_admin_url']}/moderation.php>\n\n";
+		$t->set_var('lang_link_label', $LANG_LINKS[10]); // Submissions
+        
+		$submission_link = $_CONF['site_admin_url'] . "/moderation.php";
     } else {
-        $mailbody .= "{$LANG_LINKS[114]} <" . COM_buildURL($_CONF['site_url'] . '/links/index.php?category=' . rawurlencode($A['category'])) . ">\n\n";
+		$t->set_var('lang_link_label', $LANG_LINKS[114]); // Links
+        
+		$submission_link = COM_buildURL($_CONF['site_url'] . '/links/index.php?category=' . rawurlencode($A['categorydd']));
     }
-    $mailsubject = $_CONF['site_name'] . ' ' . $LANG_LINKS_SUBMIT[11];
+	$t->set_var('submission_link', $submission_link);		
 
-    $mailbody .= "\n------------------------------\n";
-    $mailbody .= "\n$LANG08[34]\n";
-    $mailbody .= "\n------------------------------\n";
-
-    COM_mail ($_CONF['site_mail'], $mailsubject, $mailbody);
+	// Output final content
+	$message[] = $t->parse('output', 'email_html');	
+	$message[] = $t->parse('output', 'email_plaintext');
+	
+	$mailsubject = $_CONF['site_name'] . ' ' . $LANG_LINKS_SUBMIT[11];
+	
+	COM_mail($_CONF['site_mail'], $mailsubject, $message, '' , true);
 }
 
 /**
@@ -1350,10 +1402,9 @@ function links_validateUrl($url)
 {
     global $LANG_LINKS_STATUS;
 
-    $req = new HTTP_Request2($url, HTTP_Request2::METHOD_HEAD);
-    $req->setHeader('User-Agent', 'Geeklog/' . VERSION);
-
     try {
+        $req = new HTTP_Request2($url, HTTP_Request2::METHOD_HEAD);
+        $req->setHeader('User-Agent', 'Geeklog/' . VERSION);
         $response = $req->send();
         $status_code = $response->getStatus();
 
@@ -1372,8 +1423,8 @@ function links_validateUrl($url)
 /**
 * Set template variables
 *
-* @param    string  $templatename   name of template, e.g. 'header'
-* @param    ref     $template       reference of actual template
+* @param    string    $templatename   name of template, e.g. 'header'
+* @param    Template  $template       reference of actual template
 * @return   void
 *
 * Note: A plugin should use its name as a prefix for the names of its
@@ -1383,12 +1434,12 @@ function links_validateUrl($url)
 * of Geeklog. It is added here for backward-compatibility.
 *
 */
-function plugin_templatesetvars_links ($templatename, &$template)
+function plugin_templatesetvars_links ($templatename, $template)
 {
     global $LANG_LINKS;
 
     if (($templatename == 'header') || ($templatename == 'footer')) {
-        $template->set_var ('button_links', $LANG_LINKS[14]);
+        $template->set_var('button_links', $LANG_LINKS[14]);
     }
 }
 
@@ -1555,12 +1606,13 @@ function links_breadcrumbs($root, $cid)
  */
 function phpblock_topic_links()
 {
-    global $_CONF, $_TABLES, $LANG_LINKS, $topic;
+    global $_CONF, $_TABLES, $LANG_LINKS;
 
     $retval = '';
 
-    if (!empty($topic)) {
-        $tid = DB_escapeString($topic);
+    $current_topic = TOPIC_currentTopic();
+    if (!empty($current_topic)) {
+        $tid = DB_escapeString($current_topic);
         $topic_sql = "(c.tid='{$tid}' OR c.tid='" . TOPIC_ALL_OPTION . "') ";
     } else {
         $topic_sql = "(c.tid='" . TOPIC_ALL_OPTION . "') ";
@@ -1591,17 +1643,17 @@ function phpblock_topic_links()
  */
 function phpblock_topic_categories()
 {
-    global $_CONF, $_TABLES, $LANG_LINKS, $topic;
+    global $_CONF, $_TABLES, $LANG_LINKS;
 
     $retval = '';
 
-    if (!empty($topic)) {
-        $tid = DB_escapeString($topic);
+    $current_topic = TOPIC_currentTopic();
+    if (!empty($current_topic)) {
+        $tid = DB_escapeString($current_topic);
         $topic_sql = "(tid='{$tid}' OR tid='" . TOPIC_ALL_OPTION . "') ";
     } else {
         $topic_sql = "(tid='" . TOPIC_ALL_OPTION . "') ";
     }
-
 
     $result = DB_query("SELECT category, cid FROM {$_TABLES['linkcategories']} WHERE " . $topic_sql . COM_getPermSQL ('AND'));
     $nrows = DB_numRows($result);
@@ -1908,4 +1960,78 @@ function plugin_group_changed_links($grp_id, $mode)
         $sql = "UPDATE {$_TABLES['linkcategories']} SET group_id = $new_group_id WHERE group_id = $grp_id";
         $result = DB_query($sql);
    }
+}
+
+/**
+ * Did user create any links
+ *
+ * @param   int  $uid
+ * @return  string   number of links user contributed. If nothing leave blank
+ */
+function plugin_usercontributed_links($uid)
+{
+    global $_TABLES, $LANG_LINKS_ADMIN;
+
+    $retval = '';
+
+    // Include links and link submissions
+    $count = DB_getItem($_TABLES['links'], 'COUNT(owner_id)', "owner_id = {$uid}") + DB_getItem($_TABLES['linksubmission'], 'COUNT(owner_id)', "owner_id = {$uid}");
+
+    if ($count > 0) {
+        $retval = str_replace('%s', $count, $LANG_LINKS_ADMIN['num_links']);
+    }
+
+    return $retval;
+}
+
+/**
+ * Lets Geeklog know the names of language variables and arrays that can be overridden if need be
+ *
+ * @return   array
+ */
+function plugin_getlanguageoverrides_links()
+{
+
+    return array('LANG_LINKS', 'LANG_LINKS_STATS', 'LANG_LINKS_SEARCH', 'LANG_LINKS_SUBMIT', 'PLG_links_MESSAGE1', 'PLG_links_MESSAGE4', 'PLG_links_MESSAGE1');
+}
+
+/**
+ * Return the info asked by PLG_collectRecaptchaInfo().
+ *
+ * @return  array of type => [
+ *              'type'     => type                   // required, passed as the 1st parameter to plugin_templatesetvars_xxx()
+ *              'version'  => reCAPTCHA version,     // required: RECAPTCHA_NO_SUPPORT(0), RECAPTCHA_SUPPORT_V2(1), RECAPTCHA_SUPPORT_V2_INVISIBLE(2), RECAPTCHA_SUPPORT_V3(4)
+ *              'form_id'  => form id,               // required only for reCAPTCHA V2 Invisible
+ *              'action'   => action,                // optional
+ *              'score_threshold' => score threshold // required only for reCAPTCHA V3 (0.0 - 1.0)
+ *           ]
+ */
+function plugin_supportsRecaptcha_links()
+{
+    global $_LI_CONF;
+
+    return [
+        [
+            'type'            => 'links',
+            'version'         => (isset($_LI_CONF['recaptcha']) ? (int) $_LI_CONF['recaptcha'] : RECAPTCHA_SUPPORT_V3),
+            'form_id'         => 'submitlink',
+            'action'          => 'links/submit',
+            'score_threshold' => (isset($_LI_CONF['recaptcha_score']) ? $_LI_CONF['recaptcha_score'] : RECAPTCHA_DEFAULT_SCORE_THRESHOLD),
+        ],
+    ];
+}
+
+/**
+ * Return URL of item even if the item doesn't exist, e.g., after it has been deleted
+ *
+ * @param  string  $sub_type  (unused) sub type of plugin
+ * @param  string  $item_id   the id of the item
+ * @return string
+ * @since  Geeklog 2.2.2
+ */
+function plugin_idToURL_links($sub_type, $item_id)
+{
+    global $_CONF;
+
+    return COM_buildUrl($_CONF['site_url'] . '/links/portal.php?what=link&amp;item=' . $item_id);
 }

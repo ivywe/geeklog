@@ -44,7 +44,15 @@
 /**
  * Geeklog common function library
  */
-require_once 'lib-common.php';
+
+ // Geeklog common function library. If VERSION set then lib-common already loaded. Check required for URL Routing functionality (with or without "index.php")
+ if (!defined('VERSION')) {
+     require_once 'lib-common.php';
+} else {
+     // You have to set any global variables used by this file since the scope is different as it is routed through index.php (and lib-common is loaded from there. See Github Issue #945 for more info
+     global $_USER, $LANG11, $LANG01, $LANG_TRB, $LANG_DIRECTION, $LANG08;
+ }
+
 require_once $_CONF['path_system'] . 'lib-article.php';
 require_once $_CONF['path_system'] . 'lib-comment.php';
 if ($_CONF['trackback_enabled']) {
@@ -83,23 +91,47 @@ function extractExternalLinks($text) {
 CMT_updateCommentcodes();
 $display = '';
 
+// *********************************
+// Figure out mode and article page
+// Same code as in beginning of article.php and plugin_getcommenturlid_article function in lib-article.php
 $mode = Geeklog\Input::fPost('mode', Geeklog\Input::fPost('format', ''));
 
 if (!empty($mode)) {
     $sid = Geeklog\Input::fPost('story', '');
-    $order = Geeklog\Input::fPost('order', '');
-    $query = Geeklog\Input::post('query', '');
-    $reply = Geeklog\Input::fPost('reply', '');
-    $page = (int) Geeklog\Input::fPost('cpage', 0);
 } else {
-    COM_setArgNames(array('story', 'mode'));
-    $sid = COM_applyFilter(COM_getArgument('story'));
-    $mode = COM_applyFilter(COM_getArgument('mode'));
-    $order = Geeklog\Input::fGet('order', '');
-    $query = Geeklog\Input::get('query', '');
-    $reply = Geeklog\Input::fGet('reply', '');
-    $page = (int) Geeklog\Input::fGet('cpage', 0);
+	// This supports URL Rewrite
+	COM_setArgNames(array('story', 'mode'));
+	$sid = COM_applyFilter(COM_getArgument('story'));
+	$mode = COM_applyFilter(COM_getArgument('mode')); // Could be mode or page if numeric
+	
+	if ($_CONF['url_rewrite'] && $_CONF['url_routing']) {
+		// Quirk of Router class as it matches based on how route is setup and not order set in COM_setArgNames (so that is why it doesn't need to be set in the COM_setArgNames above
+		$articlePage = (int) COM_getArgument('page');	
+	}
 }
+if (!isset($articlePage)) {
+	$articlePage = (int) Geeklog\Input::fGet('page', 0);
+}
+
+if ($_CONF['allow_page_breaks'] == 1 && $articlePage == 0) {
+    // $mode was used to store page ids before Geeklog v2.2.1 See Issue #1022
+    // Lets do a bit of backwards compatibility here for any external links coming in
+    // if not numeric then mode is used by comments to determine how to display them
+    // REALLY should do a 301 redirect so search engines know that there is a new url for same content
+    if (is_numeric($mode)) {
+        $articlePage = $mode;
+        $mode = ''; // need to clear it since mode post variable is used by comment as well to determine how to display comments
+    }
+}
+if ($articlePage == 0) {
+    $articlePage = 1;
+}
+// *********************************
+
+$query = Geeklog\Input::get('query', '');
+
+$commentOrder = Geeklog\Input::fRequest('order', '');
+$commentPage = (int) Geeklog\Input::fGet('cpage', 0);
 
 if (!empty($_REQUEST['sid'])) {
     $sid = Geeklog\Input::fRequest('sid');
@@ -114,11 +146,13 @@ if (empty($sid)) {
 // Get topic
 TOPIC_getTopic('article', $sid);
 
-if ((strcasecmp($order, 'ASC') !== 0) && (strcasecmp($order, 'DESC') !== 0)) {
-    $order = '';
+// Comment variable checks
+if ((strcasecmp($commentOrder, 'ASC') !== 0) && (strcasecmp($commentOrder, 'DESC') !== 0)) {
+    $commentOrder = '';
 }
 
-$result = DB_query("SELECT COUNT(*) AS count FROM {$_TABLES['stories']} WHERE sid = '$sid'" . COM_getPermSql('AND'));
+// Check article permissions
+$result = DB_query("SELECT COUNT(sid) AS count FROM {$_TABLES['stories']} WHERE sid = '$sid'" . COM_getPermSql('AND'));
 $A = DB_fetchArray($result);
 if ($A['count'] > 0) {
     $article = new Article();
@@ -153,57 +187,14 @@ if ($A['count'] > 0) {
     } elseif ($output == STORY_INVALID_SID) {
         COM_handle404();
     } elseif (($mode === 'print') && ($_CONF['hideprintericon'] == 0)) {
-        $articleTemplate = COM_newTemplate(CTL_core_templatePath($_CONF['path_layout'] . 'article'));
-        $articleTemplate->set_file('article', 'printable.thtml');
-        if (XHTML != '') {
-            $articleTemplate->set_var('xmlns', ' xmlns="http://www.w3.org/1999/xhtml"');
-        }
-        $articleTemplate->set_var('direction', $LANG_DIRECTION);
-
-        $theme = $_CONF['theme'];
-        $dir = isset($LANG_DIRECTION) && ($LANG_DIRECTION === 'rtl') ? 'rtl' : 'ltr';
-        $paths = array(
-            'denim'        => 'layout/' . $theme . '/css_' . $dir . '/print.css',
-            'professional' => 'layout/' . $theme . '/print.css',
-            'other'        => 'layout/' . $theme . '/css/print.css',
-        );
-        foreach ($paths as $path) {
-            if (file_exists($_CONF['path_html'] . $path)) {
-                $_SCRIPTS->setCssFile('print', '/' . $path, true, array('media' => 'print'));
-            }
-        }
-
-        // Override style for <a> tags
-        $_SCRIPTS->setCSS('a { color: blue !important; text-decoration: underline !important; }');
-        $articleTemplate->set_var('plg_headercode', $_SCRIPTS->getHeader());
-
-        $page_title = $article->DisplayElements('page_title');
-        if (empty($page_title)) {
-            $page_title = $_CONF['site_name'] . ' - ' . $article->DisplayElements('title');
-        }
-        $articleTemplate->set_var('page_title', $page_title);
-
-        $articleTemplate->set_var('story_title', $article->DisplayElements('title'));
-        header('Content-Type: text/html; charset=' . COM_getCharset());
-        header('X-XSS-Protection: 1; mode=block');
-        header('X-Content-Type-Options: nosniff');
-
-        if (!empty($_CONF['frame_options'])) {
-            header('X-FRAME-OPTIONS: ' . $_CONF['frame_options']);
-        }
-
-        $articleTemplate->set_var('story_date', $article->displayElements('date'));
-
-        if ($_CONF['contributedbyline'] == 1) {
-            $articleTemplate->set_var('lang_contributedby', $LANG01[1]);
-            $authorname = COM_getDisplayName($article->displayElements('uid'));
-            $articleTemplate->set_var('author', $authorname);
-            $articleTemplate->set_var('story_author', $authorname);
-            $articleTemplate->set_var('story_author_username', $article->DisplayElements('username'));
-        }
-
         $introtext = $article->DisplayElements('introtext');
         $bodytext = $article->DisplayElements('bodytext');
+
+        if ($_CONF['allow_page_breaks'] == 1 && $article->displayElements('numpages') > 1) {
+            // Remove page breaks for print view
+            $bodytext = str_replace('[page_break]', '', $bodytext);
+        }
+
         if (empty($bodytext)) {
             $fulltext = $introtext;
             $fulltext_no_br = $introtext;
@@ -217,43 +208,16 @@ if ($A['count'] > 0) {
             $fulltext = '<p>' . $fulltext . '</p>';
             $fulltext_no_br = '<p>' . $fulltext_no_br . '</p>';
         }
-
-        $links = extractExternalLinks($fulltext_no_br);
-        $externalLinks = array();
-        $i = 1;
-        foreach ($links as $url => $tag) {
-            $marker = '[*' . $i . '] ';
-            $externalLinks[] = $marker . $url;
-            $fulltext_no_br = str_replace($tag, $tag . $marker, $fulltext_no_br);
-            $i++;
-        }
-
-        if (count($externalLinks) > 0) {
-            $externalLinks = '<p>' . implode('<br' . XHTML . '>' . PHP_EOL, $externalLinks) . PHP_EOL . '</p>';
-        } else {
-            $externalLinks = '';
-        }
-        $articleTemplate->set_var('external_links', $externalLinks);
-
-        $articleTemplate->set_var('story_introtext', $introtext);
-        $articleTemplate->set_var('story_bodytext', $bodytext);
-        $articleTemplate->set_var('story_text', $fulltext);
-        $articleTemplate->set_var('story_text_no_br', $fulltext_no_br);
-        $articleTemplate->set_var('site_name', $_CONF['site_name']);
-        $articleTemplate->set_var('site_slogan', $_CONF['site_slogan']);
-        $articleTemplate->set_var('story_id', $article->getSid());
+	
         $articleUrl = COM_buildUrl($_CONF['site_url'] . '/article.php?story=' . $article->getSid());
 
+        $printableURL = COM_buildUrl($_CONF['site_url'] . '/article.php?story=' . $article->getSid() . '&amp;mode=print');
+
+		$comments_with_count = "";
         if ($article->DisplayElements('commentcode') >= 0) {
             $commentsUrl = $articleUrl . '#comments';
             $comments = $article->DisplayElements('comments');
             $numComments = COM_numberFormat($comments);
-            $articleTemplate->set_var('story_comments', $numComments);
-            $articleTemplate->set_var('comments_url', $commentsUrl);
-            $articleTemplate->set_var('comments_text',
-                $numComments . ' ' . $LANG01[3]);
-            $articleTemplate->set_var('comments_count', $numComments);
-            $articleTemplate->set_var('lang_comments', $LANG01[3]);
 
             if ($numComments > 1) {
                 $comments_with_count = sprintf($LANG01[121], $numComments);
@@ -265,18 +229,28 @@ if ($A['count'] > 0) {
                 $comments_with_count = COM_createLink($comments_with_count,
                     $commentsUrl);
             }
-            $articleTemplate->set_var('comments_with_count',
-                $comments_with_count);
         }
-        $articleTemplate->set_var('lang_full_article', $LANG08[33]);
-        $articleTemplate->set_var('article_url', $articleUrl);
-        $printable = COM_buildUrl($_CONF['site_url'] . '/article.php?story='
-            . $article->getSid() . '&amp;mode=print');
-        $articleTemplate->set_var('printable_url', $printable);
-        COM_setLangIdAndAttribute($articleTemplate);
-
-        $articleTemplate->parse('output', 'article');
-        $display = $articleTemplate->finish($articleTemplate->get_var('output'));
+		
+		$itemByline = "";
+		$itemModified = "";
+        if ($_CONF['contributedbyline'] == 1) {
+			$authorname = COM_getDisplayName($article->displayElements('uid'));
+			$itemByline = sprintf($LANG01[5], $authorname, $article->displayElements('date'));
+			$itemModified = sprintf($LANG01[6], $article->displayElements('modified'));
+        }		
+				
+        $display = COM_createHTMLPrintableDocument(
+            $fulltext_no_br,
+            array(
+                'itemURL'   	=> $articleUrl,
+				'printableURL'  => $printableURL,
+                'itemtitle' 	=> $article->DisplayElements('title'),
+				'itembyline' 	=> $itemByline,
+				'itemmodified' 	=> $itemModified,
+				'itemextras' 	=> $comments_with_count
+            )
+        );		
+		
     } else {
         // Set page title
         $pagetitle = $article->DisplayElements('page_title');
@@ -306,13 +280,13 @@ if ($A['count'] > 0) {
                     )
                 );
         }
-        
+
         // Add hreflang link element if Multi Language Content is setup
         // Only allow hreflang link element to be visible when on canonical url
         // ie no second pages which can happen with comments, or if [page_break] is used or with extra trailing variables like from a search query
         if (strtolower(COM_getCurrentURL()) == strtolower($permalink)) {
             $headercode .= COM_createHREFLang('story', $article->getSid());
-        }        
+        }
 
         if ($article->DisplayElements('trackbackcode') == 0) {
             if ($_CONF['trackback_enabled']) {
@@ -339,13 +313,69 @@ if ($A['count'] > 0) {
             DB_query("UPDATE {$_TABLES['stories']} SET hits = hits + 1 WHERE (sid = '" . DB_escapeString($article->getSid()) . "') AND (date <= NOW()) AND (draft_flag = 0)");
         }
 
-        // Display whats related
+        // Figure out further what page we are on for the article to display comments or not on this page of the article
+        $show_comments = true;
+        $page_break_count = $article->displayElements('numpages');
+        if ($_CONF['allow_page_breaks'] == 1 && $page_break_count > 1) {
+            if ($articlePage > $page_break_count) { // Can't have page count greater than actual number of pages
+                COM_handle404();
+            }
+
+            /*
+            // if not numeric then mode is used by comments to determine how to display them
+            if (!is_numeric($mode)) {
+                // if not empty then assume mode is being used by comments to change display and check if need to be on last page
+                if (!empty($mode) && $_CONF['allow_page_breaks'] == 1 && $_CONF['page_break_comments'] == 'last' && $page_break_count > 1) {
+                    // See github issue #1019 for bug regarding $_CONF['page_break_comments'] ='all' and not being able to figure out what article page we are on if comment display is changed since mode is being used by article for page number and comments to change display
+                    $story_page = $page_break_count;
+                } else {
+                    $story_page = 1;
+                }
+            } else {
+                $story_page = $mode;
+                $mode = ''; // need to clear it since mode post variable is used by comment as well to determine how to display comments
+
+                if ($story_page <= 0) {
+                    $story_page = 1;
+                }
+
+                if ($story_page > $page_break_count) { // Can't have page count greater than actual number of pages
+                    $story_page = $page_break_count;
+                }
+            }
+            */
+
+            if ($page_break_count > 1) {
+                $conf = $_CONF['page_break_comments'];
+                if (
+                    ($conf === 'all') ||
+                    (($conf === 'first') && ($articlePage == 1)) ||
+                    (($conf === 'last') && ($page_break_count == $articlePage))
+                ) {
+                    $show_comments = true;
+                } else {
+                    $show_comments = false;
+                }
+            } else {
+                $show_comments = true;
+            }
+        } else {
+            $show_comments = true;
+        }
+
         $articleTemplate = COM_newTemplate(CTL_core_templatePath($_CONF['path_layout'] . 'article'));
+
+        // Pass Page and Comment Display info to template in case it wants to display anything else with comments
+        $articleTemplate->set_var('page_number', $articlePage);
+        $articleTemplate->set_var('page_total', $page_break_count);
+        $articleTemplate->set_var('comments_on_page', $show_comments);
+
+        // Display whats related
         $articleTemplate->set_file('article', 'article.thtml');
 
         $articleTemplate->set_var('story_id', $article->getSid());
         $articleTemplate->set_var('story_title', $pagetitle);
-        $story_options = array();
+        $story_options = [];
         if (($_CONF['hideemailicon'] == 0) && (!COM_isAnonUser() ||
                 (($_CONF['loginrequired'] == 0) &&
                     ($_CONF['emailstoryloginrequired'] == 0)))
@@ -409,108 +439,21 @@ if ($A['count'] > 0) {
                     $url);
             }
         }
-        /*
-            if (true) { // can subscribe
-                $commentSubscribeURL = '';
-                $story_options[] = COM_createLink('Nubbies', $commentSubscribeURL, array('rel' => 'nofollow'));
-                $story_template->set_var('comment_subscribe_url', $commentSubscribeURL);
-                $story_template->set_var('lang_comment_subscribe', 'Nubbies');
-            }
-        */
-        $related = STORY_whatsRelated($article->displayElements('related'),
-            $article->displayElements('uid'),
-            $article->getSid());
-        if (!empty($related)) {
-            $related = COM_startBlock($LANG11[1], '',
-                    COM_getBlockTemplate('whats_related_block', 'header'))
-                . $related
-                . COM_endBlock(COM_getBlockTemplate('whats_related_block',
-                    'footer'));
-        }
-        if (count($story_options) > 0) {
-            $optionsblock = COM_startBlock($LANG11[4], '',
-                    COM_getBlockTemplate('story_options_block', 'header'))
-                . COM_makeList($story_options, 'list-story-options')
-                . COM_endBlock(COM_getBlockTemplate('story_options_block',
-                    'footer'));
-        } else {
-            $optionsblock = '';
-        }
-        $articleTemplate->set_var('whats_related', $related);
-        $articleTemplate->set_var('story_options', $optionsblock);
-        $articleTemplate->set_var('whats_related_story_options',
-            $related . $optionsblock);
 
+        // Render article near top so it can use mode if set (ie to figure out page break)
         // Another option here could be to figure out if story is first on page
         $tmpl = $_CONF['showfirstasfeatured'] ? 'featuredarticletext.thtml' : '';
         $articleTemplate->set_var('formatted_article',
-            STORY_renderArticle($article, 'n', $tmpl, $query));
-
-        // display comments or not?
-        if ($_CONF['allow_page_breaks'] == 1) {
-            if (!is_numeric($mode)) {
-                $story_page = 1;
-            } else {
-                $story_page = $mode;
-                $mode = '';
-            }
-
-            if ($story_page <= 0) {
-                $story_page = 1;
-            }
-
-            $article_arr = explode('[page_break]', $article->displayElements('bodytext'));
-            $page_break_count = count($article_arr);
-            if ($page_break_count > 1) {
-                $conf = $_CONF['page_break_comments'];
-                if (
-                    ($conf === 'all') ||
-                    (($conf === 'first') && ($story_page == 1)) ||
-                    (($conf === 'last') && ($page_break_count == $story_page))
-                ) {
-                    $show_comments = true;
-                } else {
-                    $show_comments = false;
-                }
-            } else {
-                $show_comments = true;
-            }
-        } else {
-            $show_comments = true;
-        }
+            STORY_renderArticle($article, 'n', $tmpl, $query, $articlePage, 1, $story_options));
 
         // Display the comments, if there are any ..
         if (($article->displayElements('commentcode') >= 0) && $show_comments) {
             $delete_option = (SEC_hasRights('story.edit') && ($article->getAccess() == 3));
             $articleTemplate->set_var('commentbar',
                 CMT_userComments($article->getSid(), $article->displayElements('title'), 'article',
-                    $order, $mode, 0, $page, false, $delete_option, $article->displayElements('commentcode')));
+                    $commentOrder, $mode, 0, $commentPage, false, $delete_option, $article->displayElements('commentcode')));
         }
-        if ($_CONF['trackback_enabled'] && ($article->displayElements('trackbackcode') >= 0) &&
-            $show_comments
-        ) {
-            if (SEC_hasRights('story.ping')) {
-                if (($article->displayElements('draft_flag') == 0) &&
-                    ($article->displayElements('day') < time())
-                ) {
-                    $url = $_CONF['site_admin_url']
-                        . '/trackback.php?mode=sendall&amp;id=' . $article->getSid();
-                    $articleTemplate->set_var('send_trackback_link',
-                        COM_createLink($LANG_TRB['send_trackback'], $url));
-                    $articleTemplate->set_var('send_trackback_url', $url);
-                    $articleTemplate->set_var('lang_send_trackback_text',
-                        $LANG_TRB['send_trackback']);
-                }
-            }
 
-            $permalink = COM_buildUrl($_CONF['site_url']
-                . '/article.php?story=' . $article->getSid());
-            $articleTemplate->set_var('trackback',
-                TRB_renderTrackbackComments($article->getSID(), 'article',
-                    $article->displayElements('title'), $permalink));
-        } else {
-            $articleTemplate->set_var('trackback', '');
-        }
         $display .= $articleTemplate->finish($articleTemplate->parse('output', 'article'));
 
         $breadcrumbs = TOPIC_breadcrumbs('article', $article->getSid());

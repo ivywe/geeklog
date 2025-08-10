@@ -109,14 +109,30 @@ class Url
     public function setArgNames(array $names)
     {
         if ($this->urlRewrite) {
-            $this->arguments = $this->originalArguments;
-            $newArray = array();
+            if ($this->urlRouting) {
+				if (!empty(Router::getRoute())) {
+					// Grab converted original route url from router class and then parse query string into array
+					parse_str( parse_url(Router::getRoute(), PHP_URL_QUERY), $this->arguments);
+					
+					// If empty array returned then possible no routes found so fallback to rewrite
+					if(!empty($this->arguments)) {
+						return true;
+					}
+				} else {
+					// No routes so fallback to rewrite
+					return false;
+				}
+			}
+			
+			$this->arguments = $this->originalArguments;
+			
+			$newArray = array();
 
-            foreach ($names as $name) {
-                $newArray[$name] = array_shift($this->arguments);
-            }
+			foreach ($names as $name) {
+				$newArray[$name] = array_shift($this->arguments);
+			}
 
-            $this->arguments = $newArray;
+			$this->arguments = $newArray;
 
             return true;
         } else {
@@ -212,10 +228,19 @@ class Url
      */
     private function getArguments()
     {
+        global $_CONF;
+        
+        if ($this->urlRouting === Router::ROUTING_WITHOUT_INDEX_PHP) {
+            $check_for_dirs = true;
+        } else{
+            $check_for_dirs = false;
+        }
+        
         if (isset($_SERVER['PATH_INFO'])) {
             if ($_SERVER['PATH_INFO'] == '') {
                 if (isset($_ENV['ORIG_PATH_INFO'])) {
                     $this->arguments = explode('/', $_ENV['ORIG_PATH_INFO']);
+                    $check_for_dirs = true;
                 } else {
                     $this->arguments = array();
                 }
@@ -224,9 +249,20 @@ class Url
             }
             array_shift($this->arguments);
         } elseif (isset($_ENV['ORIG_PATH_INFO'])) {
-            $this->arguments = explode('/', substr($_ENV['ORIG_PATH_INFO'], 1));
+			if ($_ENV['ORIG_PATH_INFO'] == $_SERVER['SCRIPT_NAME']) {
+				// Added this check for Apache to work for PHP FastCGI
+				// This check is needed if the url does not contain any variables (ie "/links/index.php") in FastCGI on Apache. 
+				// If contains variable then  $_SERVER['PATH_INFO'] gets set (with or with out using FastCGI)
+				// On Apache that does not use FastCGI then none of the variables gets set ($_SERVER['PATH_INFO'], $_ENV['ORIG_PATH_INFO'], $_SERVER['ORIG_PATH_INFO']) 
+				// so it ends up in the ELSE of the original IF statement
+				$this->arguments = array();
+			} else {
+				$this->arguments = explode('/', substr($_ENV['ORIG_PATH_INFO'], 1));
+				$check_for_dirs = true;
+			}
         } elseif (isset($_SERVER['ORIG_PATH_INFO'])) {
             $this->arguments = explode('/', substr($_SERVER['ORIG_PATH_INFO'], 1));
+            $check_for_dirs = true;
 
             // Added for IIS 7 to work in FastCGI mode
             array_shift($this->arguments);
@@ -236,6 +272,21 @@ class Url
             // end of add
         } else {
             $this->arguments = array();
+        }
+        
+        // For when Routing enabled - Deal with site_url if it has directories in it. These are not arguments so we need to add extra array shifts
+        // For Routing with ROUTING_WITH_INDEX_PHP - Only ORIG_PATH_INFO variables contains these directories
+        // For Routing with ROUTING_WITHOUT_INDEX_PHP - Both PATH_INFO and ORIG_PATH_INFO variables contains these directories
+        // So add extra array_shifts if needed
+        if ($this->urlRouting) {
+            $url_path = parse_url($_CONF['site_url'], PHP_URL_PATH);
+            if (!empty($url_path) AND $check_for_dirs) {
+                $url_dir = explode('/', $url_path);
+                $num_url_dir = count($url_dir);
+                for ($i = 1; $i <= $num_url_dir; $i++) {
+                    array_shift($this->arguments);
+                }
+            }
         }
     }
 
@@ -257,5 +308,101 @@ class Url
     public function setEnabled($switch)
     {
         $this->urlRewrite = (bool) $switch;
+    }
+
+    /**
+     * Return the current URL
+     *
+     * @param  string  $siteUrl
+     * @return string
+     */
+    public static function getCurrentURL($siteUrl)
+    {
+        static $thisUrl;
+
+        if ($thisUrl !== null) {
+            return $thisUrl;
+        }
+
+        $thisUrl = '';
+
+        if (empty($_SERVER['SCRIPT_URI'])) {
+            if (!empty($_SERVER['DOCUMENT_URI'])) {
+                $document_uri = $_SERVER['DOCUMENT_URI'];
+                $firstSlash = strpos($siteUrl, '/');
+
+                if ($firstSlash === false) {
+                    // special case - assume it's okay
+                    $thisUrl = $siteUrl . $document_uri;
+                } elseif ($firstSlash + 1 == strrpos($siteUrl, '/')) {
+                    // site is in the document root
+                    $thisUrl = $siteUrl . $document_uri;
+                } else {
+                    // extract server name first
+                    $pos = strpos($siteUrl, '/', $firstSlash + 2);
+                    $thisUrl = substr($siteUrl, 0, $pos) . $document_uri;
+                }
+            }
+        } else {
+            $thisUrl = $_SERVER['SCRIPT_URI'];
+        }
+
+        if (!empty($thisUrl) && !empty($_SERVER['QUERY_STRING'])) {
+            $thisUrl .= '?' . $_SERVER['QUERY_STRING'];
+        }
+
+        if (empty($thisUrl)) {
+            $requestUri = $_SERVER['REQUEST_URI'];
+            if (empty($_SERVER['REQUEST_URI'])) {
+                if (empty($_SERVER['PATH_INFO'])) {
+                    $requestUri = $_SERVER['SCRIPT_NAME'];
+                } else {
+                    $requestUri = $_SERVER['PATH_INFO'];
+                }
+
+                if (!empty($_SERVER['QUERY_STRING'])) {
+                    $requestUri .= '?' . $_SERVER['QUERY_STRING'];
+                }
+            }
+
+            $firstSlash = strpos($siteUrl, '/');
+
+            if ($firstSlash === false) {
+                // special case - assume it's okay
+                $thisUrl = $siteUrl . $requestUri;
+            } elseif ($firstSlash + 1 == strrpos($siteUrl, '/')) {
+                // site is in the document root
+                $thisUrl = $siteUrl . $requestUri;
+            } else {
+                // extract server name first
+                $pos = strpos($siteUrl, '/', $firstSlash + 2);
+                $thisUrl = substr($siteUrl, 0, $pos) . $requestUri;
+            }
+        }
+
+        return $thisUrl;
+    }
+
+    /**
+     * Return $_SERVER['PATH_INFO']
+     *
+     * @param  string  $siteUrl
+     * @return string
+     */
+    public static function getPathInfo($siteUrl)
+    {
+        if (isset($_SERVER['PATH_INFO'])) {
+            return $_SERVER['PATH_INFO'];
+        } else {
+            $retval = str_replace($siteUrl, '', self::getCurrentURL($siteUrl));
+
+            if (preg_match('@^.+?\.php/@i', $retval, $match)) {
+                $retval = '/' . str_replace($match[0], '', $retval);
+            } elseif (($retval !== '') && (strpos($retval, '/') !== 0)) {
+                $retval = '/' . $retval;
+            }
+
+            return $retval;
+        }
     }
 }

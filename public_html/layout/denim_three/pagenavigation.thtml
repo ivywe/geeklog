@@ -1,6 +1,7 @@
 {# begin {templatelocation} #}
 
-<div class="uk-grid" uk-margin>
+<h2 class="gl-screen-reader-only">{lang_page_navigation}</h2>{# Visible to screen readers only #} 
+<div class="uk-grid uk-margin" uk-margin>
     <div class="uk-width-1-1">
         {message}
         <ul class="uk-pagination uk-flex-center">

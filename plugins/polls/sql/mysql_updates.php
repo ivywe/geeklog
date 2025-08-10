@@ -2,11 +2,11 @@
 
 /* Reminder: always indent with 4 spaces (no tabs). */
 // +---------------------------------------------------------------------------+
-// | Polls Plugin 2.1                                                          |
+// | Polls Plugin 2.2                                                          |
 // +---------------------------------------------------------------------------+
 // | mysql_updates.php                                                         |
 // +---------------------------------------------------------------------------+
-// | Copyright (C) 2008-2011 by the following authors:                         |
+// | Copyright (C) 2008-2021 by the following authors:                         |
 // |                                                                           |
 // | Authors: Dirk Haun         - dirk AT haun-online DOT de                   |
 // +---------------------------------------------------------------------------+
@@ -42,7 +42,7 @@ $_UPDATES = array(
         "ALTER TABLE `{$_TABLES['polltopics']}` ADD is_open tinyint(1) NOT NULL default '1' AFTER display",
         "ALTER TABLE `{$_TABLES['polltopics']}` ADD hideresults tinyint(1) NOT NULL default '0' AFTER is_open",
         "ALTER TABLE `{$_TABLES['pollanswers']}` CHANGE `qid` `pid` VARCHAR( 20 ) NOT NULL",
-        "ALTER TABLE `{$_TABLES['pollanswers']}` ADD `qid` VARCHAR( 20 ) NOT NULL DEFAULT '0' AFTER `pid`;",
+        "ALTER TABLE `{$_TABLES['pollanswers']}` ADD `qid` mediumint(9) NOT NULL DEFAULT '0' AFTER `pid`;", // Fixed in v2.2.0 was set to varchar(20) and not mediumint(9)
         "ALTER TABLE `{$_TABLES['pollanswers']}` DROP PRIMARY KEY;",
         "ALTER TABLE `{$_TABLES['pollanswers']}` ADD INDEX (pid, qid, aid);",
         "ALTER TABLE `{$_TABLES['pollvoters']}` CHANGE `qid` `pid` VARCHAR( 20 ) NOT NULL",
@@ -105,6 +105,17 @@ $_UPDATES = array(
         "ALTER TABLE {$_TABLES['pollquestions']} ADD `description` MEDIUMTEXT NULL",
         "ALTER TABLE {$_TABLES['polltopics']} ADD `description` MEDIUMTEXT NULL",
     ),
+
+    '2.1.9' => array(
+        // Fix for sql upgrade bug in Polls v1.1.0  where qid added as varchar(20) and not mediumint(9)
+        // Only needed for mysql version since pgsql was not available for Polls Plugin v1.1.0
+        "ALTER TABLE {$_TABLES['pollanswers']} CHANGE `qid` `qid` MEDIUMINT(9) NOT NULL DEFAULT '0'"
+    ),
+
+    '2.2.0' => [
+        // Add 'seq' column for IP anonymization
+        "ALTER TABLE {$_TABLES['pollvoters']} ADD COLUMN seq INT NOT NULL DEFAULT 0",
+    ],
 );
 
 /**
@@ -130,9 +141,7 @@ function polls_update_polltopics()
     foreach ($P_SQL as $sql) {
         $rst = DB_query($sql);
         if (DB_error()) {
-            echo "There was an error upgrading the polls, SQL: $sql<br>";
-
-            return false;
+            echo "There was an error upgrading the polls, SQL: {$sql}<br>";
         }
     }
 }
@@ -141,7 +150,6 @@ function polls_update_ConfValues_2_1_0()
 {
     global $_CONF, $_PO_DEFAULT;
 
-    require_once $_CONF['path_system'] . 'classes/config.class.php';
     require_once $_CONF['path'] . 'plugins/polls/install_defaults.php';
 
     $c = config::get_instance();
@@ -156,7 +164,6 @@ function polls_update_ConfValues_2_1_1()
 {
     global $_CONF, $_PO_DEFAULT, $_PO_CONF;
 
-    require_once $_CONF['path_system'] . 'classes/config.class.php';
     require_once $_CONF['path'] . 'plugins/polls/install_defaults.php';
 
     $c = config::get_instance();

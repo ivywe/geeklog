@@ -1,16 +1,16 @@
 # Install/Uninstall/Upgrade instruction for the Geeklog reCAPTCHA plugin
 
-* Repository: https://github.com/mystralkk/recaptcha
-* Version: 1.2.0
+* Repository: https://github.com/Geeklog-Core/geeklog
+* Version: 1.2.4
 * License: GPL v2 or later
 
 ## What is reCAPTCHA?
 
-ReCAPTCHA(R) is a free anti-bot service providing powerful CAPTCHA(Completely Automated Public Turing test to tell Computers and Humans Apart).  This plugin makes it easy to use reCAPTCHA with Geeklog.
+reCAPTCHA(R) is a free anti-bot service providing powerful CAPTCHA(Completely Automated Public Turing test to tell Computers and Humans Apart).  This plugin makes it easy to use reCAPTCHA with Geeklog.
 
 ## System Requirements
 
-* Geeklog-2.2.0+
+* Geeklog-2.2.2+
 
 ## INSTALL
 
@@ -27,12 +27,12 @@ In the following descriptions
 
 ## UNINSTALL
 
-1.  Log in to your Geeklog web site as a root user, go to the plugin editor and click on reCAPTCHA.  If the unstall failed, examine Geeklog system errorlog for possible problems.
-2.  Delete the two plugin directories created in the install process: <geeklog-dir>/plugins/recaptcha/ and <admin>/plugins/recaptcha/.
+1.  Log in to your Geeklog website as a root user, go to the plugin editor and click on reCAPTCHA.  If the unstall failed, examine Geeklog system errorlog for possible problems.
+2.  Delete the two plugin directories created in the installation process: <geeklog-dir>/plugins/recaptcha/ and <admin>/plugins/recaptcha/.
 
 ## UPGRADE
 
-1.  Log in to your Geeklog web site as a root user, go to the plugin editor and disable the reCAPTCHA plugin.
+1.  Log in to your Geeklog website as a root user, go to the plugin editor and disable the reCAPTCHA plugin.
 2.  Uncompress the recaptcha plugin archive and upload the resulting files as you did when you installed the plugin.
 3.  Go to the plugin editor and Enable the reCAPTCHA plugin. Then, upgrade the plugin.
 
@@ -40,11 +40,15 @@ In the following descriptions
 
 | Version | Date(YYYY-MM-DD) |Description                                                                         |
 |:-------:|-----------------:|------------------------------------------------------------------------------------|
+|   1.2.4 |       2020-??-?? |* Added support for reCAPTCHA V3.                                                   |
+|   1.2.3 |       ****-**-** |* (Not released)                                                                    |
+|   1.2.2 |       2020-02-26 |* Added support for the Forum plugin.                                               |
+|   1.2.1 |       2019-xx-xx |* Dropped the parts of "Integration with Geeklog" configuration related to plugins.  Now, the reCAPTCHA plugin gets information through calling plugin_supportsRecaptcha_xxx. |
 |   1.2.0 |       2017-12-02 |* Added support for Invisible reCAPTCHA.                                            |
 |   1.1.6 |       2017-11-28 |* Added support for Login Form.                                                     |
 |         |                  |* Added support for Forget Password Form.                                           |
 |         |                  |* Added support for the demo mode introduced in Geeklog 2.2.0.                      |
-|   1.1.5 |       2017-04-12 |* Fixed a bug where reCAPTCHA failed to check for input when $_RECAPTCHA_CONF['logging'] is set to off.                                                                    |
+|   1.1.5 |       2017-04-12 |* Fixed a bug where reCAPTCHA failed to check for input when $_RECAPTCHA_CONF['logging'] is set to off.  |
 |   1.1.4 |       2017-01-18 |* Small bug fix.                                                                    |
 |   1.1.3 |       2016-08-12 |* Replaced COM_siteHeader and COM_siteFooter with COM_createHTMLDocument.           |
 |   1.1.2 |       2016-02-20 |* Modified to use reCAPTCHA v1.1.2 library.                                         |

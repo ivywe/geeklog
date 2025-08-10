@@ -103,7 +103,7 @@ function ADMIN_simpleList($fieldFunction, $header_arr, $text_arr,
     }
 
     # define icon paths. Those will be transmitted to $fieldfunction.
-    $icons_type_arr = array('edit', 'copy', 'list', 'addchild', 'install', 'unavailable', 'info');
+	$icons_type_arr = array('edit', 'copy', 'list', 'addchild', 'install', 'deleteitem', 'enabled', 'disabled', 'unavailable', 'warning', 'info');	
     $icon_arr = array();
     foreach ($icons_type_arr as $icon_type) {
         $icon_url = "{$_CONF['layout_url']}/images/$icon_type.$_IMAGE_TYPE";
@@ -195,14 +195,11 @@ function ADMIN_simpleList($fieldFunction, $header_arr, $text_arr,
     $admin_templates->parse('output', 'list');
 
     if (!empty($title)) {
-        $retval .= COM_startBlock(
-            $title, $help_url,
-            COM_getBlockTemplate('_admin_block', 'header')
-        );
+        $retval .= COM_startBlock($title, $help_url, COM_getBlockTemplate('_admin_list', 'header'));
     }
     $retval .= $admin_templates->finish($admin_templates->get_var('output'));
     if (!empty($title)) {
-        $retval .= COM_endBlock(COM_getBlockTemplate('_admin_block', 'footer'));
+        $retval .= COM_endBlock(COM_getBlockTemplate('_admin_list', 'footer'));
     }
 
     return $retval;
@@ -239,6 +236,7 @@ function ADMIN_list($component, $fieldFunction, $header_arr, $text_arr,
     $group_by_sql = '';
     $limit = '';
     $prevOrder = Geeklog\Input::fGet('prevorder', '');  // what was the last sorting?
+    $prevOrder = preg_replace('/[^0-9A-Za-z_]/', '', $prevOrder);
     $query = Geeklog\Input::request('q', '');           // get query (text-search)
     if (!empty($query)) {
         $query = GLText::stripTags($query);
@@ -246,8 +244,8 @@ function ADMIN_list($component, $fieldFunction, $header_arr, $text_arr,
 
     $query_limit = '';
     if (isset($_REQUEST['query_limit'])) { // get query-limit (list-length)
-        $query_limit = (int) Geeklog\Input::fRequest('query_limit');
-        if ($query_limit == 0) {
+        $query_limit = (int) Geeklog\Input::fRequest('query_limit', 0);
+        if ($query_limit <= 0) {
             $query_limit = DEFAULT_ENTRIES_PER_PAGE;
         }
     }
@@ -262,20 +260,20 @@ function ADMIN_list($component, $fieldFunction, $header_arr, $text_arr,
         $currentPage = $page;
     }
     if ($currentPage <= 0) {
-        $currentPage = 1; #current page has to be larger 0
+        $currentPage = 1; // current page has to be larger 0
     }
 
-    $help_url = ''; # do we have a help url for the block-header?
+    $help_url = ''; // do we have a help url for the block-header?
     if (!empty($text_arr['help_url'])) {
         $help_url = $text_arr['help_url'];
     }
 
-    $form_url = ''; # what is the form-url for the search button and list sorters?
+    $form_url = ''; // what is the form-url for the search button and list sorters?
     if (!empty($text_arr['form_url'])) {
         $form_url = $text_arr['form_url'];
     }
 
-    $title = ''; # what is the title of the page?
+    $title = '';    // what is the title of the page?
     if (!empty($text_arr['title'])) {
         $title = $text_arr['title'];
     }
@@ -326,7 +324,7 @@ function ADMIN_list($component, $fieldFunction, $header_arr, $text_arr,
     }
 
     // define icon paths. Those will be transmitted to $fieldFunction.
-    $icons_type_arr = array('edit', 'copy', 'list', 'addchild', 'deleteitem', 'enabled', 'disabled', 'unavailable', 'warning', 'info');
+	$icons_type_arr = array('edit', 'copy', 'list', 'addchild', 'install', 'deleteitem', 'enabled', 'disabled', 'unavailable', 'warning', 'info');	
     $icon_arr = array();
     foreach ($icons_type_arr as $icon_type) {
         $icon_url = "{$_CONF['layout_url']}/images/$icon_type.$_IMAGE_TYPE";
@@ -334,31 +332,36 @@ function ADMIN_list($component, $fieldFunction, $header_arr, $text_arr,
     }
 
     $has_extras = '';
-    if (isset($text_arr['has_extras'])) { # does this one use extras? (search, google paging)
+    if (isset($text_arr['has_extras'])) { // does this one use extras? (search, google paging)
         $has_extras = $text_arr['has_extras'];
     }
     if ($has_extras) { // show search
         $admin_templates->set_var('lang_search', $LANG_ADMIN['search']);
         $admin_templates->set_var('lang_submit', $LANG_ADMIN['submit']);
-        $admin_templates->set_var('lang_limit_results',
-            $LANG_ADMIN['limit_results']);
+        $admin_templates->set_var('lang_limit_results', $LANG_ADMIN['limit_results']);
         $admin_templates->set_var('last_query', htmlspecialchars($query));
         $admin_templates->set_var('filter', $filter);
     }
 
     $sql_query = DB_escapeString($query); // replace quotes etc for security
-    $sql = $query_arr['sql']; // get sql from array that builds data
+    $sql = $query_arr['sql'];   // get sql from array that builds data
 
-    $order_var = ''; # number that is displayed in URL
-    $order_var_link = ''; # Variable for google paging.
+    $order_var = '';            // number that is displayed in URL
+    $order_var_link = '';       // Variable for google paging.
 
     // is the order set in the link (when sorting the list)
     if (!isset($_GET['order'])) {
         $order = $defSort_arr['field']; // no, get the default
     } else {
-        $order_var = (int) Geeklog\Input::fGet('order');
-        $order_var_link = "&amp;order=$order_var"; # keep the variable for the google paging
-        $order = $header_arr[$order_var]['field'];  # current order field name
+        $order_var = (int) Geeklog\Input::fGet('order', 0);
+
+        if (isset($header_arr[$order_var])) {
+            $order_var_link = "&amp;order=$order_var";  // keep the variable for the google paging
+            $order = $header_arr[$order_var]['field'];  // current order field name
+        } else {
+            $order_var = '';
+            $order = $defSort_arr['field']; // no, get the default
+        }
     }
 
     if (isset($header_arr[$order_var]['sort_field'])) {
@@ -380,7 +383,7 @@ function ADMIN_list($component, $fieldFunction, $header_arr, $text_arr,
 
     $direction = Geeklog\Input::fGet('direction', $defSort_arr['direction']);   // get direction to sort after
     $direction = strtoupper($direction);
-    if ($order == $prevOrder) { #reverse direction if prev. order was the same
+    if ($order == $prevOrder) { // reverse direction if prev. order was the same
         $direction = ($direction === 'DESC') ? 'ASC' : 'DESC';
     } else {
         $direction = ($direction === 'DESC') ? 'DESC' : 'ASC';
@@ -405,16 +408,17 @@ function ADMIN_list($component, $fieldFunction, $header_arr, $text_arr,
     // HEADER FIELDS array(text, field, sort, class)
     // this part defines the contents & format of the header fields
 
-    for ($i = 0; $i < count($header_arr); $i++) { #iterate through all headers
+    for ($i = 0; $i < count($header_arr); $i++) {     // iterate through all headers
         $header_text = $header_arr[$i]['text'];
         $th_subtags = '';
-        if ($header_arr[$i]['sort'] != false) { # is this sortable?
-            if ($order == $header_arr[$i]['field']) { # is this currently sorted?
+        if ($header_arr[$i]['sort'] != false) {       // is this sortable?
+            if ($order == $header_arr[$i]['field']) { // is this currently sorted?
                 $header_text .= $img_arrow;
             }
-            # make the mouseover effect is sortable
+
+            // make the mouseover effect is sortable
             $th_subtags = " onmouseover=\"this.style.cursor='pointer';\"";
-            $order_var = $i; # assign number to field so we know what to sort
+            $order_var = $i; // assign number to field so we know what to sort
             if (strpos($form_url, '?') > 0) {
                 $separator = '&amp;';
             } else {
@@ -556,7 +560,7 @@ function ADMIN_list($component, $fieldFunction, $header_arr, $text_arr,
             if ($fieldValue !== false) { # return was there, so write line
                 $this_row = true;
             } else {
-                $fieldValue = ''; // dont give emtpy fields
+                $fieldValue = ''; // don't give empty fields
             }
             if (!empty($header_arr[$j]['field_class'])) {
                 $admin_templates->set_var('class', $header_arr[$j]['field_class']);
@@ -609,11 +613,11 @@ function ADMIN_list($component, $fieldFunction, $header_arr, $text_arr,
     // Do the actual output
     if (!empty($title)) {
         $retval .= COM_startBlock($title, $help_url,
-            COM_getBlockTemplate('_admin_block', 'header'));
+            COM_getBlockTemplate('_admin_list', 'header'));
     }
     $retval .= $admin_templates->finish($admin_templates->get_var('output'));
     if (!empty($title)) {
-        $retval .= COM_endBlock(COM_getBlockTemplate('_admin_block', 'footer'));
+        $retval .= COM_endBlock(COM_getBlockTemplate('_admin_list', 'footer'));
     }
 
     return $retval;
@@ -675,7 +679,7 @@ function ADMIN_createMenu($menu_arr, $text, $icon = '')
  */
 function ADMIN_getListField_groups($fieldName, $fieldValue, $A, $icon_arr, $selected = '')
 {
-    global $_CONF, $LANG_ACCESS, $thisUsersGroups, $_GROUP_MAINGROUPS;
+    global $_CONF, $LANG_ACCESS, $thisUsersGroups, $_GROUP_MAINGROUPS, $_GROUP_LOOPGROUPS;
 
     $retval = false;
 
@@ -741,9 +745,12 @@ function ADMIN_getListField_groups($fieldName, $fieldValue, $A, $icon_arr, $sele
                     'value' => $A['grp_id']);
                 if (is_array($selected) && in_array($A['grp_id'], $selected)) {
                     $vars = array_merge($vars, array('checked' => true));
-                } elseif (in_array($A['grp_id'], $_GROUP_MAINGROUPS)) { // If inherited then disable
+                } elseif (in_array($A['grp_id'], $_GROUP_MAINGROUPS)) { // If inherited then disable and check
                     $vars = array_merge($vars, array(
                         'checked' => true, 'disabled' => true));
+                } elseif (in_array($A['grp_id'], $_GROUP_LOOPGROUPS)) { // If loops back to itself then disable but do not check
+                    $vars = array_merge($vars, array(
+                        'checked' => false, 'disabled' => true));
                 }
                 $retval = COM_createControl('type-checkbox', $vars);
                 break;
@@ -806,20 +813,47 @@ function ADMIN_getListField_users($fieldName, $fieldValue, $A, $icon_arr)
         case 'lastlogin':
             if ($fieldValue < 1) {
                 // if the user never logged in, show the registration date
-                $regdate = strftime($_CONF['shortdate'], strtotime($A['regdate']));
+                $regdate = COM_strftime($_CONF['shortdate'], strtotime($A['regdate']));
                 $retval = "({$LANG28[36]}, {$LANG28[53]} $regdate)";
             } else {
-                $retval = strftime($_CONF['shortdate'], $fieldValue);
+                $retval = COM_strftime($_CONF['shortdate'], $fieldValue);
             }
+            break;
+
+        case 'contributed':
+            // Has user ever logged in?
+            if ($A['lastlogin_short'] < 1) {
+                $retval = $LANG28['na'];
+            } else {
+                $retval = '';
+                $content_contributed = PLG_userContributed($A['uid']);
+                if (is_array($content_contributed) && (count($content_contributed) > 0)) {
+                    foreach ($content_contributed as $pluginname) {
+                        if (!empty($retval)) {
+                            $retval .= ", ";
+                        }
+                        $retval .= $pluginname;
+                    }
+                }
+
+                if (empty($retval)) {
+                    $retval = $LANG28['nothing'];
+                } else {
+                    // Add in search link
+                    $url = "/search.php?type=all&amp;author={$A['uid']}&amp;mode=search";
+                    $retval = COM_createLink($retval, $url);
+                }
+            }
+
             break;
 
         case 'lastlogin_short':
             if ($fieldValue < 1) {
                 // if the user never logged in, show the registration date
-                $regdate = strftime($_CONF['shortdate'], strtotime($A['regdate']));
+                $regdate = COM_strftime($_CONF['shortdate'], strtotime($A['regdate']));
                 $retval = "({$LANG28[36]})";
             } else {
-                $retval = strftime($_CONF['shortdate'], $fieldValue);
+                $retval = COM_strftime($_CONF['shortdate'], $fieldValue);
             }
             break;
 
@@ -842,7 +876,7 @@ function ADMIN_getListField_users($fieldName, $fieldValue, $A, $icon_arr)
             break;
 
         case 'regdate':
-            $retval = strftime($_CONF['shortdate'], strtotime($fieldValue));
+            $retval = COM_strftime($_CONF['shortdate'], strtotime($fieldValue));
             break;
 
         case $_TABLES['users'] . '.uid':
@@ -887,7 +921,7 @@ function ADMIN_getListField_stories($fieldName, $fieldValue, $A, $icon_arr)
     switch ($fieldName) {
         case 'unixdate':
             $currentTime = COM_getUserDateTimeFormat($A['unixdate']);
-            $retval = strftime($_CONF['daytime'], $currentTime[1]);
+            $retval = COM_strftime($_CONF['daytime'], $currentTime[1]);
             break;
 
         case 'title':
@@ -1163,9 +1197,12 @@ function ADMIN_getListField_plugins($fieldName, $fieldValue, $A, $icon_arr, $tok
                     $sorting = '';
                     $csrfToken2 = '&amp;' . CSRF_TOKEN . '=' . $token;
                     if (!empty($_GET['order']) && !empty($_GET['direction'])) { // Remember how the list was sorted
-                        $ord = trim(Geeklog\Input::get('order'));
-                        $dir = trim(Geeklog\Input::get('direction'));
-                        $old = trim(Geeklog\Input::get('prevorder'));
+                        $ord = trim(Geeklog\Input::fGet('order'));
+                        $dir = trim(Geeklog\Input::fGet('direction'));
+                        $old = trim(Geeklog\Input::fGet('prevorder'));
+                        $ord = COM_escHTML($ord);
+                        $dir = COM_escHTML($dir);
+                        $old = COM_escHTML($old);
                         $sorting = "&amp;order=$ord&amp;direction=$dir&amp;prevorder=$old";
                     }
                     $retval = COM_createLink($icon_arr[$switch], $_CONF['site_admin_url'] .
@@ -1217,26 +1254,52 @@ function ADMIN_getListField_moderation($fieldName, $fieldValue, $A, $icon_arr)
 
     switch ($fieldName) {
         case 'edit':
-            $retval = COM_createLink($icon_arr['edit'], $A['edit']);
+			$retval = '';
+			$show = false;
+			if ($type === 'story') {
+				// See if user has topic access to edit article (article submissions do not have permissions yet just an owner id)
+				if (TOPIC_hasMultiTopicAccess('article', $A['id']) == 3) {
+					$show = true;
+				}
+			} else {
+				$show = true;
+			}
+			if ($show) {
+				$retval = COM_createLink($icon_arr['edit'], $A['edit']);
+			}
+			
             break;
 
         case 'delete':
-            $retval = COM_createControl('type-radio', array(
-                'name' => "action[{$A['row']}]",
-                'value' => 'delete'
-            ));
+			$retval = COM_createControl('type-radio', array(
+				'name' => "action[{$A['row']}]",
+				'value' => 'delete'
+			));	
+			// Include id here as any story admin user can delete but only those with appropriate topic permissions can approve
+			$retval .= "<input type=\"hidden\" name=\"id[{$A['row']}]\" value=\"{$A[0]}\"" . XHTML . ">";
             break;
 
         case 'approve':
-            $retval = COM_createControl('type-radio', array(
-                'name' => "action[{$A['row']}]",
-                'value' => 'approve'
-            ));
-            $retval .= "<input type=\"hidden\" name=\"id[{$A['row']}]\" value=\"{$A[0]}\"" . XHTML . ">";
+			$retval = '';
+			$show = false;
+			if ($type === 'story') {
+				// See if user has topic access to approve article to be published (article submissions do not have permissions yet just an owner id)
+				if (TOPIC_hasMultiTopicAccess('article', $A['id']) == 3) {
+					$show = true;
+				}
+			} else {
+				$show = true;
+			}
+			if ($show) {
+				$retval = COM_createControl('type-radio', array(
+					'name' => "action[{$A['row']}]",
+					'value' => 'approve'
+				));
+			}		
             break;
 
         case 'day':
-            $retval = strftime($_CONF['daytime'], $A['day']);
+            $retval = COM_strftime($_CONF['daytime'], $A['day']);
             break;
 
         case 'tid':
@@ -1246,7 +1309,7 @@ function ADMIN_getListField_moderation($fieldName, $fieldValue, $A, $icon_arr)
         case 'uid':
             $name = '';
             if ($A['uid'] == 1) {
-                $name = htmlspecialchars(COM_stripslashes(DB_getItem($_TABLES['commentsubmissions'], 'name', "cid = '{$A['id']}'")));
+                $name = htmlspecialchars(DB_getItem($_TABLES['commentsubmissions'], 'name', "cid = '{$A['id']}'"));
             }
             if (empty($name)) {
                 $name = COM_getDisplayName($A['uid']);
@@ -1461,6 +1524,19 @@ function ADMIN_getListField_newplugins($fieldName, $fieldValue, $A, $icon_arr, $
                 $retval = str_replace('<img ', '<img title="' . $LANG32[63] . '" ', $icon_arr['unavailable']);
             }
             break;
+			
+        case 'delete_plugin':
+            $csrfToken2 = '&amp;' . CSRF_TOKEN . '=' . $A['token'];
+            $id = 'delete_' . $A['pi_name']; // used by JavaScript
+            $message = sprintf($LANG32['really_delete_msg'], "\'" . plugin_get_pluginname($A['pi_name']) . "\'"); // used by JavaScript
+            $url = $_CONF['site_admin_url'] . '/plugins.php?mode=remove&amp;pi_name=' . $A['pi_name'] . $csrfToken2;
+            $link_args = array('title'   => $LANG32['click_to_delete_msg'],
+                               'onclick' => "confirm_action('$message', '$url&amp;confirmed=1')",
+                               'id'      => $id);
+            $retval = COM_createLink($icon_arr['deleteitem'], $url, $link_args);
+            // If javascript is available, we will be using it to get a confirmation from the user. So we need to hide the default link.
+            $retval .= '<script type="text/javascript">document.getElementById("' . $id . '").href = "javascript:void(0);";</script>';
+            break;
 
         default:
             $retval = $fieldValue;
@@ -1482,7 +1558,7 @@ function ADMIN_getListField_newplugins($fieldName, $fieldValue, $A, $icon_arr, $
  */
 function ADMIN_getListField_topics($fieldName, $fieldValue, $A, $icon_arr, $token)
 {
-    global $_CONF, $LANG_ACCESS, $_TABLES, $LANG27, $LANG32;
+    global $_CONF, $LANG_ACCESS, $_TABLES, $LANG27;
 
     $retval = false;
 
@@ -1500,7 +1576,7 @@ function ADMIN_getListField_topics($fieldName, $fieldValue, $A, $icon_arr, $toke
             break;
 
         case 'sortnum':
-            if ($_CONF['sortmethod'] === 'sortnum') {
+            if ($_CONF['sortmethod'] === 'sortnum' && $access == 3) {
                 $style = 'style="vertical-align: middle;"';
                 $upImage = $_CONF['layout_url'] . '/images/admin/up.png';
                 $downImage = $_CONF['layout_url'] . '/images/admin/down.png';
@@ -1509,11 +1585,11 @@ function ADMIN_getListField_topics($fieldName, $fieldValue, $A, $icon_arr, $toke
                     . '&amp;' . CSRF_TOKEN . '=' . $token
                     . '&amp;where=';
                 $retval .= COM_createLink("<img $style alt=\"+\" src=\"$upImage\"" . XHTML . ">",
-                    $url . 'up', array('title' => $LANG32[44])
+                    $url . 'up', array('title' => $LANG27['move_topic_up'])
                 );
                 $retval .= '&nbsp;' . $fieldValue . '&nbsp;';
                 $retval .= COM_createLink("<img $style alt=\"-\" src=\"$downImage\"" . XHTML . ">",
-                    $url . 'dn', array('title' => $LANG32[45])
+                    $url . 'dn', array('title' => $LANG27['move_topic_down'])
                 );
             } else {
                 $retval = $fieldValue;

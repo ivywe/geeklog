@@ -55,7 +55,7 @@ $_SP_DEFAULT = array();
 
 // If you don't plan on using PHP code in static pages, you should set this
 // to 0, thus disabling the execution of PHP.
-$_SP_DEFAULT['allow_php'] = 1;
+$_SP_DEFAULT['allow_php'] = 0;
 
 // If you have more than one static page that is to be displayed in Geeklog's
 // center area, you can specify how to sort them:
@@ -80,6 +80,9 @@ $_SP_DEFAULT['delete_pages'] = 0;
  * 'admin' -> display the site admin homepage
  */
 $_SP_DEFAULT['aftersave'] = 'list';
+
+// When PHP included in page on save it will be parsed for errors (= 1) (if PHP 7+)
+$_SP_DEFAULT['enable_eval_php_save'] = 0;
 
 // Static pages can optionally be wrapped in a block. This setting defines
 // the default for that option (1 = wrap in a block, 0 = don't).
@@ -108,6 +111,7 @@ $_SP_DEFAULT['include_PHP'] = 0;
 $_SP_DEFAULT['include_search'] = 1;
 $_SP_DEFAULT['include_search_centerblocks'] = 0;
 $_SP_DEFAULT['include_search_PHP'] = 0;
+$_SP_DEFAULT['include_search_template'] = 0;
 
 // The maximum number of items displayed when an Atom feed is requested
 $_SP_DEFAULT['atom_max_items'] = 10;
@@ -117,6 +121,9 @@ $_SP_DEFAULT['meta_tags'] = 0;
 
 // Whether to enable (0) or disable (-1) comments by default
 $_SP_DEFAULT['comment_code'] = -1;
+
+// Default to set Structured Data type for new staticpages. See $LANG_structureddatatypes
+$_SP_DEFAULT['structured_data_type_default'] = 'core-webpage';
 
 // Whether to set the draft flag by default for new pages
 $_SP_DEFAULT['draft_flag'] = 0;
@@ -129,6 +136,9 @@ $_SP_DEFAULT['disable_breadcrumbs_staticpages'] = 0;
 //  0 = Not cached. Page is always regenerated
 // -1 = Always cached and only regenerated when the page is updated and saved through the edit staticpage editor
 $_SP_DEFAULT['default_cache_time'] = 0;
+
+// Display Likes for staticpages ('False' => 0, 'Likes and Dislikes' => 1, 'Likes Only' => 2)
+$_SP_DEFAULT['likes_pages'] = 0;
 
 // Define default permissions for new pages created from the Admin panel.
 // Permissions are perm_owner, perm_group, perm_members, perm_anon (in that
@@ -174,6 +184,8 @@ function plugin_initconfig_staticpages()
         $c->add('fs_main', NULL, 'fieldset', 0, 0, NULL, 0, true, 'staticpages', 0);
         $c->add('allow_php', $_SP_DEFAULT['allow_php'], 'select',
                 0, 0, 0, 10, true, 'staticpages', 0);
+        $c->add('enable_eval_php_save', $_SP_DEFAULT['enable_eval_php_save'], 'select',
+            0, 0, 0, 15, true, 'staticpages', 0);
         $c->add('sort_by', $_SP_DEFAULT['sort_by'], 'select',
                 0, 0, 2, 20, true, 'staticpages', 0);
         $c->add('sort_menu_by', $_SP_DEFAULT['sort_menu_by'], 'select',
@@ -200,14 +212,17 @@ function plugin_initconfig_staticpages()
                 0, 0, 0, 120, true, 'staticpages', 0);
         $c->add('comment_code', $_SP_DEFAULT['comment_code'], 'select',
                 0, 0, 17, 125, true, 'staticpages', 0);
+        $c->add('structured_data_type_default', $_SP_DEFAULT['structured_data_type_default'], 'select',
+                0, 0, 39, 126, true, 'staticpages', 0);
         $c->add('draft_flag', $_SP_DEFAULT['draft_flag'], 'select',
                 0, 0, 0, 127, true, 'staticpages', 0);
         $c->add('disable_breadcrumbs_staticpages', $_SP_DEFAULT['disable_breadcrumbs_staticpages'], 'select',
                 0, 0, 0, 128, true, 'staticpages', 0);
         $c->add('default_cache_time', $_SP_DEFAULT['default_cache_time'], 'text',
                 0, 0, null, 129, true, 'staticpages', 0);
-        $c->add('langurl_staticpages',array('staticpages', 'index.php', 'page'),'@hidden'
-                ,0, 0, null, 130, true, 'staticpages', 0);
+        $c->add('likes_pages', $_SP_DEFAULT['likes_pages'], 'select',
+                0, 0, 41, 130, true, 'staticpages', 0);				
+				
         $c->add('langurl_staticpages',array('staticpages', 'index.php', 'page'),'@hidden',7,31,1,1830,TRUE, 'Core', 31); // Hidden config option for Core used to determine language of staticpage url (see _getLanguageInfoFromURL in lib-common)
 
         $c->add('tab_whatsnew', NULL, 'tab', 0, 1, NULL, 0, true, 'staticpages', 1);
@@ -231,6 +246,8 @@ function plugin_initconfig_staticpages()
                 0, 2, 0, 20, TRUE, 'staticpages', 2);
         $c->add('includesearchphp',$_SP_DEFAULT['include_search_PHP'],'select',
                 0, 2, 0, 30, TRUE, 'staticpages', 2);
+        $c->add('includesearchtemplate',$_SP_DEFAULT['include_search_template'],'select',
+                0, 2, 0, 40, TRUE, 'staticpages', 2);
 
         $c->add('tab_permissions', NULL, 'tab', 0, 3, NULL, 0, true, 'staticpages', 3);
         $c->add('fs_permissions', NULL, 'fieldset', 0, 3, NULL, 0, true, 'staticpages', 3);

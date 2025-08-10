@@ -8,7 +8,7 @@
 // |                                                                           |
 // | User authentication module.                                               |
 // +---------------------------------------------------------------------------+
-// | Copyright (C) 2000-2017 by the following authors:                         |
+// | Copyright (C) 2000-2019 by the following authors:                         |
 // |                                                                           |
 // | Authors: Tony Bibbs        - tony AT tonybibbs DOT com                    |
 // |          Mark Limburg      - mlimburg AT users DOT sourceforge DOT net    |
@@ -39,6 +39,8 @@
  * @author   Mark Limburg <mlimburg@users.sourceforge.net>
  * @author   Jason Whittenburg
  */
+
+use Geeklog\Session;
 
 /**
  * Geeklog common function library
@@ -101,7 +103,7 @@ function USER_emailPassword($username, $msg = 0)
  */
 function USER_requestPassword($username)
 {
-    global $_CONF, $_TABLES, $LANG04;
+    global $_CONF, $_TABLES, $LANG04, $LANG31;
 
     $retval = '';
 
@@ -111,40 +113,57 @@ function USER_requestPassword($username)
     if ($numRows == 1) {
         $A = DB_fetchArray($result);
         if (($_CONF['usersubmission'] == 1) && ($A['status'] == USER_ACCOUNT_AWAITING_APPROVAL)) {
+			COM_updateSpeedlimit('password');
             COM_redirect($_CONF['site_url'] . '/index.php?msg=48');
         } elseif (($_CONF['usersubmission'] == 0) && ($A['status'] != USER_ACCOUNT_ACTIVE && $A['status'] != USER_ACCOUNT_AWAITING_APPROVAL)) {
             // Don't send password for these accounts with statuses of Locked, Disabled, New Email, New Password
+			COM_updateSpeedlimit('password');
             COM_redirect($_CONF['site_url'] . '/index.php?msg=47');
         }
         $reqid = substr(md5(uniqid(rand(), 1)), 1, 16);
         DB_change($_TABLES['users'], 'pwrequestid', "$reqid",
             'uid', $A['uid']);
+			
+		// Create HTML and plaintext version of email
+		$t = COM_newTemplate(CTL_core_templatePath($_CONF['path_layout'] . 'emails/'));
+		
+		$t->set_file(array('email_html' => 'user_request_password-html.thtml'));
+		// Remove line feeds from plain text templates since required to use {LB} template variable
+		$t->preprocess_fn = "CTL_removeLineFeeds"; // Set preprocess_fn before the template file you want to use it on		
+		$t->set_file(array('email_plaintext' => 'user_request_password-plaintext.thtml'));
 
-        $mailtext = sprintf($LANG04[88], $username);
-        $mailtext .= $_CONF['site_url'] . '/users.php?mode=newpwd&uid=' . $A['uid'] . '&rid=' . $reqid . "\n\n";
-        $mailtext .= $LANG04[89];
-        $mailtext .= "{$_CONF['site_name']}\n";
-        $mailtext .= "{$_CONF['site_url']}\n";
-
-        $subject = $_CONF['site_name'] . ': ' . $LANG04[16];
-        if ($_CONF['site_mail'] !== $_CONF['noreply_mail']) {
-            $mailfrom = $_CONF['noreply_mail'];
-            $mailtext .= LB . LB . $LANG04[159];
-        } else {
-            $mailfrom = $_CONF['site_mail'];
-        }
-        if (COM_mail($A['email'], $subject, $mailtext, $mailfrom)) {
+		$t->set_var('email_divider', $LANG31['email_divider']);
+		$t->set_var('email_divider_html', $LANG31['email_divider_html']);
+		$t->set_var('LB', LB);
+		
+		$t->set_var('lang_user_request_msg', sprintf($LANG04[88], $username)); 
+		$t->set_var('lang_user_action_msg', $LANG04['user_password_action_msg']); 
+		$t->set_var('new_password_url', $_CONF['site_url'] . '/users.php?mode=newpwd&uid=' . $A['uid'] . '&rid=' . $reqid);
+		$t->set_var('lang_ignore_request_msg', $LANG04[89]);
+		$t->set_var('site_name', $_CONF['site_name']);
+		$t->set_var('site_url', $_CONF['site_url']);
+		$t->set_var('site_slogan', $_CONF['site_slogan']);
+		
+		// Output final content
+		$message[] = $t->parse('output', 'email_html');	
+		$message[] = $t->parse('output', 'email_plaintext');	
+		
+		$mailSubject = $_CONF['site_name'] . ': ' . $LANG04[16];
+		
+        if (COM_mail($A['email'], $mailSubject, $message, '', true)) {
             $msg = 55; // message sent
         } else {
             $msg = 85; // problem sending the email
         }
-
+		
         $redirect = $_CONF['site_url'] . "/index.php?msg=$msg";
         COM_updateSpeedlimit('password');
         COM_redirect($redirect);
     } else {
         // Username not found so error out
-        COM_redirect($_CONF['site_url'] . "/users.php?mode=getpassword&msg=46");
+		COM_updateSpeedlimit('password');
+		COM_redirect($_CONF['site_url'] . '/index.php?msg=46');
+        //COM_redirect($_CONF['site_url'] . "/users.php?mode=getpassword&msg=46");
     }
 
     return $retval;
@@ -169,7 +188,7 @@ function USER_newEmailForm()
 
     $emailForm->set_var('lang_explain', $LANG04['desc_new_email_status']);
     $emailForm->set_var('mode', 'setnewemailstatus');
-    
+
     $emailForm->set_var('lang_username', $LANG04[2]);
     $emailForm->set_var('lang_newemail', $LANG04['new_email']);
     $emailForm->set_var('lang_newemail_conf', $LANG04['confirm_new_email']);
@@ -243,19 +262,16 @@ function USER_createUser($username, $email, $email_conf)
         $_CONF['disallow_domains'] = '';
     }
 
-    if (COM_isEmail($email) && !empty($username) && ($email === $email_conf)
-        && !USER_emailMatches($email, $_CONF['disallow_domains'])
-        && (strlen($username) <= 16)
-    ) {
-        $ucount = DB_count($_TABLES['users'], 'username', DB_escapeString($username));
-        $ecount = DB_count($_TABLES['users'], 'email', DB_escapeString($email));
+    // USER_isValidEmailAddress checks if actually proper format and if it exists in the user table and if domain has been banned plus a few other things
+    if (USER_isValidEmailAddress($email) && !empty($username) && ($email === $email_conf) &&
+        (strlen($username) <= 16)) {
 
-        if (($ucount == 0) && ($ecount == 0)) {
+        // Remember some database collations are case and accent insensitive and some are not. They would consider "nina", "nina  ", "Nina", and, "niña" as the same
+        $ucount = DB_getItem($_TABLES['users'], 'COUNT(*)', "TRIM(LOWER(username)) = TRIM(LOWER('$username'))");
+        if ($ucount == 0) {
             // For Geeklog, it would be okay to create this user now. But check
             // with a custom userform first, if one exists.
-            if ($_CONF['custom_registration'] &&
-                function_exists('CUSTOM_userCheck')
-            ) {
+            if ($_CONF['custom_registration'] && function_exists('CUSTOM_userCheck')) {
                 $ret = CUSTOM_userCheck($username, $email);
                 if (!empty($ret)) {
                     // no, it's not okay with the custom userform
@@ -315,7 +331,11 @@ function USER_createUser($username, $email, $email_conf)
         if ((empty($username)) || (strlen($username) > 16)) {
             $msg = $LANG01[32]; // invalid username
         } else {
-            $msg = $LANG04[18]; // invalid email address
+            if (!COM_isEmail($email)) {
+                $msg = $LANG04[18]; // invalid email address
+            } else {
+                $msg = $LANG04[20];
+            }
         }
         if ($_CONF['custom_registration'] && function_exists('CUSTOM_userForm')) {
             $retval .= CUSTOM_userForm($msg);
@@ -344,7 +364,7 @@ function USER_loginForm($hide_forgotpw_link = false, $userStatus = -1, $message 
     $cfg = array(
         'hide_forgotpw_link' => $hide_forgotpw_link,
     );
-    
+
     $display = '';
 
     if ($userStatus == USER_ACCOUNT_DISABLED) {
@@ -365,9 +385,9 @@ function USER_loginForm($hide_forgotpw_link = false, $userStatus = -1, $message 
         $cfg['title'] = $LANG04[65];
         $cfg['message'] = $LANG04[66];
     }
-    
+
     $display .= SEC_loginForm($cfg);
-    
+
     return $display;
 }
 
@@ -395,6 +415,14 @@ function USER_newUserForm($msg = 0)
     $user_templates->set_var('lang_email_conf', $LANG04[124]);
     $user_templates->set_var('lang_warning', $LANG04[24]);
     $user_templates->set_var('lang_register', $LANG04[27]);
+	
+	// Is Remote Logins Enabled?
+    if (($_CONF['user_login_method']['oauth'] || $_CONF['user_login_method']['openid']) && 
+	($_CONF['usersubmission'] == 0) && !$_CONF['disable_new_user_registration']) {
+		$user_templates->set_var('lang_remote_register_instructions', $LANG04['remote_register_instructions']);
+			
+	}
+	
     PLG_templateSetVars('registration', $user_templates);
     $user_templates->set_var('end_block', COM_endBlock());
 
@@ -470,38 +498,16 @@ function USER_displayLoginErrorAndAbort($msg, $message_title, $message_text)
 }
 
 /**
- * Helper function: When magic_quotes_gpc = On, everything in $_GET and $_POST
- * has already been auto-escaped. So we need to undo this before re-creating
- * the GET or POST request.
- * NOTE: Assumes that is only being called when magic_quotes_gpc = On
- *
- * @param    ref $value value to un-escape
- * @return   mixed           un-escaped value or array of values
- * @see      COM_stripslashes
- */
-function stripslashes_gpc_recursive(&$value)
-{
-    if (is_array($value)) {
-        array_map('stripslashes_gpc_recursive', $value);
-    } else {
-        // don't use COM_stripslashes here - no need to check magic_quotes_gpc
-        $value = stripslashes($value);
-    }
-
-    return $value;
-}
-
-/**
  * Re-send a request after successful re-authentication
  * Re-creates a GET or POST request based on data passed along in a form. Used
  * in case of an expired security token so that the user doesn't lose changes.
  */
 function USER_resendRequest()
 {
-    global $_CONF;
+    global $_CONF, $LANG_ADMIN;
 
-    $method = Geeklog\Input::fPost('token_requestmethod', '');
-    $returnUrl = Geeklog\Input::post('token_returnurl', '');
+    $method = Geeklog\Input::fRequest('token_requestmethod', '');
+    $returnUrl = Geeklog\Input::fRequest('token_returnurl', '');
     if (!empty($returnUrl)) {
         $returnUrl = urldecode($returnUrl);
         if (substr($returnUrl, 0, strlen($_CONF['site_url'])) !== $_CONF['site_url']) {
@@ -510,17 +516,17 @@ function USER_resendRequest()
         }
     }
 
-    $postData = Geeklog\Input::post('token_postdata', '');
+    $postData = Geeklog\Input::fRequest('token_postdata', '');
     if (!empty($postData)) {
         $postData = urldecode($postData);
     }
 
-    $getData = Geeklog\Input::post('token_getdata', '');
+    $getData = Geeklog\Input::fRequest('token_getdata', '');
     if (!empty($getData)) {
         $getData = urldecode($getData);
     }
 
-    $files = Geeklog\Input::post('token_files', '');
+    $files = Geeklog\Input::fRequest('token_files', '');
     if (!empty($files)) {
         $files = urldecode($files);
     }
@@ -529,26 +535,19 @@ function USER_resendRequest()
         ((($method === 'POST') && !empty($postData)) ||
             (($method === 'GET') && !empty($getData)))
     ) {
-        $magic = get_magic_quotes_gpc();
+        // Close the current session and write any session variables so session file unlocks
+        // This allows the seperate HTTP_Request2 to access the same session as it is not locked
+        Session::close();
 
-        $req = new HTTP_Request2($returnUrl, HTTP_Request2::METHOD_POST);
-        $req->setConfig(array(
-            'adapter' => 'HTTP_Request2_Adapter_Curl',
-            'connect_timeout' => 15,
-            'timeout' => 30,
-            'follow_redirects' => TRUE,
-            'max_redirects' => 1,
-        ));
-        
         if ($method === 'POST') {
+            $req = new HTTP_Request2($returnUrl, HTTP_Request2::METHOD_POST);
+
             $data = unserialize($postData);
-            foreach ($data as $key => $value) {
+            foreach ($data as $key => &$value) {
                 if ($key == CSRF_TOKEN) {
                     $req->addPostParameter($key, SEC_createToken());
+                    $value = SEC_createToken();
                 } else {
-                    if ($magic) {
-                        $value = stripslashes_gpc_recursive($value);
-                    }
                     $req->addPostParameter($key, $value);
                 }
             }
@@ -561,27 +560,45 @@ function USER_resendRequest()
                     $req->addPostParameter('_files_' . $key, $value);
                 }
             }
-            
-        } else {
+        } else { // $method === 'GET'
+            // Note: $returnUrl will contain query string as well but setQueryVariables function will overwrite them
             $data = unserialize($getData);
 
             foreach ($data as $key => &$value) {
                 if ($key == CSRF_TOKEN) {
                     $value = SEC_createToken();
-                } else {
-                    if ($magic) {
-                        $value = stripslashes_gpc_recursive($value);
-                    }
                 }
             }
-            unset($value);
 
-            $returnUrl = $returnUrl . '?' . http_build_query($data);
+            $req = new HTTP_Request2($returnUrl, HTTP_Request2::METHOD_GET);
+            $url = $req->getUrl();
+            $url->setQueryVariables($data);
         }
+
+        $options = array(
+// Let's use Socks (which is the default for HTTP_Request2) so curl is not a required php extension for Geeklog
+//            'adapter'           => 'curl',
+            'connect_timeout'   => 15,
+            'timeout'           => 15,
+            'follow_redirects'  => true,
+            'max_redirects'     => 1,
+        );
+        if (stripos($returnUrl, 'https:') === 0) {
+            $options['ssl_verify_peer'] = true;
+
+            $hasCaFile = is_readable(@ini_get('openssl.cafile')) ||
+                is_dir(@ini_get('openssl.capath'));
+
+            if ($hasCaFile !== true) {
+                $options['ssl_cafile'] = $_CONF['path_data'] . 'cacert.pem';
+            }
+        }
+        $req->setConfig($options);
 
         $req->setHeader('User-Agent', 'Geeklog/' . VERSION);
         // need to fake the referrer so the new token matches
         $req->setHeader('Referer', COM_getCurrentUrl());
+
         foreach ($_COOKIE as $name => $value) {
             $cookie = $name . '=' . $value;
 
@@ -606,7 +623,9 @@ function USER_resendRequest()
                 SECINT_cleanupFiles($files);
             }
 
-            trigger_error("Resending $method request failed: " . $e->getMessage());
+            COM_errorLog(__METHOD__ . ': ' . $e->getMessage());
+            COM_setSystemMessage($LANG_ADMIN['token_re_authentication_error']);
+            COM_redirect($_CONF['site_url'] . '/index.php');
         }
     } else {
         if (!empty($files)) {
@@ -656,56 +675,16 @@ function USER_doLogin()
     global $_CONF, $_USER, $USER_VERBOSE;
 
     COM_resetSpeedlimit('login');
-    $sessionId = SESS_newSession($_USER['uid'], $_SERVER['REMOTE_ADDR'], $_CONF['session_cookie_timeout'], $_CONF['cookie_ip']);
-    SESS_setSessionCookie(
-        $sessionId, $_CONF['session_cookie_timeout'], $_CONF['cookie_session'], $_CONF['cookie_path'],
-        $_CONF['cookiedomain'], $_CONF['cookiesecure']
-    );
+    SESS_newSession($_USER['uid'], \Geeklog\IP::getIPAddress());
     PLG_loginUser($_USER['uid']);
 
-    // Now that we handled session cookies, handle long-term cookie
-    if (!isset($_COOKIE[$_CONF['cookie_name']]) || !isset($_COOKIE['cookie_password'])) {
-        // Either their cookie expired or they are new
-        $cookTime = COM_getUserCookieTimeout();
-        if ($USER_VERBOSE) {
-            COM_errorLog("Trying to set permanent cookie with time of $cookTime", 1);
-        }
-        if ($cookTime > 0) {
-            // They want their cookie to persist for some amount of time so set it now
-            if ($USER_VERBOSE) {
-                COM_errorLog('Trying to set permanent cookie', 1);
-            }
-            SEC_setCookie($_CONF['cookie_name'], $_USER['uid'], time() + $cookTime);
-            SEC_setCookie($_CONF['cookie_password'], $_USER['passwd'], time() + $cookTime);
-        }
-    } else {
-        $userId = Geeklog\Input::fCookie($_CONF['cookie_name']);
+    // Issue an auto-login key user cookie and record hash in db if needed
+    SESS_issueAutoLogin($_USER['uid']);
 
-        if (!empty($userId) && ($userId !== 'deleted')) {
-            $userId = (int) $userId;
-
-            if ($userId > 1) {
-                if ($USER_VERBOSE) {
-                    COM_errorLog('NOW trying to set permanent cookie', 1);
-                    COM_errorLog('Got ' . $userId . ' from perm cookie in users.php', 1);
-                }
-
-                // Create new session
-                $_USER = SESS_getUserDataFromId($userId);
-                if ($USER_VERBOSE) {
-                    COM_errorLog('Got ' . $_USER['username'] . ' for the username in user.php', 1);
-                }
-            }
-        }
-    }
-
-    // Now that we have users data see if their theme cookie is set.
+    // Now that we have user's data see if their theme cookie is set.
     // If not set it
     if (!empty($_USER['theme'])) {
-        setcookie(
-            $_CONF['cookie_theme'], $_USER['theme'], time() + 31536000, $_CONF['cookie_path'],
-            $_CONF['cookiedomain'], $_CONF['cookiesecure']
-        );
+        SEC_setCookie($_CONF['cookie_theme'], $_USER['theme'], time() + 31536000);
     }
 
     if (!empty($_SERVER['HTTP_REFERER'])
@@ -718,7 +697,10 @@ function USER_doLogin()
             COM_redirect($_CONF['site_url'] . '/index.php');
         } else {
             // If user is trying to login - force redirect to index.php
-            if (strstr($_SERVER['HTTP_REFERER'], 'mode=login') === false) {
+            // Some pages will not work though for this so filter out
+            if (strstr($_SERVER['HTTP_REFERER'], 'mode=login') === false &&
+                strstr($_SERVER['HTTP_REFERER'], '/comment.php') === false // Happens if Comment Editor on own page. Missing info so will 404
+                ) {
                 COM_redirect($_SERVER['HTTP_REFERER']);
             } else {
                 COM_redirect($_CONF['site_url'] . '/index.php');
@@ -786,12 +768,12 @@ function USER_loginFailed($loginName, $password, $service, $mode, $status, $mess
                 }
 
                 $method = Geeklog\Input::fPost('token_requestmethod', '');
-                
+
                 $postData = Geeklog\Input::post('token_postdata', '');
                 if (!empty($postData)) {
                     $postData = urldecode($postData);
                 }
-                
+
                 $getData = Geeklog\Input::post('token_getdata', '');
                 if (!empty($getData)) {
                     $getData = urldecode($getData);
@@ -851,7 +833,7 @@ function USER_loginFailed($loginName, $password, $service, $mode, $status, $mess
  * Try to authenticate the user against the code given after user name and password is confirmed
  *
  * @return string
- * @throws \LogicException
+ * @throws LogicException
  */
 function USER_tryTwoFactorAuth()
 {
@@ -861,7 +843,7 @@ function USER_tryTwoFactorAuth()
 
     // Is Two Factor Auth enabled?
     if (!isset($_CONF['enable_twofactorauth']) || !$_CONF['enable_twofactorauth']) {
-        throw new \LogicException(__FUNCTION__ . ': Two Factor Authentication is disabled.');
+        throw new LogicException(__FUNCTION__ . ': Two Factor Authentication is disabled.');
     }
 
     // Check security token
@@ -902,18 +884,15 @@ $display = '';
 switch ($mode) {
     case 'logout':
         if (!empty($_USER['uid']) && ($_USER['uid'] > 1)) {
-            SESS_endUserSession($_USER['uid']);
+            SESS_endCurrentUserSession();
             PLG_logoutUser($_USER['uid']);
         }
-        SEC_setCookie($_CONF['cookie_session'], '', time() - 10000);
-        SEC_setCookie($_CONF['cookie_password'], '', time() - 10000);
-        SEC_setCookie($_CONF['cookie_name'], '', time() - 10000);
-        
+
         $msg = (int) Geeklog\Input::fGet('msg', 0);
         if ($msg == 0) {
             $msg = 8;
         }
-        
+
         COM_redirect($_CONF['site_url'] . "/index.php?msg=$msg");
         break;
 
@@ -936,7 +915,8 @@ switch ($mode) {
         $username = Geeklog\Input::fGet('username');
         if (!empty($username)) {
             $username = DB_escapeString($username);
-            $uid = DB_getItem($_TABLES['users'], 'uid', "username = '$username'");
+            // Remember some database collations are case and accent insensitive and some are not. They would consider "nina", "nina  ", "Nina", and, "niña" as the same
+            $uid = DB_getItem($_TABLES['users'], 'uid', "TRIM(LOWER(username)) = TRIM(LOWER('$username'))");
             if ($uid > 1) {
                 $display .= USER_showProfile($uid);
             } else {
@@ -964,7 +944,7 @@ switch ($mode) {
             $_CONF['passwordspeedlimit'] = 300; // 5 minutes
         }
         COM_clearSpeedlimit($_CONF['passwordspeedlimit'], 'password');
-        $last = COM_checkSpeedlimit('password');
+        $last = COM_checkSpeedlimit('password', SPEED_LIMIT_MAX_PASSWORD);
         if ($last > 0) {
             $display .= COM_showMessageText(
                 sprintf($LANG04[93], $last, $_CONF['passwordspeedlimit']),
@@ -974,9 +954,9 @@ switch ($mode) {
             $msg = (int) Geeklog\Input::fRequest('msg', 0);
             if ($msg > 0) {
                 $display .= COM_showMessage($msg);
-            }                
-            
-            $display .= USER_getPasswordForm();
+            }
+			
+			$display .= USER_getPasswordForm();
         }
         $display = COM_createHTMLDocument($display, array('pagetitle' => $LANG04[25]));
         break;
@@ -990,7 +970,7 @@ switch ($mode) {
                 $msg = (int) Geeklog\Input::fGet('msg', 0);
                 if ($msg > 0) {
                     $display .= COM_showMessage($msg);
-                }                
+                }
                 $display .= USER_newPasswordForm($uid, $reqid);
                 $display = COM_createHTMLDocument($display, array('pagetitle' => $LANG04[92]));
             } else { // request invalid or expired
@@ -1005,9 +985,9 @@ switch ($mode) {
         break;
 
     case 'setnewpwd':
-        $passwd = Geeklog\Input::post('passwd');        
+        $passwd = Geeklog\Input::post('passwd');
         $passwd_conf = Geeklog\Input::post('passwd_conf');
-        
+
         if ((empty($passwd)) || ($passwd != $passwd_conf)) {
             COM_redirect(
                 $_CONF['site_url'] . '/users.php?'
@@ -1056,8 +1036,8 @@ switch ($mode) {
             $msg = (int) Geeklog\Input::fRequest('msg', 0);
             if ($msg > 0) {
                 $display .= COM_showMessage($msg);
-            }   
-            
+            }
+
             $display .= USER_newPasswordForm($_USER['uid']);
             $display = COM_createHTMLDocument($display, array('pagetitle' => $LANG04[92]));
         } else {
@@ -1067,9 +1047,9 @@ switch ($mode) {
         break;
 
     case 'setnewpwdstatus':
-        $passwd = Geeklog\Input::post('passwd');        
+        $passwd = Geeklog\Input::post('passwd');
         $passwd_conf = Geeklog\Input::post('passwd_conf');
-    
+
         if (!empty($_USER['uid']) && ($_USER['uid'] > 1) && ($_USER['status'] == USER_ACCOUNT_NEW_PASSWORD)) {
             if ((empty($passwd)) || ($passwd != $passwd_conf)) {
                 COM_redirect(
@@ -1078,7 +1058,7 @@ switch ($mode) {
                         'mode' => 'newpwdstatus',
                         'msg'  => 23
                     ))
-                );                
+                );
             } elseif (!SEC_checkPasswordStrength($passwd)) {
                 COM_redirect(
                     $_CONF['site_url'] . '/users.php?'
@@ -1098,14 +1078,14 @@ switch ($mode) {
             COM_redirect($_CONF['site_url'] . '/index.php');
         }
 
-        break;    
+        break;
 
     case 'emailpasswd':
         if ($_CONF['passwordspeedlimit'] == 0) {
             $_CONF['passwordspeedlimit'] = 300; // 5 minutes
         }
         COM_clearSpeedlimit($_CONF['passwordspeedlimit'], 'password');
-        $last = COM_checkSpeedlimit('password');
+        $last = COM_checkSpeedlimit('password', SPEED_LIMIT_MAX_PASSWORD);
         if ($last > 0) {
             $display .= COM_showMessageText(
                 sprintf($LANG04[93], $last, $_CONF['passwordspeedlimit']),
@@ -1115,7 +1095,7 @@ switch ($mode) {
         } else {
             $username = Geeklog\Input::fPost('username');
             $email = Geeklog\Input::fPost('email');
-            
+
             // Let plugins like captcha have a chance to decide what to do before creating the user, return errors.
             $msg = PLG_itemPreSave('getpassword', $username);
             if (!empty($msg)) {
@@ -1130,15 +1110,18 @@ switch ($mode) {
                 if (!empty($username)) {
                     $display .= USER_requestPassword($username);
                 } else {
-                    COM_redirect($_CONF['site_url'] . '/users.php?mode=getpassword');
+					// Username for email not found so error out
+					COM_updateSpeedlimit('password');
+					COM_redirect($_CONF['site_url'] . '/index.php?msg=46');
+					//COM_redirect($_CONF['site_url'] . "/users.php?mode=getpassword&msg=46");
                 }
             }
         }
         break;
-        
+
     case 'newemailstatus':
         $uid = (int) Geeklog\Input::fGet('uid', 0);
-        $ecid = Geeklog\Input::fGet('ecid');        
+        $ecid = Geeklog\Input::fGet('ecid');
         if (!empty($uid) && ($uid > 0) && !empty($ecid) && (strlen($ecid) === 16)) {
             $valid = DB_count($_TABLES['users'], array('uid', 'emailconfirmid'), array($uid, $ecid));
             if ($valid == 1) {
@@ -1146,21 +1129,24 @@ switch ($mode) {
                 $user_status = DB_getItem($_TABLES['users'], 'status', "uid = $uid");
 
                 DB_delete($_TABLES['sessions'], 'uid', $uid);
-                
+
                 DB_change($_TABLES['users'], 'email', $confirmed_email, 'uid', $uid);
                 if ($user_status == USER_ACCOUNT_NEW_EMAIL) {
                     DB_change($_TABLES['users'], 'status', USER_ACCOUNT_ACTIVE, 'uid', $uid);
                 }
                 DB_query("UPDATE {$_TABLES['users']} SET emailconfirmid = NULL, emailtoconfirm = NULL WHERE uid = $uid");
-                
-                COM_redirect($_CONF['site_url'] . '/users.php?msg=503');    
+
+                COM_redirect($_CONF['site_url'] . '/users.php?msg=503');
+            } else {
+                // Not valid emailconfirmid
+                COM_handle404();
             }
         } elseif (!empty($_USER['uid']) && ($_USER['uid'] > 1) && ($_USER['status'] == USER_ACCOUNT_NEW_EMAIL)) {
             $msg = (int) Geeklog\Input::fRequest('msg', 0);
             if ($msg > 0) {
                 $display .= COM_showMessage($msg);
-            }            
-            
+            }
+
             $display .= USER_newEmailForm();
             $display = COM_createHTMLDocument($display, array('pagetitle' => $LANG04['new_email']));
         } else {
@@ -1168,11 +1154,11 @@ switch ($mode) {
             COM_redirect($_CONF['site_url'] . '/index.php');
         }
         break;
-        
+
     case 'setnewemailstatus':
         if (!empty($_USER['uid']) && ($_USER['uid'] > 1) && ($_USER['status'] == USER_ACCOUNT_NEW_EMAIL)) {
             $email = trim(Geeklog\Input::fPost('email'));
-            $email_conf = trim(Geeklog\Input::fPost('email_conf'));            
+            $email_conf = trim(Geeklog\Input::fPost('email_conf'));
             if ($email != $email_conf) {
                 COM_redirect($_CONF['site_url'] . '/users.php?mode=newemailstatus&msg=24');
             } elseif (empty($email) || !COM_isEmail($email)) {
@@ -1188,8 +1174,8 @@ switch ($mode) {
             COM_redirect($_CONF['site_url'] . '/index.php');
         }
 
-        break;          
-        
+        break;
+
     case 'new':
         if ($_CONF['disable_new_user_registration']) {
             $display .= COM_showMessageText($LANG04[122], $LANG04[22]);
@@ -1211,7 +1197,7 @@ switch ($mode) {
         break;
     case 'tokenexpired':
         // deliberate fallthrough (see below)
-    default:
+    default: 
         // prevent dictionary attacks on passwords
         COM_clearSpeedlimit($_CONF['login_speedlimit'], 'login');
         if (COM_checkSpeedlimit('login', $_CONF['login_attempts']) > 0) {
@@ -1223,7 +1209,7 @@ switch ($mode) {
         $service = Geeklog\Input::fPost('service', '');
         $uid = '';
         if (!empty($loginname) && !empty($passwd) && empty($service)) {
-            
+
             // Let plugins like captcha have a chance to decide what to do before creating the user, return errors.
             $msg = PLG_itemPreSave('loginform', $loginname);
             if (!empty($msg)) {
@@ -1315,12 +1301,14 @@ switch ($mode) {
             isset($_GET['oauth_login'])
         ) {
             // Here we go with the handling of OAuth authentication.
+			$oauth_login = Geeklog\Input::fGet('oauth_login');
             $modules = SEC_collectRemoteOAuthModules();
-            $active_service = (count($modules) == 0) ? false : in_array($_GET['oauth_login'], $modules);
+            $active_service = (count($modules) == 0) ? false : in_array($oauth_login, $modules);
             if (!$active_service) {
                 $status = -1;
-                COM_errorLog("OAuth login failed - there was no consumer available for the service:" . $_GET['oauth_login'], 1);
+                COM_errorLog("OAuth login failed - there was no consumer available for the service:" . $oauth_login, 1);
             } else {
+				// Remember these super global variables have not been validated beyond if the oauth login exists and has been enabled
                 $query = array_merge($_GET, $_POST);
                 $service = $query['oauth_login'];
 
@@ -1357,7 +1345,7 @@ switch ($mode) {
             if ($mode === 'tokenexpired') {
                 USER_resendRequest(); // won't come back
             }
-            
+
             DB_query("UPDATE {$_TABLES['users']} SET pwrequestid = NULL WHERE uid = $uid");
             $_USER = SESS_getUserDataFromId($uid);
 
@@ -1369,7 +1357,7 @@ switch ($mode) {
                 USER_doLogin(); // Never return
             }
         }elseif ($status == USER_ACCOUNT_LOCKED) {
-            COM_redirect($_CONF['site_url'] . '/index.php?msg=17');  
+            COM_redirect($_CONF['site_url'] . '/index.php?msg=17');
         } else {
             $display = USER_loginFailed($loginname, $passwd, $service, $mode, $status);
         }

@@ -64,50 +64,53 @@ $LANG_STATIC = array(
     'all_html_allowed' => 'Se permite cualquier etiqueta HTML',
     'results' => 'Resultado de Páginas Estáticas',
     'author' => 'Autor',
-    'no_title_or_content' => 'You must at least fill in the <b>Title</b> and <b>Content</b> fields.',
-    'no_such_page_anon' => 'Please log in..',
-    'no_page_access_msg' => "This could be because you're not logged in, or not a member of {$_CONF['site_name']}. Please <a href=\"{$_CONF['site_url']}/users.php?mode=new\"> become a member</a> of {$_CONF['site_name']} to receive full membership access",
+    'no_title_or_content' => 'Debes rellenar al menos los campos <b>Título</b> y <b>Contenido</b>.',
+    'title_error_saving' => 'Error Saving Page',
+    'template_xml_error' => 'You have an <em>error in your XML markup</em>. This page is set to use another page as a template and therefore requires template variables to be defined using XML markup. Please see our <a href="http://wiki.geeklog.net/Static_Pages_Plugin#Template_Static_Pages" target="_blank">Geeklog Wiki</a> for more information on how to do this as it must be corrected before the page can be saved.',
+    'no_such_page_anon' => 'Por favor, regístrate..',
+    'no_page_access_msg' => "Esto puede ser porque no te has registrado o no eres un miembro de {$_CONF['site_name']}. Por favor, <a href=\"{$_CONF['site_url']}/users.php?mode=new\">regístrate</a> en {$_CONF['site_name']} para obtener acceso completo",
     'php_msg' => 'PHP: ',
-    'php_warn' => 'Warning: PHP code in your page will be evaluated if you enable this option. Use with caution !!',
-    'exit_msg' => 'Exit Type: ',
-    'exit_info' => 'Enable for Login Required Message.  Leave unchecked for normal security check and message.',
-    'deny_msg' => 'Access to this page is denied.  Either the page has been moved/removed or you do not have sufficient permissions.',
-    'stats_headline' => 'Top Ten Static Pages',
-    'stats_page_title' => 'Page Title',
+    'php_warn' => 'Aviso: Si activas esta opción se interpretará el código PHP en tu página. ¡¡Usar con cuidado!!',
+    'exit_msg' => 'Tipo de salida: ',
+    'exit_info' => 'Activar para Mensaje de Acceso Preciso. No marcar para verificaciones de seguridad  y mensaje normales.',
+    'deny_msg' => 'Acceso denegado a esta página. O bien ha sido movida/renombrada o no tienes permiso suficiente.',
+    'stats_headline' => '10 páginas estáticas principales',
+    'stats_page_title' => 'Título de la página',
     'stats_hits' => 'Hits',
-    'stats_no_hits' => 'It appears that there are no static pages on this site or no one has ever viewed them.',
+    'stats_no_hits' => 'Parece que no hay páginas estáticas o que nadie las ha visto nunca.',
     'id' => 'ID',
-    'duplicate_id' => 'The ID you chose for this static page is already in use. Please select another ID.',
-    'instructions' => 'To modify or delete a static page, click on that page\'s number below. To view a static page, click on the title of the page you wish to view. To create a new static page click on new page above. Click on [C] to create a copy of an existing page.',
-    'centerblock' => 'Centerblock: ',
-    'centerblock_msg' => 'When checked, this Static Page will be displayed as a center block on the index page.',
-    'topic' => 'Topic: ',
-    'position' => 'Position: ',
-    'all_topics' => 'All',
-    'no_topic' => 'Homepage Only',
-    'position_top' => 'Top Of Page',
-    'position_feat' => 'After Featured Story',
-    'position_bottom' => 'Bottom Of Page',
-    'position_entire' => 'Entire Page',
-    'head_centerblock' => 'Centerblock',
+    'duplicate_id' => 'La ID elegida ya está en uso. Por favor, elige otra.',
+    'instructions' => 'Para modificar o borrar una página estática, pulsa en el número correspondiente. Para ver una página estática pulsa en su título. Para cerar una página nueva pulsa en "Página nueva". Pulsa en [C] para crear una copia de una página existente.',
+    'centerblock' => 'Bloque central: ',
+    'centerblock_msg' => 'Cuando se selecciona esta opción la página estática aparecerá como un bloque central en la página principal.',
+    'topic' => 'Tópico: ',
+    'position' => 'Posición: ',
+    'all_topics' => 'Todos',
+    'no_topic' => 'Solo página principal',
+    'position_top' => 'Arriba de la página',
+    'position_feat' => 'Tras la noticia destacada',
+    'position_bottom' => 'Abajo de la página',
+    'position_entire' => 'Toda la página',
+    'head_centerblock' => 'Bloque central',
     'centerblock_no' => 'No',
-    'centerblock_top' => 'Top',
-    'centerblock_feat' => 'Feat. Story',
-    'centerblock_bottom' => 'Bottom',
-    'centerblock_entire' => 'Entire Page',
+    'centerblock_top' => 'Arriba',
+    'centerblock_feat' => 'Noticia destacada',
+    'centerblock_bottom' => 'Abajo',
+    'centerblock_entire' => 'Toda la página',
     'inblock_msg' => 'In a block: ',
     'inblock_info' => 'Wrap Static Page in a block.',
     'title_edit' => 'Edit page',
     'title_copy' => 'Make a copy of this page',
     'title_display' => 'Display page',
-    'select_php_none' => 'do not execute PHP',
-    'select_php_return' => 'execute PHP (return)',
-    'select_php_free' => 'execute PHP',
-    'php_not_activated' => "The use of PHP in static pages is not activated. Please see the <a href=\"{$_CONF['site_url']}/docs/english/staticpages.html#php\">documentation</a> for details.",
-    'printable_format' => 'Printable Format',
+    'select_php_none' => 'no ejecutar PHP',
+    'select_php_return' => 'ejecutar PHP (volver)',
+    'select_php_free' => 'ejecutar PHP',
+    'php_not_activated' => "Es uso de PHP en páginas estáticas no está activado. Por favor, véase la <a href=\"{$_CONF['site_url']}/docs/english/staticpages.html#php\">documentación</a> para más información.",
+    'printable_format' => 'Listo para imprimir',
     'copy' => 'Copy',
     'limit_results' => 'Limit Results',
     'search' => 'Search',
+    'likes' => 'Likes',
     'submit' => 'Submit',
     'no_new_pages' => 'No new pages',
     'pages' => 'Pages',
@@ -121,22 +124,35 @@ $LANG_STATIC = array(
     'draft_yes' => 'Yes',
     'draft_no' => 'No',
     'show_on_page' => 'Show on Page',
+    'show_on_page_disabled' => 'Note: This is currently disabled for all pages in the Staticpage Configuration.',
     'cache_time' => 'Cache Time',
     'cache_time_desc' => 'This staticpage content will be cached for no longer than this many seconds. If 0 caching is disabled (3600 = 1 hour,  86400 = 1 day). Staticpages with PHP enabled or are a template will not be cached.',
     'autotag_desc_staticpage' => '[staticpage: id alternate title] - Displays a link to a static page using the static page title as the title. An alternate title may be specified but is not required.',
     'autotag_desc_staticpage_content' => '[staticpage_content: id alternate title] - Displays the contents of a staticpage.',
+    'autotag_desc_page' => '[page: id alternate title] - Displays a link to a page (from the Static Page plugin) using the page title as the title. An alternate title may be specified but is not required.',
+    'autotag_desc_page_content' => '[page_content: id] - Displays the contents of a page. (from Static Page plugin)',
     'yes' => 'Yes',
     'used_by' => 'This template is assigned to %s page(s). It is possible this template is used more than specified here if the template is being retrieved via an autotag in another template.',
     'prev_page' => 'Previous page',
     'next_page' => 'Next page',
     'parent_page' => 'Parent page',
-    'page_desc' => 'Setting a previous and/or next page will add HTML link elements rel=â€nextâ€ and rel=â€prevâ€ to the header to indicate the relationship between pages in a paginated series. Actual page navigation links are not added to the page. You have to add these yourself. NOTE: Parent page is currently not being used.'
+    'page_desc' => 'Setting a previous and/or next page will add HTML link elements rel="next" and rel="prev" to the header to indicate the relationship between pages in a paginated series. Actual page navigation links are not added to the page. You have to add these yourself. NOTE: Parent page is currently not being used.',
+    'num_pages' => '%s Page(s)',
+    'search_desc' => 'Control if page appears in search. Default depends on setting in Configuration and depends on page type (if it is a Center Block, Uses a Template, or Uses PHP).',
+    'likes_desc' => 'Determines if and how likes control appears on page. Default depends on setting in Plugin Configuration. Pages displayed in a Center Blocks will not display a likes control. Pages that are a template do not use this setting.'
+);
+
+$LANG_staticpages_search = array(
+    0 => 'Excluded',
+    1 => 'Use Default',
+    2 => 'Included'
 );
 
 $PLG_staticpages_MESSAGE15 = 'Your comment has been submitted for review and will be published when approved by a moderator.';
 $PLG_staticpages_MESSAGE19 = 'Your page has been successfully saved.';
 $PLG_staticpages_MESSAGE20 = 'Your page has been successfully deleted.';
 $PLG_staticpages_MESSAGE21 = 'This page does not exist yet. To create the page, please fill in the form below. If you are here by mistake, click the Cancel button.';
+$PLG_staticpages_MESSAGE22 = 'You could not delete the page. It is a template staticpage and it is currently assigned to 1 or more staticpages.';
 
 // Messages for the plugin upgrade
 $PLG_staticpages_MESSAGE3001 = 'Plugin upgrade not supported.';
@@ -150,6 +166,7 @@ $LANG_configsections['staticpages'] = array(
 
 $LANG_confignames['staticpages'] = array(
     'allow_php' => 'Allow PHP?',
+    'enable_eval_php_save' => 'Parse PHP on Save of Page',
     'sort_by' => 'Sort Centerblocks by',
     'sort_menu_by' => 'Sort Menu Entries by',
     'sort_list_by' => 'Sort Admin List by',
@@ -165,7 +182,9 @@ $LANG_confignames['staticpages'] = array(
     'aftersave' => 'After Saving Page',
     'atom_max_items' => 'Max. Pages in Webservices Feed',
     'meta_tags' => 'Enable Meta Tags',
+    'likes_pages' => 'Page Likes',
     'comment_code' => 'Comment Default',
+    'structured_data_type_default' => 'Structured Data Type Default',
     'draft_flag' => 'Draft Flag Default',
     'disable_breadcrumbs_staticpages' => 'Disable Breadcrumbs',
     'default_cache_time' => 'Default Cache Time',
@@ -176,7 +195,8 @@ $LANG_confignames['staticpages'] = array(
     'includephp' => 'Include Static Pages with PHP',
     'includesearch' => 'Enable Static Pages in Search',
     'includesearchcenterblocks' => 'Include Center Block Static Pages',
-    'includesearchphp' => 'Include Static Pages with PHP'
+    'includesearchphp' => 'Include Static Pages with PHP',
+    'includesearchtemplate' => 'Include Template Static Pages'
 );
 
 $LANG_configsubgroups['staticpages'] = array(
@@ -210,5 +230,7 @@ $LANG_configselects['staticpages'] = array(
     9 => array('Forward to page' => 'item', 'Display List' => 'list', 'Display Home' => 'home', 'Display Admin' => 'admin'),
     12 => array('No access' => 0, 'Read-Only' => 2, 'Read-Write' => 3),
     13 => array('No access' => 0, 'Use' => 2),
-    17 => array('Comments Enabled' => 0, 'Comments Disabled' => -1)
+    17 => array('Comments Enabled' => 0, 'Comments Disabled' => -1),
+    39 => array('None' => '', 'WebPage' => 'core-webpage', 'Article' => 'core-article', 'NewsArticle' => 'core-newsarticle', 'BlogPosting' => 'core-blogposting'),
+    41 => array('False' => 0, 'Likes and Dislikes' => 1, 'Likes Only' => 2)
 );

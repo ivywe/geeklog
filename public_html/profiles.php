@@ -2,14 +2,14 @@
 
 /* Reminder: always indent with 4 spaces (no tabs). */
 // +---------------------------------------------------------------------------+
-// | Geeklog 2.1                                                               |
+// | Geeklog 2.2                                                               |
 // +---------------------------------------------------------------------------+
 // | profiles.php                                                              |
 // |                                                                           |
 // | This pages lets GL users communicate with each other without risk of      |
 // | their email address being intercepted by spammers.                        |
 // +---------------------------------------------------------------------------+
-// | Copyright (C) 2000-2011 by the following authors:                         |
+// | Copyright (C) 2000-2021 by the following authors:                         |
 // |                                                                           |
 // | Authors: Tony Bibbs        - tony AT tonybibbs DOT com                    |
 // |          Mark Limburg      - mlimburg AT users DOT sourceforge DOT net    |
@@ -51,7 +51,7 @@ require_once 'lib-common.php';
 */
 function contactemail($uid, $cc, $author, $authorEmail, $subject, $message)
 {
-    global $_CONF, $_TABLES, $_USER, $LANG04, $LANG08, $LANG12;
+    global $_CONF, $_TABLES, $_USER, $LANG04, $LANG08, $LANG12, $LANG31;
 
     $retval = '';
 
@@ -63,7 +63,7 @@ function contactemail($uid, $cc, $author, $authorEmail, $subject, $message)
     }
 
     // check for correct 'to' user preferences
-    $result = DB_query("SELECT emailfromadmin,emailfromuser FROM {$_TABLES['userprefs']} WHERE uid = '$uid'");
+    $result = DB_query("SELECT emailfromadmin,emailfromuser FROM {$_TABLES['user_attributes']} WHERE uid = '$uid'");
     $P = DB_fetchArray($result);
     $isAdmin = SEC_inGroup('Root') || SEC_hasRights('user.mail');
     if ((($P['emailfromadmin'] != 1) && $isAdmin) ||
@@ -73,7 +73,7 @@ function contactemail($uid, $cc, $author, $authorEmail, $subject, $message)
 
     // check mail speedlimit
     COM_clearSpeedlimit($_CONF['speedlimit'], 'mail');
-    $last = COM_checkSpeedlimit('mail');
+    $last = COM_checkSpeedlimit('mail', SPEED_LIMIT_MAX_MAIL);
     if ($last > 0) {
         $retval = COM_showMessageText($LANG08[39] . $last . $LANG08[40], $LANG12[26]);
         $retval = COM_createHTMLDocument($retval, array('pagetitle' => $LANG04[81]));
@@ -83,25 +83,11 @@ function contactemail($uid, $cc, $author, $authorEmail, $subject, $message)
 
     if (!empty($author) && !empty($subject) && !empty($message)) {
         if (COM_isemail($authorEmail) && (strpos($author, '@') === false)) {
-            $result = DB_query("SELECT username,fullname,email FROM {$_TABLES['users']} WHERE uid = $uid");
+            $result = DB_query("SELECT username,fullname,email, sig, postmode FROM {$_TABLES['users']} WHERE uid = $uid");
             $A = DB_fetchArray($result);
 
-            // Append the user's signature to the message
-            $sig = '';
-            if (!COM_isAnonUser()) {
-                $sig = DB_getItem($_TABLES['users'], 'sig',
-                                  "uid={$_USER['uid']}");
-                if (!empty($sig)) {
-                    $sig = GLText::stripTags(COM_stripslashes($sig));
-                    $sig = "\n\n-- \n" . $sig;
-                }
-            }
-
-            $subject = COM_stripslashes($subject);
-            $message = COM_stripslashes($message);
-
             // do a spam check with the unfiltered message text and subject
-            $mailtext = $subject . "\n" . $message . $sig;
+            $mailtext = $subject . "\n" . $message . "\n" . stripslashes($A['sig']);
             $permanentlink = null; // Setting this to null as this is a stand alone email. There is no permantlink that the email is being added too (like a comment on a blog post)
             $result = PLG_checkForSpam(
                 $mailtext, $_CONF['spamx'], $permanentlink, Geeklog\Akismet::COMMENT_TYPE_CONTACT_FORM,
@@ -123,23 +109,63 @@ function contactemail($uid, $cc, $author, $authorEmail, $subject, $message)
 
             $subject = GLText::stripTags($subject);
             $subject = substr($subject, 0, strcspn($subject, "\r\n"));
-            $message = GLText::stripTags($message) . $sig;
+			
+			// Create HTML and plaintext version of email
+			$t = COM_newTemplate(CTL_core_templatePath($_CONF['path_layout'] . 'emails/'));
+			$t->set_file(array('email_html' => 'contact-html.thtml'));
+			// Remove line feeds from plain text templates since required to use {LB} template variable
+			$t->preprocess_fn = "CTL_removeLineFeeds"; // Set preprocess_fn before the template file you want to use it on				
+			$t->set_file(array('email_plaintext' => 'contact-plaintext.thtml'));
+
+			$t->set_var('email_divider', $LANG31['email_divider']);
+			$t->set_var('email_divider_html', $LANG31['email_divider_html']);
+			$t->set_var('LB', LB);
+
+			$t->set_var('lang_email_sentinfo', sprintf($LANG08[45], COM_getDisplayName($uid, $author, $authorEmail), $authorEmail)); // This is a message sent from site_name by %s ...
+			
+			$message = GLText::stripTags($message);
+			$t->set_var('message_plaintext', $message);
+			$t->set_var('message_html', COM_nl2br($message));
+			
+            $sig = '';
+			$sig_html = '';
+			if ($uid > 1 && !empty(trim($A['sig']))) {
+				// Converts to HTML, fixes links, and executes autotags
+				$sig_html = GLText::getDisplayText(stripslashes($A['sig']), $A['postmode'], GLTEXT_LATEST_VERSION);
+				// Convert to plaintext
+				$sig = GLText::html2Text($sig_html);
+
+				$t->set_var('signature', $sig);
+				$t->set_var('signature_html', $sig_html);					
+				
+				$t->set_var('signature_divider_html', $LANG31['sig_divider_html']);
+				$t->set_var('signature_divider', $LANG31['sig_divider']);
+            }			
+
+			// Output final content
+			$message = [];
+			$message[] = $t->parse('output', 'email_html');	
+			$message[] = $t->parse('output', 'email_plaintext');
+			
             if (!empty($A['fullname'])) {
-                $to = array($A['email'] => $A['fullname']);
+                $mailto = array($A['email'] => $A['fullname']);
             } else {
-                $to = array($A['email'] => $A['username']);
+                $mailto = array($A['email'] => $A['username']);
             }
-            $from = array($authorEmail => $author);
+            $mailfrom = array($authorEmail => $author);			
 
-            $sent = COM_mail($to, $subject, $message, $from);
+			$sent = COM_mail($mailto, $subject, $message, '', true);
 
-            if ($sent && $_CONF['mail_cc_enabled'] && (Geeklog\Input::post('cc') === 'on')) {
-                $ccmessage = sprintf($LANG08[38], COM_getDisplayName($uid, $A['username'], $A['fullname']));
-                $ccmessage .= "\n------------------------------------------------------------\n\n" . $message;
+			// From email address should always be website email as pretending it is from another user (which Geeklog use to do) causes spam issues (See Github issue #1086)
+			if ($sent && $_CONF['mail_cc_enabled'] && (Geeklog\Input::post('cc') === 'on')) {
+				$t->set_var('lang_cc_email_info', sprintf($LANG08[38], COM_getDisplayName($uid, $A['username'], $A['fullname']))); // This is a copy of the email that you sent to %s from ...
 
-                $sent = COM_mail($from, $subject, $ccmessage, $from);
-            }
+				$ccmessage[] = $t->parse('output', 'email_html');		
+				$ccmessage[] = $t->parse('output', 'email_plaintext');	
 
+				$sent = COM_mail($mailfrom, $subject, $ccmessage, '', true);
+			}
+			
             COM_updateSpeedlimit('mail');
             COM_redirect(
                 $_CONF['site_url'] . '/users.php?mode=profile&amp;uid=' . $uid . '&amp;msg='
@@ -216,7 +242,7 @@ function contactform($uid, $cc = false, $subject = '', $message = '')
         
         // Check if User wants mail from someone
         if ($continue) {
-            $result = DB_query("SELECT emailfromadmin,emailfromuser FROM {$_TABLES['userprefs']} WHERE uid = '$uid'");
+            $result = DB_query("SELECT emailfromadmin,emailfromuser FROM {$_TABLES['user_attributes']} WHERE uid = '$uid'");
             $P = DB_fetchArray($result);
             
             if ($continue && ((($P['emailfromadmin'] == 1) && $isAdmin) || (($P['emailfromuser'] == 1) && !$isAdmin))) {
@@ -312,7 +338,7 @@ function contactform($uid, $cc = false, $subject = '', $message = '')
 */
 function mailstory($sid, $to, $toEmail, $from, $fromEmail, $shortMessage)
 {
-    global $_CONF, $_TABLES, $LANG01, $LANG08;
+    global $_CONF, $_TABLES, $LANG01, $LANG08, $LANG31;
 
     require_once $_CONF['path_system'] . 'lib-article.php';
 
@@ -337,7 +363,7 @@ function mailstory($sid, $to, $toEmail, $from, $fromEmail, $shortMessage)
 
     // check mail speedlimit
     COM_clearSpeedlimit($_CONF['speedlimit'], 'mail');
-    $speedLimit = COM_checkSpeedlimit('mail');
+    $speedLimit = COM_checkSpeedlimit('mail', SPEED_LIMIT_MAX_MAIL);
     if ($speedLimit > 0) {
         $redirect .= '&amp;speedlimit=' . $speedLimit;
         COM_redirect($redirect);
@@ -350,7 +376,8 @@ function mailstory($sid, $to, $toEmail, $from, $fromEmail, $shortMessage)
         COM_redirect($_CONF['site_url'] . '/index.php');
     }
 
-    $shortMessage = COM_stripslashes($shortMessage);
+	
+	// Build part of email to Check for spam first
     $mailText = sprintf($LANG08[23], $from, $fromEmail) . LB;
     if (strlen($shortMessage) > 0) {
         $mailText .= LB . sprintf($LANG08[28], $from) . $shortMessage . LB;
@@ -367,57 +394,84 @@ function mailstory($sid, $to, $toEmail, $from, $fromEmail, $shortMessage)
         COM_displayMessageAndAbort($result, 'spamx', 403, 'Forbidden');
     }
 
-    $mailText .= '------------------------------------------------------------'
-              . LB . LB
-              . COM_undoSpecialChars($story->displayElements('title')) . LB
-              . strftime($_CONF['date'], $story->DisplayElements('unixdate')) . LB;
+	// Create HTML and plaintext version of email
+    $t = COM_newTemplate(CTL_core_templatePath($_CONF['path_layout'] . 'emails/'));
+    $t->set_file(array('email_html' => 'article-html.thtml'));
+	// Remove line feeds from plain text templates since required to use {LB} template variable
+	$t->preprocess_fn = "CTL_removeLineFeeds"; // Set preprocess_fn before the template file you want to use it on		
+	$t->set_file(array('email_plaintext' => 'article-plaintext.thtml'));
 
-    if ($_CONF['contributedbyline'] == 1) {
-        $author = COM_getDisplayName($story->displayElements('uid'));
-        $mailText .= $LANG01[1] . ' ' . $author . LB;
+	$t->set_var('email_divider', $LANG31['email_divider']);
+	$t->set_var('email_divider_html', $LANG31['email_divider_html']);
+	$t->set_var('LB', LB);
+
+	$emailtext = sprintf($LANG08[23], $from, $fromEmail);
+	$t->set_var('lang_email_sentinfo', $emailtext);
+    if (strlen($shortMessage) > 0) {
+		$emailtext = sprintf($LANG08[28], $from);
+		$t->set_var('lang_email_from', $emailtext);
+		$t->set_var('short_message_plaintext', $shortMessage);
+		$t->set_var('short_message_html', COM_nl2br($shortMessage));
     }
+	
+	// Articles always returned as HTML (even if set to another post mode)
+	$introtext = $story->DisplayElements('introtext');
+	$bodytext  = $story->DisplayElements('bodytext');
+	
+	// Fix links in HTML to be displayed in emails
+	$introtext = GLText::htmlFixURLs($introtext);
+	$bodytext = GLText::htmlFixURLs($bodytext);
+	
+	$t->set_var('article_introtext_html', $introtext);
+	$t->set_var('article_bodytext_html', $bodytext);
 
-    $introtext = $story->DisplayElements('introtext');
-    $bodytext  = $story->DisplayElements('bodytext');
-    $introtext = COM_undoSpecialChars(GLText::stripTags($introtext));
-    $bodytext  = COM_undoSpecialChars(GLText::stripTags($bodytext));
+	// Convert HTML to Plain Text
+	$introtext = GLText::html2Text($introtext);
+	$bodytext = GLText::html2Text($bodytext);
+	
+	$t->set_var('article_introtext_plaintext', $introtext);
+	$t->set_var('article_bodytext_plaintext', $bodytext);	
 
-    $introtext = str_replace(array("\012\015", "\015"), LB, $introtext);
-    $bodytext  = str_replace(array("\012\015", "\015"), LB, $bodytext);
-
-    $mailText .= LB . $introtext;
-    if (! empty($bodytext)) {
-        $mailText .= LB . LB . $bodytext;
-    }
-    $mailText .= LB . LB
-        . '------------------------------------------------------------' . LB;
-
+	$t->set_var('article_title', COM_undoSpecialChars($story->displayElements('title')));
+	$t->set_var('article_date', COM_strftime($_CONF['date'], $story->DisplayElements('unixdate')));
+	if ($_CONF['contributedbyline'] == 1) {
+		$t->set_var('lang_contributed_by', $LANG01[1]);
+		$t->set_var('article_author', COM_getDisplayName($story->displayElements('uid')));
+		
+	}
+	
+	// Add link to content
     if ($story->DisplayElements('commentcode') == 0) { // comments allowed
-        $mailText .= $LANG08[24] . LB
-                  . COM_buildUrl($_CONF['site_url'] . '/article.php?story='
-                                  . $sid . '#comments');
+		$t->set_var('lang_article_url', $LANG08[24]);
+		$article_url = COM_buildUrl($_CONF['site_url'] . '/article.php?story=' . $sid . '#comments');
     } else { // comments not allowed - just add the story's URL
-        $mailText .= $LANG08[33] . LB
-                  . COM_buildUrl($_CONF['site_url'] . '/article.php?story='
-                                  . $sid);
-    }
-
+		$t->set_var('lang_article_url', $LANG08[33]);
+		$article_url = COM_buildUrl($_CONF['site_url'] . '/article.php?story=' . $sid);
+    }	
+	$t->set_var('article_url', $article_url);
+	
+	// Output final content
+	$message[] = $t->parse('output', 'email_html');	
+	$message[] = $t->parse('output', 'email_plaintext');
+	
     $mailto = array($toEmail => $to);
     $mailfrom = array($fromEmail => $from);
     $subject = 'Re: ' . COM_undoSpecialChars(GLText::stripTags($story->DisplayElements('title')));
 
-    $sent = COM_mail($mailto, $subject, $mailText, $mailfrom);
+	$sent = COM_mail($mailto, $subject, $message, '', true);
 
     if ($sent && $_CONF['mail_cc_enabled'] && (Geeklog\Input::post('cc') === 'on')) {
-        $ccmessage = sprintf($LANG08[38], $to);
-        $ccmessage .= "\n------------------------------------------------------------\n\n" . $mailText;
+		$t->set_var('lang_cc_email_info', sprintf($LANG08[38], $to));
 
-        $sent = COM_mail($mailfrom, $subject, $ccmessage, $mailfrom);
+		$ccmessage[] = $t->parse('output', 'email_html');		
+		$ccmessage[] = $t->parse('output', 'email_plaintext');	
+
+        $sent = COM_mail($mailfrom, $subject, $ccmessage, '', true);
     }
 
     COM_updateSpeedlimit('mail');
 
-    // Increment numemails counter for story
+    // Increment number emails counter for story
     DB_query("UPDATE {$_TABLES['stories']} SET numemails = numemails + 1 WHERE sid = '$sid'");
 
     if ($_CONF['url_rewrite']) {
@@ -542,7 +596,7 @@ switch ($what) {
         break;
 
     case 'emailstory':
-        $sid = Geeklog\Input::get('sid');
+        $sid = Geeklog\Input::fGet('sid');
 
         if (empty($sid)) {
             COM_redirect($_CONF['site_url'] . '/index.php');

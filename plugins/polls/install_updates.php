@@ -4,13 +4,11 @@ function polls_update_ConfValues_2_1_2()
 {
     global $_CONF, $_PO_DEFAULT, $_PO_CONF;
 
-    require_once $_CONF['path_system'] . 'classes/config.class.php';
-
     $c = config::get_instance();
 
     require_once $_CONF['path'] . 'plugins/polls/install_defaults.php';
 
-    // Autotag Usuage Defaults
+    // Autotag Usage Defaults
     $c->add('fs_autotag_permissions', null, 'fieldset',
         0, 10, null, 0, true, 'polls', 10);
     $c->add('autotag_permissions_poll', $_PO_DEFAULT['autotag_permissions_poll'], '@select',
@@ -32,8 +30,6 @@ function polls_update_ConfValues_2_1_2()
 function polls_update_ConfValues_2_1_3()
 {
     global $_CONF, $_PO_DEFAULT, $_PO_CONF, $_GROUPS, $_TABLES;
-
-    require_once $_CONF['path_system'] . 'classes/config.class.php';
 
     $c = config::get_instance();
 
@@ -70,6 +66,21 @@ function polls_update_ConfValues_2_1_3()
         0, 20, null, 10, true, 'polls', 20);
     $c->add('block_permissions', $_PO_DEFAULT['block_permissions'], '@select',
         0, 20, 14, 20, true, 'polls', 20);
+
+    return true;
+}
+
+function polls_update_ConfValues_2_2_1()
+{
+    global $_CONF, $_PO_DEFAULT, $_PO_CONF;
+
+    $c = config::get_instance();
+
+    require_once $_CONF['path'] . 'plugins/polls/install_defaults.php';
+
+    // Likes
+	$c->add('likes_polls', $_PO_DEFAULT['likes_polls'], 'select',
+			0, 0, 41, 110, true, 'polls', 0);				
 
     return true;
 }

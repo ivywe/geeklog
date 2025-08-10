@@ -1,5 +1,244 @@
 Geeklog History/Changes:
 
+September 27 2022 (2.2.2)
+------------
+Explanation of list item:
+- [Issue Type] [#Github_Issue_Number OR commit reference OR NA] Description of issue [Person who worked on issue]
+
+For more in-depth explanation of the issues below see: https://github.com/Geeklog-Core/geeklog/milestone/48?closed=1
+
+- [Security] [NA] Fixed displaying 404 page and filtering of URL [Tom]
+- [Security] [NA] Fixed Cross Site Scripting (XSS) vulnerabilities found in Administration pages [Mystralkk]
+- [Security] [#1023] Clean up lib-comment and fix security checks on editing and deleting of comments [Tom]
+- [Security] [#842] Fixed after token expired you can re-authentication with any existing user [Mystralkk]
+
+- [Feature] [#1120] Added Top 10 Likes and Dislikes to User Profile [Tom]
+- [Feature] [#1029] Added Likes Control to Static Pages and Polls [Tom]
+- [Feature] [#1036] Added Likes Block that shows most likes and disliked items within a certain time period [Tom]
+- [Feature] [#1030] Added Error Limit for submissions that works similar to Speed Limit. Ban plugin v2.0.4 supports this feature [Mystralkk]
+- [Feature] [#1003] Geeklog Core emails now use templates (for HTML and plain text) and are sent as HTML by default [Tom]
+- [Feature] [#1021] Add Tooltips for Likes and DisLikes numbers to show who Performed the Action [Tom]
+- [Feature] [#1090] Add an option to anonymize IP addresses and APIs to handle them [Mystralkk]
+- [Feature] [#1076] Add IP address to Admin Emails about New Users or when a User makes a change to their Profile [Mystralkk]
+- [Feature] [#993] Use Actual Theme Names in Configuration and User Settings [Mystralkk]
+- [Feature] [#746] Added redirects in Routing Manager [Mystralkk] 
+- [Feature] [#1060] reCAPTCHA Plugin support reCAPTCHA v3 [Mystralkk] 
+- [Feature] [#1099] Allow Plugins which are uninstalled that still have files on the website to be Deleted [Tom]
+
+- [Improvement] [#1110] [#1079] [#1087] Minor and Major changes to support PHP 8.1 [Mystralkk] [Tom]
+- [Improvement] [#1042] Removed support for old Search API (pre Geeklog 1.5.1) [Tom]
+- [Improvement] [#1086] Geeklog Core now sends email only using site_mail or noreply_mail and does not spoof user email addresses [Tom]
+- [Improvement] [#1107] Geeklog updated to use PHPMailer (replaces abandoned Swiftmailer) [Mystralkk]
+- [Improvement] [#1118] Internal improvements to Geeklog which allows plugins the improved ability to only load css or js when needed [Tom]
+- [Improvement] [#975] Drop support for languages that have not received new translations in a while [Mystralkk]
+- [Improvement] [#274] Removed unused user settings and cleaned up user tables structure [Mystralkk]
+- [Improvement] [#1106] Fix Themes included with Geeklog use of the H1 tag to better follow SEO Guidelines / Best Practices [Tom]
+- [Improvement] [#1051] Printable Pages now uses COM_createHTMLDocument to reduce Duplicate Code [Tom]
+- [Improvement] [#1111] Geeklog Database Administration misc improvements including cron jobs fixes [Tom]
+- [Improvement] [#1113] Daily Digest improvements including cron jobs fixes [Tom]
+- [Improvement] [#1086] Geeklog now always uses system email address to send emails (including those on the Send Mail to Username form) [Tom] [Mystralkk]
+- [Improvement] [#1069] Standardize the way the Anonymous Name is Retrieved and Set so Plugins can use it [Tom]
+- [Improvement] [#1098] Make Remote Logins more Prominent [Tom]
+- [Improvement] [#1080] Added Persian language (submitted by parsfounder) [Mystralkk]
+- [Improvement] [#1015] Disable the Cache of the Site before it starts the install/upgrade/migration [Mystralkk]
+- [Improvement] [#991] Installer now sets default language in Geeklog [Mystralkk]
+- [Improvement] [#992] Improve Install UTF-8 Option [Mystralkk]
+- [Improvement] [#1050] XML Sitemap Plugin - Sitemap is now updated and not completely recreated each time something changes [Mystralkk]
+- [Improvement] [#1105] XML Sitemap Plugin - Bing Ping Sitemap removed and IndexNow added [Tom]
+
+- [Bug] [NA] Fixed language issue with File Manager when Browsing images on server [Tom]
+- [Bug] [#1123] Fixed related comment records (like edits and notifications) not being deleted when the item itself that the comment is for is deleted [Tom]
+- [Bug] [#1122] Fixed broken image icons in Article Editor [Tom]
+- [Bug] [#1121] Comment Bar displaying incorrect Title in some cases when viewed on Comment Page [Tom]
+- [Bug] [#1119] Added missing postmode field to Admin User Editor [Tom]
+- [Bug] [#1134] Fixed Admin User Editor on save would still check passwords even if left blank (so not changed) [Tom]
+- [Bug] [#1116] After logging out of one user account, cannot log into different user account in the same browser [Tom]
+- [Bug] [#465] Cannot login when site using IP address with the Google Chrome Browser [Tom]
+- [Bug] [#1055] URL routing does not work in an environment without $ _SERVER ['PATH_INFO'] [hirorongl]
+- [Bug] [#1013] Fixed Staticpage Editor Doesn't Remember Some Settings on Reload of Editor [Tom]
+- [Bug] [#746] Fixed misc URL Routing issues [Tom]
+- [Bug] [#1014] Some RSS Feeds may not validate correctly if actual content (like from articles) includes invalid HTML [Mystralkk] [Tom]
+- [Bug] [#1097] Hidden is not saved in Topic Editor [Mystralkk]
+- [Bug] [#1091] Articles with same date in same topic can cause an issue [Mystralkk]
+- [Bug] [#1101] Handling of Zip Files that have Files with Names not Compatible with the Web Servers OS [Mystralkk]
+- [Bug] [#1061] Geeklog Configuration - Changing Paths can cause Issues [Mystralkk]
+- [Bug] [#1133] Article Submissions Shows Edit button for articles in some cases when user does not actual have edit access [Tom]
+
+The following items are Libraries that have been updated that are not handled by Composer.
+
+- [Update] UIkit 3 framework to version 3.10.0 [Mystralkk] [Tom]
+- [Update] jQuery to version 3.6.0 [Mystralkk]
+- [Update] jQuery UI to version 1.13.0 [Tom]
+- [Update] CKEditor to 4.17.1 (Full Package) [Tom]
+
+The following items are all current Geeklog API, functions, and/or global variables that are planned to be either required or depreciated by a current Geeklog version. Plugin and Theme developers please take note of these changes in case they affect you.
+
+Since Geeklog v2.2.2
+
+- [Depreciated] [#1042] By Geeklog 2.2.2 - Search now requires use of Search API 2
+
+Since Geeklog v2.2.1sr1
+
+- [Depreciated] [#1052] By Geeklog 3.0.0 - Article should not depend on hardcoded file locations for print.css for a theme. Use PLG_getThemeItem('core-file-print-css', 'core'); instead
+
+Since Geeklog v2.2.1
+
+- [Depreciated] [#872] By Geeklog 3.0.0 - Global $topic variable. Please use function TOPIC_getTopic or TOPIC_setTopic instead to determine Geeklog topic
+- [Depreciated] [#871] By Geeklog 3.0.0 - Theme variable $theme_config['supported_version_theme']. Please use theme_gl_version' instead
+- [Depreciated] [#1022] By Geeklog 3.0.0 - Number of variables passed to PLG_getCommentUrlId function. It now requires an Id field passed to it which means the plugin functions it calls (plugin_getcommenturlid_foo) requires the same thing
+- [Required] [#1023] By Geeklog 3.0.0 - The Comment Library API has had functions added or modified to address a number of issues. This includes: PLG_commentDelete (new $returnBoolean field added), PLG_getCommentUrlId (new $id field added), PLG_commentEnabled (New Function), PLG_approveCommentSubmission (New Function, only required if have submissions and need to do something after new comment approval)
+
+Since Geeklog v2.2.0
+- [Depreciated] [NA] By Geeklog 3.0.0 - Com_refresh. Use COM_redirect instead
+Since Geeklog v2.1.2
+- [Depreciated] [NA] By Geeklog 3.0.0 - CTL_setTemplateRoot. Plugins must use COM_newTemplate and either CTL_core_templatePath or CTL_plugin_templatePath
+Since Geeklog v1.4.0
+- [Depreciated] [NA] By Geeklog 3.0.0 - COM_userComments function. Use CMT_userComments instead
+
+April 16 2020 (2.2.1sr1)
+------------
+Explanation of list item:
+- [Issue Type] [#Github_Issue_Number OR commit reference OR NA] Description of issue [Person who worked on issue]
+
+For more in-depth explanation of the issues below see: https://github.com/Geeklog-Core/geeklog/milestone/50?closed=1
+
+- [Security] [NA] XSS issue with the Plugin Admin interface. (reported by Netsparker.com) [Mystralkk]
+- [Security] [NA] Issue with the comment library. (reported by Netsparker.com) [Tom]
+
+- [Feature] [#1016] Staticpages can now be set individually if they will appear in the search results or not [Tom]
+
+- [Improvement] [#1038] Staticpages which use PHP, and the template class with a theme that contains PHP, now will error gracefully for sites using PHP 7 or higher [Mystralkk]
+
+- [Bug] [#1043] Fixed hardcoded table names in upgrade for Geeklog v2.2.1 [Tom]
+- [Bug] [#1043] Fixed issue where the install would fail in some cases because it did not know where the system directory was [Tom]
+- [Bug] [#1045] Fixed tooltip links for Denim and Denim_three themes [Tom]
+- [Bug] [#1044] Fixed searching just articles [Tom]
+- [Bug] [#1046] Fixed Users can only be set to certain statuses by Admins [Tom]
+- [Bug] [#1047] Fixed Admin login form for those who try to access the Geeklog Admin area. Regular Logged in Users get just a message now instead of showing a login form [Tom]
+- [Bug] [#1048] Fixed related Articles are Missing From the Article Page [Tom]
+- [Bug] [#1049] Fixed Print Pages for Articles and Staticpages javascript crashing issue [Tom]
+- [Bug] [#1058] Fixed URL Routing for Articles that could cause errors in some cases. Also disabled multiview by default for Apache servers in the htaccess file [Tom]
+- [Bug] [#1054] Fixed duplicate usernames issue that could happen only for remote accounts using OAuth. The issue dealt with usernames using accents [Tom]
+
+The following items are all current Geeklog API, functions, and/or global variables that are planned to be either required or depreciated by a current Geeklog version. Plugin and Theme developers please take note of these changes in case they affect you.
+
+Since Geeklog v2.2.1sr1
+
+- [Depreciated] [#1052] By Geeklog 3.0.0 - Article should not depend on hardcoded file locations for print.css for a theme. Use PLG_getThemeItem('core-file-print-css', 'core'); instead
+
+Since Geeklog v2.2.1
+
+- [Depreciated] [#872] By Geeklog 3.0.0 - Global $topic variable. Please use function TOPIC_getTopic or TOPIC_setTopic instead to determine Geeklog topic
+- [Depreciated] [#871] By Geeklog 3.0.0 - Theme variable $theme_config['supported_version_theme']. Please use theme_gl_version' instead
+- [Depreciated] [#1022] By Geeklog 3.0.0 - Number of variables passed to PLG_getCommentUrlId function. It now requires an Id field passed to it which means the plugin functions it calls (plugin_getcommenturlid_foo) requires the same thing
+- [Required] [#1023] By Geeklog 3.0.0 - The Comment Library API has had functions added or modified to address a number of issues. This includes: PLG_commentDelete (new $returnBoolean field added), PLG_getCommentUrlId (new $id field added), PLG_commentEnabled (New Function), PLG_approveCommentSubmission (New Function, only required if have submissions and need to do something after new comment approval)
+
+Since Geeklog v2.2.0
+- [Depreciated] [NA] By Geeklog 3.0.0 - Com_refresh. Use COM_redirect instead
+Since Geeklog v2.1.2
+- [Depreciated] [NA] By Geeklog 3.0.0 - CTL_setTemplateRoot. Plugins must use COM_newTemplate and either CTL_core_templatePath or CTL_plugin_templatePath
+Since Geeklog v1.4.0
+- [Depreciated] [NA] By Geeklog 3.0.0 - COM_userComments function. Use CMT_userComments instead
+
+February 26 2020 (2.2.1)
+------------
+
+Explanation of list item:
+- [Issue Type] [#Github_Issue_Number OR commit reference OR NA] Description of issue [Person who worked on issue]
+
+For more in-depth explanation of the issues below see: https://github.com/Geeklog-Core/geeklog/milestone/46?closed=1
+
+- [Feature] [#828] Geeklog now uses PHP built in support for sessions [Mystralkk]
+- [Feature] [#902] Structured Data directly integrated into Geeklog (with plugin support). Includes initial support for Breadcrumbs, Articles, and Static Pages [Tom]
+- [Feature] [#971] Article Admin List now allows you to filter by edit access [Tom]
+- [Feature] [#942] Log files can now be limited to a certain size (must be run as a scheduled task) [Mystralkk]
+- [Feature] [#866] EU Cookie Consent added to all themes [Mystralkk]
+- [Feature] [#866] Added config options for links to Terms of Use and Privacy Policy documents [Tom]
+- [Feature] [#954] For users without a photo you can now automatically generate user image/icon/avatar from Username using ui-avatar.com api [Mystralkk] [Tom]
+- [Feature] [#843] The Geeklog Demo mode now does not send out emails. It displays them right away to the user on the page. This is to prevent spamming [Mystralkk]
+- [Feature] [#940] Added a Likes System for articles, comments, and included a Plugin API (which is supported by the Forum v2.9.4+). Likes can be enabled for regular users and/or anonymous users. Admin can specify Likes only or Likes and Dislikes [Tom]
+- [Feature] [#906] Language Override now supports regular variables. Plugins can add new language variables to support override [Tom]
+- [Feature] [#876] In Batch Admin, you now can delete users who have not contributed any content. Plugins can support this feature as well [Tom]
+- [Feature] [#806] Switch to RichFileManager since original Filemanager is depreciated [Mystralkk]
+- [Feature] [#869] reCaptcha Plugin - API added which plugins must now use to enable support for reCaptcha [Mystralkk]
+- [Feature] [#898] Can now convert any remote account to local account. If email confirmed and account status is active an email will be sent notifying user of account change and new password [Tom]
+- [Feature] [#901] XML Sitemap Plugin - Can create a News specific XML Sitemap for Google News Publishers [Tom]
+- [Improvement] [#899] The FCKEditor has been removed since support has been dropped for several years [Tom]
+- [Improvement] [#898] The Google+ OAuth authentication method and scope has been changed to the Google OAuth authentication method and scope [Tom]
+- [Improvement] [#871] Better handling of different theme versions including what version of Geeklog it is for [Tom]
+- [Improvement] [#996] If invalid theme detected will switch to alternate theme. If user is root then are notified of issue [Tom]
+- [Improvement] [#884] When a search is performed on a Static Page that uses either PHP or templates, a cached version of the final page is searched [Tom]
+- [Improvement] [#964] Banned user Names are handled the same across Geeklog (including plugins) [Mystralkk]
+- [Improvement] [#933] Removed rel=prev/next from page navigation since support for it was dropped by the search engines [Mystralkk]
+- [Improvement] [#915, #917] Better support for screen readers by themes [Milk54]
+- [Improvement] [#903] Removed more hard coded css class names [Tom]
+- [Improvement] [#881] Facebook OAuth updated to support new required permissions [Tom]
+- [Improvement] [#944, #892] Geeklog now supports PHP v5.6.40 and higher (including PHP v7.3) [Mystralkk]
+- [Improvement] [NA] Minor user interface tweaks to themes to improve layout [Tom]
+- [Improvement] [#843] Added "system-msg" session variable which will display any system messages. Use function COM_setSystemMessage to set [Tom]
+- [Improvement] [#918] Users who use gmail email addresses cannot create multiple accounts under the same address (Google treats email addresses with periods and without as the same address ) [Mystralkk]
+- [Improvement] [#849] Installer - Now uses Uikit 3 [Tom] [Mystralkk]
+- [Improvement] [#926] Spam-X Plugin - SLV module removed due to Linksleeve shutting down [Tom]
+- [Improvement] [NA] Staticpage Plugin - Now can use page and page_content for autotags instead of staticpage and staticpage_content [Tom]
+- [Improvement] [fd7bf1668a5afd9a2ce4085cd2e590a776da00be] - User Group Editor shows difference between a group that is inherited and a group that cannot be checked because it would create a security group loop [Tom]
+- [Improvement] [NA] PLG_getThemeItem and theme_getThemeItem_foo api functions so themes can specify certain css classes, styles, and other info for certain items in Geeklog [Tom]
+- [Improvement] [NA] The Denim, and Denim_Three themes now display user photos with comments [Tom]
+- [Improvement] [#1026] Geeklog now checks for the correct characterset encoding on any passed variables [Mystralkk]
+- [Improvement] [#1023] Partial cleanup of Comment Library including better security and permission checks [Tom]
+- [Improvement] [#1040] Removed unused search template files from the themes. SearchForm.thtml file is now the only one required [Tom]
+
+- [Bug] [d8792f2f5f3354ff01045955f43cb6277ef32bf7] Fixed saving of permissions for users when you have security groups within security groups [Tom]
+- [Bug] [#931] Fix for Duplicate Usernames & Usernames with Trailing Spaces [Tom]
+- [Bug] [#893] Fixed Geeklog User Group Assignments which were not correct on new installs [Tom]
+- [Bug] [#886] Fixed issue where Geeklog thinks Plugin User Groups are Core Geeklog Groups [Tom]
+- [Bug] [#861] Fixed issue where users with blank usernames was being added after an OAuth authentication error [Tom]
+- [Bug] [#861] Fixed issue where users could have the same name (local and remote). Trailing spaces are now removed from usernames on save [Tom]
+- [Bug] [#967] Submitted articles when approved or brought up in the Article Editor will now use the Story Admin Group and the Article Default Permissions as the defaults (Since Geeklog v2.0.0 it was using the Topic Admin Group) [Tom]
+- [Bug] [#976] Polls Plugin - Fix saving of polls including when ID is changed [Tom]
+- [Bug] [#973] Fix for certain Autotags that uses a close tag [Ivywe]
+- [Bug] [#966] Links fixed in configuration documentation to work in tooltip and when viewed as a page [Mystralkk]
+- [Bug] [#945] When Routing enabled, the router now only loads page once instead of twice [Tom]
+- [Bug] [NA] Fixed pages and articles that are cached could include highlighted text from previous searches [Tom]
+- [Bug] [#937] Fix for URL Routing if site url has a directory in it [Tom]
+- [Bug] [#934] Switch Language now works for default URLs, URL Rewrite, and URL Routing. Works with Articles, Topics, and Static Pages [Tom]
+- [Bug] [#919] Fixed bug in Article cache which improved speed [Tom]
+- [Bug] [NA] CSS and JS processor to Minify and combine files bug found and fixed. Speed improved [Mystralkk]
+- [Bug] [#890] CKEditor toolbar updated to not display image or flash button if they do not have the appropriate access [Tom]
+- [Bug] [#878] Fixed Rescue in install so it now works [Mystralkk]
+- [Bug] [#859] Installer - Fixed using regular expressions in Personal Blacklist [Mystralkk]
+- [Bug] [#974] Spam-X Plugin - Fixed using regular expressions in Personal Blacklist [Mystralkk]
+- [Bug] [#947] Spam-X Plugin - Akismet Module Reporting false SPAM for all submitted comments [Tom]
+- [Bug] [#863, #965] reCaptcha Plugin - Better handling of failure messages for users [Mystralkk]
+- [Bug] [#465] Fix for login issue when site domain is an IP address with the Google Chrome Browser [Tom]
+- [Bug] [#1001] Article Editor will now load even if images are missing [Tom]
+- [Bug] [#1035] Fixed Admin Comments and Admin Moderation forms for Comments Approving and Deleting Issues [Tom]
+- [Bug] [#1023] Fixed Reporting of Comments for abuse [Tom]
+- [Bug] [#1037] Fixed Re authentication of User Accounts dealing with both Get and Post requests [Tom]
+- [Bug] [#1041] Added new plugin API PLG_searchFormat to allow plugins to format the search results for title and description if needed. Articles will now remove image tags from showing in the search results [Tom]
+
+The following items are Libraries that have been updated that are not handled by Composer.
+
+- [Update] UIkit 3 framework to version 3.2.6 [Mystralkk] [Tom]
+- [Update] jQuery to version 3.4.1 (jQuery UI is still at latest version 1.12.1) [Mystralkk]
+- [Update] CKEditor to version 4.12.1 [Mystralkk]
+- [Update] Mobile_Detect class to version 2.8.34 [Tom]
+
+The following items are all current Geeklog API, functions, and/or global variables that are planned to be either required or depreciated by a current Geeklog version. Plugin and Theme developers please take note of these changes in case they affect you.
+
+Since Geeklog v2.2.1
+
+- [Depreciated] [#872] By Geeklog 3.0.0 - Global $topic variable. Please use function TOPIC_getTopic or TOPIC_setTopic instead to determine Geeklog topic
+- [Depreciated] [#871] By Geeklog 3.0.0 - Theme variable $theme_config['supported_version_theme']. Please use theme_gl_version' instead
+- [Depreciated] [#1022] By Geeklog 3.0.0 - Number of variables passed to PLG_getCommentUrlId function. It now requires an Id field passed to it which means the plugin functions it calls (plugin_getcommenturlid_foo) requires the same thing
+- [Required] [#1023] By Geeklog 3.0.0 - The Comment Library API has had functions added or modified to address a number of issues. This includes: PLG_commentDelete (new $returnBoolean field added), PLG_getCommentUrlId (new $id field added), PLG_commentEnabled (New Function), PLG_approveCommentSubmission (New Function, only required if have submissions and need to do something after new comment approval)
+
+Since Geeklog v2.2.0
+- [Depreciated] [NA] By Geeklog 3.0.0 - Com_refresh. Use COM_redirect instead
+Since Geeklog v2.1.2
+- [Depreciated] [NA] By Geeklog 3.0.0 - CTL_setTemplateRoot. Plugins must use COM_newTemplate and either CTL_core_templatePath or CTL_plugin_templatePath
+Since Geeklog v1.4.0
+- [Depreciated] [NA] By Geeklog 3.0.0 - COM_userComments function. Use CMT_userComments instead
+
 June 26, 2018 (2.2.0)
 ------------
 
@@ -46,7 +285,7 @@ June 26, 2018 (2.2.0)
 - [Bug] Fixed Spam-X plugin upgrade issue from Geeklog v2.1.2 to v2.1.3 [Tom]
 - [Bug] Fixed Link Edit button to edit link instead of create a new link [Tom]
 - [Bug] Fixed Links plugin Category links when URL Rewrite Enabled  [Mystralkk]
-- [Bug] Fixed when saving group assignments for a user. Inherited groups stay as inhertied and do not become directly related to the user [Tom] 
+- [Bug] Fixed when saving group assignments for a user. Inherited groups stay as inherited and do not become directly related to the user [Tom]
 - [Bug] Fixes for PHP 7.2 [hirorongl]
 
 - [Update] UIkit 2 framework to version 2.27.5 [Dengen]
@@ -122,7 +361,7 @@ December 9, 2015 (2.1.1)
 - [Security] Log parameters for 404 errors & make filtering in 404.log work like in error.log [Dirk]
 - [Security] Removed the code used for File Manager demos and tests shipped with WideImage to prevent an XSS [Mystralkk]
 - [Security] Updated File Manager to version 2.2.0 (fixed security issue with file upload check) [Mystralkk]
-- [Security] Configuration string input sanitizing overhaul. Now can be config option specific by 
+- [Security] Configuration string input sanitizing overhaul. Now can be config option specific by
   adding sanitize rule in config validation file. Default is now all strings are stripped of tags [Tom]
 - [Update] CKEditor to version 4.5.4 [Dengen]
 - [Update] jQuery to version 1.11.3 and jQuery UI to version 1.11.4. jQuery Timepicker Addon updated [Tom] [Dengen]
@@ -130,8 +369,8 @@ December 9, 2015 (2.1.1)
 - [Feature] Integrated the UIkit framework version 2.24.0 into Geeklog [Dengen]
 - [Feature] Denim theme now uses UIkit [Dengen]
 - [Feature] Added first part of developer mode which adds extra error logging for any template errors
-- [Feature] Plugins can now include default templates and css files along with ones for different themes 
-  Plugins template and css files can be included with themes. Plugins template files can now have 
+- [Feature] Plugins can now include default templates and css files along with ones for different themes
+  Plugins template and css files can be included with themes. Plugins template files can now have
   a function.php file to control what javascript is loaded [Tom]
 - [Feature] Schema.org article, author, and Breadcrumb markup added to Denim and Modern Curve themes [Tom]
 - [Feature] Poll plugin bar graphs now based on percentage and supports responsive themes [Tom]
@@ -141,7 +380,7 @@ December 9, 2015 (2.1.1)
 - [Feature] Change default admin page to index.php from moderation.php [Dengen]
 - [Feature] Search form part of the theme is not accessible. [Dengen]
 - [Feature] Localization of message "Unfortunately, an error has occurred rendering this page." [Mystralkk]
-- [Feature] Add Pagination with rel=ìnextî and rel=ìprevî [Tom]
+- [Feature] Add Pagination with rel="next" and rel="prev" [Tom]
 - [Bug] Added email check to Com_mail to prevent plugins from sending email to users who don't have an address (Oauth users) [Tom]
 - [Bug] Cached Articles Sometimes do not Display on website [Tom]
 - [Bug] Current LDAP module doesn't work properly - new Simple_LDAP Authentication provided [Mystralkk]
@@ -159,29 +398,29 @@ December 9, 2015 (2.1.1)
 July 12, 2014 (2.1.0)
 ------------
 - Integrated Caching Template Library original developed by Joe Mucchiello [Tom]
-- Support for themes to specify a default theme. Default themes template and css 
+- Support for themes to specify a default theme. Default themes template and css
   files will be used unless they are included in the new theme directory [Tom]
-- Added configruable caching support for blocks (regular and gldefault), 
+- Added configruable caching support for blocks (regular and gldefault),
   staticpages and articles [Tom]
 - Speed increases by caching topic tree structure [Tom]
-- What's Related article block now includes all Topics. Can set length of titles 
+- What's Related article block now includes all Topics. Can set length of titles
   [Tom]
 - Articles now list what Topics they are filed under. [Tom]
 - New related_topics autotag. It displays all topics an item belongs too. [Tom]
-- New related_items autotag. It displays all other related items based on what 
+- New related_items autotag. It displays all other related items based on what
   topics the defined item belongs too [Tom]
 - Updated Command & Control layout. Plugins can now organized into groups. [Tom]
-- New OAuth login methods supported (Google, Microsoft, Yahoo). OAuth supported 
+- New OAuth login methods supported (Google, Microsoft, Yahoo). OAuth supported
   now includes 1.0, 1.0a, and 2.0 (depends on what the provider supports) [Tom]
 - Javascript and css can now be loaded in a specified order. [Tom]
 - Numerous fixes for multi-language support [Tom]
 - Added CKEditor 4.3.2 as the default advanced editor for Geeklog [Dengen]
-- New article render which fixes entities etc... from showing up where they 
+- New article render which fixes entities etc... from showing up where they
   shouldn't [Dengen]
-- New Advanced Editor System that allows developers to easily to add new 
+- New Advanced Editor System that allows developers to easily to add new
   javascript editors [Dengen]
 - Article, Staticpages Poll and Topic IDs can now be 128 characters long [Tom]
-- User Login page now can be accessed directly without first displaying a login 
+- User Login page now can be accessed directly without first displaying a login
   error message [Tom]
 - Fixed deadlock issues with the session table [Tom]
 - Updated Hebrew language files, provided by LWC
@@ -194,39 +433,39 @@ Mar 29, 2013 (2.0.0)
 ------------
 
 - Fix for expiry check when 24 hour clock used [Dirk]
-- Error message is displayed when user tries to access a topic that does not 
+- Error message is displayed when user tries to access a topic that does not
   exist [Tom]
-- Additional checks added to make sure user has read access to topics. If not 
+- Additional checks added to make sure user has read access to topics. If not
   then changed to all topics [Tom]
-- Fixed SQL error dealing with article directory and all topics (bug #0001570) 
+- Fixed SQL error dealing with article directory and all topics (bug #0001570)
   [Tom]
 - H tags now display correctly in articles for modern_curve theme (bug #0001569)
   [Dengen]
-- Owner of article can now view his own draft article if comments set to display 
+- Owner of article can now view his own draft article if comments set to display
   on same page (bug #0001568) [Tom]
-- Removed leftover 'search_no_data' config option from the database 
-  (bug #0001566) [Dirk] 
-- Searching for "more from topic" didn't work anymore; (bug #0001565, #0001518) 
+- Removed leftover 'search_no_data' config option from the database
+  (bug #0001566) [Dirk]
+- Searching for "more from topic" didn't work anymore; (bug #0001565, #0001518)
   [Dirk]
-  
+
 Mar 8, 2013 (2.0.0rc3)
 ------------
 
 - jQuery updated to version 1.9.1 [Tom]
 - jQuery UI updated to version 1.10.1 [Tom]
-- Fixed "Find all postings by ..." on user profile page when search doesn't 
+- Fixed "Find all postings by ..." on user profile page when search doesn't
   allow empty query string (bug #0001565) [Tom]
-- Add comments tag to Modern Curve theme to fix jumping to comments section of 
+- Add comments tag to Modern Curve theme to fix jumping to comments section of
   article page (bug #0001563) [Tom]
-- Added index.html to tooltips directory of modern_curve theme (bug #0001562) 
+- Added index.html to tooltips directory of modern_curve theme (bug #0001562)
   [Kenji]
-- Removed Japanese characters in modern_curve CSS files (bug #0001561, patch 
+- Removed Japanese characters in modern_curve CSS files (bug #0001561, patch
   provided by taca) [Kenji]
-- Fixed a bug "More.." tab in the configuration UI does not work correctly 
+- Fixed a bug "More.." tab in the configuration UI does not work correctly
   (bug #0001560) [Dengen]
 - Updated theme changes for Geeklog 2.0.0 in docs [Tom]
 - Update FCKeditor to version 2.6.9 [Dirk]
-- Fixed COM_nl2br() that replaces newlines with a line break tag (bug #0001141) 
+- Fixed COM_nl2br() that replaces newlines with a line break tag (bug #0001141)
   [Tom]
 
 
@@ -355,15 +594,15 @@ Jul 13, 2012 (2.0.0b2)
 May 24, 2012 (2.0.0b1)
 ------------
 
-- Created the function COM_createHTMLDocument which replaces COM_siteHeader and 
+- Created the function COM_createHTMLDocument which replaces COM_siteHeader and
   COM_siteFooter (feature request #0001358) [Dengen]
-- Fixed issue with $_CONF['left_blocks_in_footer'] and hiding the blocks 
+- Fixed issue with $_CONF['left_blocks_in_footer'] and hiding the blocks
   (bug #0001316) [Dengen]
 - Created a new theme called denim which is based on Responsive Web Design [Dengen]
-- Created a new theme called modern_curve which will eventual replace the 
+- Created a new theme called modern_curve which will eventual replace the
   professional theme (feature request #0001255) [Rouslan]
 - Added Emergency Rescue Tool written by Suprsidr to Geeklog Install [Tom]
-- Fixed path issue and changed the order of loading the jQuery css files 
+- Fixed path issue and changed the order of loading the jQuery css files
   in the Scripts class (bug #0001439) [Tom]
 - Improve strength of password hashing (feature request #0001384) [Vinny]
 - Add IP Address to entries in error.log [Tom]
@@ -380,7 +619,7 @@ May 24, 2012 (2.0.0b1)
 - Allow Topics to have child Topics [Tom]
 - Allow other objects to be associated to Topics (feature request #0001155)
   [Tom]
-- Allow objects like Articles, Blocks and Staticpages to be associated with 
+- Allow objects like Articles, Blocks and Staticpages to be associated with
   more than one Topic [Tom]
 - CC setting should be an admin option (patch #0001259) [Tom]
 - Delete account OAuth (bug #0001417) [Tom]
@@ -616,7 +855,7 @@ Apr 3, 2011 (1.8.0b1)
   class (feature request #0001128) [Dirk]
 - Fixed check for availability of PECL::ZipArchive in the unpacker class
   (bug #0001209) [Dirk]
-- Added in Autotag usage permissions and descriptions. Allowed HTML now 
+- Added in Autotag usage permissions and descriptions. Allowed HTML now
   displays autotag descriptions as tooltips (feature request #0001042) [Tom]
 - Added in COM_Tooltip function for displaying tooltips [Tom]
 - Moved handling of the [story:] and [user:] autotags to lib-story.php and
@@ -634,11 +873,11 @@ Links Plugin
   from using a '+' sign to using '%20'.
 - Fixed text above the list of links, which was referring to a menu entry that
   no longer exists (bug #0001216)
-  
+
 Polls Plugin
 ------------
 - Updated the default poll (feature request #0001277) [Rouslan]
-- Fixed voters do not get counted correctly when updating a poll with multiple 
+- Fixed voters do not get counted correctly when updating a poll with multiple
   questions. (patch #0001056, provided by Erisco)
 
 Static Pages Plugin
@@ -754,8 +993,8 @@ Static Pages Plugin
 -------------------
 - Call up the Advanced Editor when enabled (bug #0001147, patch provided by
   Samuel Leathers)
-- A Static Page can now be marked as a template and used by other Static Pages. 
-  (Feature #0001085) [Tom]  
+- A Static Page can now be marked as a template and used by other Static Pages.
+  (Feature #0001085) [Tom]
 
 
 May 9, 2010 (1.7.0)
@@ -773,7 +1012,7 @@ Changes since 1.7.0rc1:
 - Fixed a typo in the install check that prevented Geeklog from detecting if it
   was installed in a subdirectory (bug #0001148) [Dirk]
 
-- New and updated German language files, provided by Markus Wollschl‰ger
+- New and updated German language files, provided by Markus Wollschl√§ger
 - New and updated Slovenian language files, provided by Mateja B.
 
 
@@ -793,7 +1032,7 @@ Changes since 1.7.0b1:
   page [Tom]
 - Fixed Last 10 Comments display in user profiles [Tom]
 
-- Updated Estonian language file, provided by Artur R‰pp
+- Updated Estonian language file, provided by Artur R√§pp
 - Updated Hebrew language files, provided by LWC
 - Updated Italian language files, provided by Rouslan Placella
 - Updated Japanese language files and documentation, provided by the
@@ -838,14 +1077,14 @@ Apr 4, 2010 (1.7.0b1)
   topic ID [Stan, Dirk]
 - Introduced an optional page title for stories (feature request #0001096,
   patch provided by Vlad Voicu)
-- A new right called htmlfilter.skip allows user groups to skip any html   
+- A new right called htmlfilter.skip allows user groups to skip any html
   filtering on posts (feature request #0000952) [Tom]
 - Allow empty database passwords only for local installs (bug #0000923, patch
   provided by Chetan)
-- New Plugin API PLG_getWhatsNewComment for adding comments from plugins to the 
+- New Plugin API PLG_getWhatsNewComment for adding comments from plugins to the
   Whats New Block and the User Profile page (feature request #0000835) [Tom]
-- Truncated stories in Feeds now will have any open html tags closed. 
-  (bug #0000749) [Tom]  
+- Truncated stories in Feeds now will have any open html tags closed.
+  (bug #0000749) [Tom]
 - Introduced a [user:] autotag that links to a user's profile (feature request
   #0001081, patch provided by Akeda Bagus)
 - The "Users" entry in the Admins block now displays the number of active users
@@ -946,7 +1185,7 @@ Links Plugin
 
 Polls Plugin
 ------------
-- Added What's New Block Support for Polls and Poll comments 
+- Added What's New Block Support for Polls and Poll comments
   (feature request #0000835) [Tom]
 - Poll Topics now have a created and a modified date (bug #0000761) [Tom]
 - Fixed display of the edit icon in the Poll block - didn't check for polls.edit
@@ -961,8 +1200,8 @@ Spam-X Plugin
 -------------
 - Fixed "Edit IP of URL Blacklist" module (bug #0001102, reported and patch
   provided by Abhishek Shrivastava)
-- A new right called spamx.skip allows SPAM-X to skip filtering of submitted 
-  content from certain user groups (bug #0001018) [Tom] 
+- A new right called spamx.skip allows SPAM-X to skip filtering of submitted
+  content from certain user groups (bug #0001018) [Tom]
 - Make sure the Notification Email config option can be disabled [Dirk]
 - List $_CONF['site_url'] as a non-editable entry in the SLV whitelist to
   indicate that the site's URL is whitelisted automatically [Dirk]
@@ -975,7 +1214,7 @@ Static Pages Plugin 1.6.2
   #0001099) [Dirk]
 - Added What's New Block Support for Static Page comments
   (feature request #0000835) [Tom]
-- Added modified date column. What's New Block Support for Static Page now 
+- Added modified date column. What's New Block Support for Static Page now
   allows you to use created or modified date [Tom]
 - Added clickjacking protection for the printer-friendly version [Dirk]
 - Fixed SQL compatibility with MS SQL (bug #0001050)
@@ -1032,8 +1271,8 @@ Changes since 1.6.1rc1:
   db-config.php and siteconfig.php to 755. These files don't need to be
   executable, so recommend 644 instead (bug #0001036) [Dirk]
 
-- Updated Estonian language files, provided by Artur R‰pp
-- Updated German language files, provided by Markus Wollschl‰ger
+- Updated Estonian language files, provided by Artur R√§pp
+- Updated German language files, provided by Markus Wollschl√§ger
 - Updated Japanese language files, provided by the Geeklog.jp group
 
 Static Pages Plugin
@@ -1060,7 +1299,7 @@ Changes since 1.6.1b1:
 - The search results page used HTML <br> tags even when XHTML was requested
   (bug #0001022, patch provided by taca)
 - Fixed wrong path reported in case of a missing 'data' directory (reported by
-  Markus Wollschl‰ger) [Dirk]
+  Markus Wollschl√§ger) [Dirk]
 - When a plugin returns 0 items for its entry in the Admins Block, don't display
   that as 'N/A' (bug #0001025) [Dirk]
 - Fixed a bug in the Group Editor that didn't let you add groups to other groups
@@ -1293,7 +1532,7 @@ the 2008 Google Summer of Code:
 + Comment moderation and editable comments, by Jared Wenerd
 
 Changes since 1.6.0rc2:
-- Updated language file for formal German, provided by Markus Wollschl‰ger
+- Updated language file for formal German, provided by Markus Wollschl√§ger
 - Updated Japanese language file and documentation, provided by the
   Geeklog.jp group
 
@@ -1312,7 +1551,7 @@ Changes since 1.6.0rc1:
 - Fixed warning in migration script when no backups are available (bug #0000918,
   patch provided by hiroron)
 
-- Updated Estonian language files, provided by Artur R‰pp
+- Updated Estonian language files, provided by Artur R√§pp
 - Updated Hebrew language files, provided by LWC
 - Updated Japanese language files and documentation, provided by the
   Geeklog.jp group
@@ -1338,7 +1577,7 @@ Changes since 1.6.0b2:
 - Made the link to a comment's parent object from the comment bar work properly
   for plugins [Dirk]
 - Allow searching by topic (without a query string) again (reported by Markus
-  Wollschl‰ger) [Dirk]
+  Wollschl√§ger) [Dirk]
 - Fixed handling of $_CONF['comment_close_rec_stories'] (bug #0000899) [Dirk]
 - Improved selection of text portion displayed in search results [Dirk]
 - Fixed an error that occured after deleting a trackback [Dirk]
@@ -1438,7 +1677,7 @@ XMLSitemap plugin
 - Remove sitemap files when uninstalling the plugin [Dirk]
 - Don't include Links in the sitemap.xml automatically [Dirk]
 - Fixed "missing argument 2" error when changing config options (reported by
-  Markus Wollschl‰ger) [Dirk]
+  Markus Wollschl√§ger) [Dirk]
 
 
 May 1, 2009 (1.6.0b1)
@@ -1664,7 +1903,7 @@ Not security-related:
 - Re-introduced function get_SPX_Ver in the install script, which is still
   needed when upgrading from old Geeklog releases (reported by Sheila) [Dirk]
 
- 
+
 Apr 4, 2009 (1.5.2sr2)
 -----------
 
@@ -1697,7 +1936,7 @@ Feb 8, 2009 (1.5.2)
   [Dirk]
 - Display a message when sending the email for a new password failed [Dirk]
 
-- Updated Estonian language file for the Calendar plugin, provided by Artur R‰pp
+- Updated Estonian language file for the Calendar plugin, provided by Artur R√§pp
 - Updated Japanese language file, provided by the Geeklog.jp group
 
 Static Pages plugin
@@ -1809,14 +2048,14 @@ Polls plugin
 - Fixed SQL error when poll questions contained single quotes (bug #0000756)
   [Dirk]
 - Fixed handling of poll IDs in Polls editor (bug #0000753) [Dirk]
- 
+
 Static Pages plugin
 -------------------
 - The owner of a static page changed to the user who last edited it
   (bug #0000777) [Dirk]
 - Fixed call to WS_makeId when sp_id was longer than STATICPAGE_MAX_ID_LENGTH
   (found by Marc Maier) [Dirk]
- 
+
 
 
 Sep 22, 2008 (1.5.1)
@@ -1839,7 +2078,7 @@ Sep 22, 2008 (1.5.1)
   set name was written in uppercase (bug #0000731) [Dirk]
 
 - Updated Hebrew language files, provided by LWC
-- Updated Estonian language files, provided by Artur R‰pp
+- Updated Estonian language files, provided by Artur R√§pp
 - Updated Japanese language files, provided by the Geeklog.jp group
 - Updated Slovenian language files, provided by gape
 
@@ -1882,7 +2121,7 @@ Sep 7, 2008 (1.5.1rc1)
   slash [Dirk]
 - Updated FCKeditor to v2.6.3 [Blaine]
 - Moved remove() (config JavaScript) to gl_cfg_remove (bug #0000681) [Mike]
-- Change for CUSTOM_usercreate to support passing in $batchimport, 
+- Change for CUSTOM_usercreate to support passing in $batchimport,
   set true if called via the Admin->Users Batch_Add [Blaine]
 - Fix for date formatting in RSS fields (bug #0000696) [mystral-kk]
 - A small tweak to the Professional theme's commentbar to make the "Post a
@@ -1999,12 +2238,12 @@ Changes since 1.5.0rc2:
   when doing a database upgrade or re-running the install (reported by Mark
   Evans) [Dirk]
 - Links plugin: The word "Root" wasn't taken from the language file for the page
-  title of the public list of links (reported by Markus Wollschl‰ger) [Dirk]
+  title of the public list of links (reported by Markus Wollschl√§ger) [Dirk]
 - Fixed remaining places where the Admin panels had inconsistent layouts:
   Calendar list of events, Polls editor (bug #0000650) [Dirk]
 
 - Updated Hebrew language file, provided by LWC
-- Updated German language files, provided by Markus Wollschl‰ger
+- Updated German language files, provided by Markus Wollschl√§ger
 - Some Korean language files had a mixture of CR/LF and LF as line separators
   (bug #0000655) [Dirk]
 
@@ -2045,7 +2284,7 @@ Changes since 1.5.0rc1:
 - Fixed problems with the text direction in the install script (reported by LWC)
   [Dirk]
 
-- Updated Estonian language files, provided by Artur R‰pp
+- Updated Estonian language files, provided by Artur R√§pp
 - Updated Hebrew language files, provided by LWC
 - Updated Japanese language files, provided by Takahiro Kambe, Tetsuko Komma,
   and the Geeklog.jp group
@@ -2073,7 +2312,7 @@ Changes since 1.5.0b2:
   future use (cf. bug #0000635) [Dirk]
 
 - Updated Chinese language files, provided by Samuel M. Stone
-- Updated Estonian language files, provided by Artur R‰pp
+- Updated Estonian language files, provided by Artur R√§pp
 - Updated Slovenian language file, provided by gape
 
 Calendar plugin
@@ -2108,7 +2347,7 @@ Changes since 1.5.0b1:
 - The URL sent in a user registration notification contained an &amp; where it
   should have been a simple & [Dirk]
 
-- Updated German language files, provided by Markus Wollschl‰ger
+- Updated German language files, provided by Markus Wollschl√§ger
 
 Links plugin
 ------------
@@ -2131,7 +2370,7 @@ Static Pages plugin
   centerblock.thtml template file and defined the {lastupdate} and {hits}
   variables there (bug #0000628) [Dirk]
 - Removed an extra } from the Static Pages staticpage.thtml template file
-  (reported by Markus Wollschl‰ger) [Dirk]
+  (reported by Markus Wollschl√§ger) [Dirk]
 
 
 
@@ -2147,7 +2386,7 @@ May 5, 2008 (1.5.0b1)
 - Emails sent from Geeklog now have an X-Originating-IP header to help track
   spam or abuse [Dirk]
 - The topic editor allowed you to enter topic IDs with more than 20 characters
-  (reported by Markus Wollschl‰ger) [Dirk]
+  (reported by Markus Wollschl√§ger) [Dirk]
 - Ease restriction that email addresses have to be unique: Remote accounts can
   have non-unique addresses, on-site accounts can't [Dirk]
 - Bug: Email user form doesn't display correctly with " in subject when sending
@@ -2173,7 +2412,7 @@ May 5, 2008 (1.5.0b1)
   (patches provided by dengen from geeklog.jp)
 - Added batch admin feature to send out account reminders [Blaine]
 - Hide "Create Account" link in the story submission form when new account
-  registration has been disabled (reported by Markus Wollschl‰ger) [Dirk]
+  registration has been disabled (reported by Markus Wollschl√§ger) [Dirk]
 - Updated COM_startBlock to set a unique {blockid} template variable [Blaine]
 - Fixed checking of "Show Admin lists" in Group Admin when going to 2nd page of
   results [Oliver]
@@ -2358,7 +2597,7 @@ Dec 31, 2006 (1.4.1)
 - In lists created from the Links and Calendar plugins, use "links-new-plugin"
   as the CSS class name [Oliver]
 
-- Updated Estonian language file, provided by Artur R‰pp
+- Updated Estonian language file, provided by Artur R√§pp
 - Updated Russian language file, provided by Alexander Yurchenko
 - New Russian language file for the Calendar plugin, provided by Alexander
   Yurchenko
@@ -2514,7 +2753,7 @@ Nov 5, 2006 (1.4.1b2)
   display when a user doesn't have a userphoto [Dirk]
 
 - New Estonian language files for Geeklog and most of the plugins, provided
-  by Artur R‰pp
+  by Artur R√§pp
 - Updated Hebrew language file, provided by LWC
 - Updated Japanese language files for Geeklog and all the plugins, provided
   by the Geeklog Japanese group

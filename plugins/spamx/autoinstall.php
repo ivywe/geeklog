@@ -50,7 +50,7 @@ function plugin_autoinstall_spamx($pi_name)
     $info = array(
         'pi_name'         => $pi_name,
         'pi_display_name' => $pi_display_name,
-        'pi_version'      => '1.3.5',
+        'pi_version'      => '1.3.6',
         'pi_gl_version'   => '2.2.0',
         'pi_homepage'     => 'https://www.geeklog.net/',
     );
@@ -101,7 +101,6 @@ function plugin_load_configuration_spamx($pi_name)
 
     $base_path = $_CONF['path'] . 'plugins/' . $pi_name . '/';
 
-    require_once $_CONF['path_system'] . 'classes/config.class.php';
     require_once $base_path . 'install_defaults.php';
 
     return plugin_initconfig_spamx();

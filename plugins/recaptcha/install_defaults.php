@@ -5,7 +5,7 @@
 // +---------------------------------------------------------------------------+
 // | geeklog/plugins/recaptcha/install_defaults.php                            |
 // +---------------------------------------------------------------------------+
-// | Copyright (C) 2014-2017 mystral-kk - geeklog AT mystral-kk DOT net        |
+// | Copyright (C) 2014-2020 mystral-kk - geeklog AT mystral-kk DOT net        |
 // |                                                                           |
 // | Based on the CAPTCHA Plugin by Ben                                        |
 // |                                                - ben AT geeklog DOT fr    |
@@ -43,30 +43,35 @@ if (stripos($_SERVER['PHP_SELF'], basename(__FILE__)) !== false) {
  */
 global $_RECAPTCHA_DEFAULT;
 
-$_RECAPTCHA_DEFAULT = array(
+$_RECAPTCHA_DEFAULT = [
     'site_key'             => '',
     'secret_key'           => '',
     'invisible_site_key'   => '',
     'invisible_secret_key' => '',
+    'site_key_v3'          => '',
+    'secret_key_v3'        => '',
 
-    'logging'             => 0,
-    'anonymous_only'      => 0,
-    'remoteusers'         => 0,
+    'logging'        => 0,
+    'anonymous_only' => 0,
+    'remoteusers'    => 0,
 
-    // 0 = disabled, 1 = reCAPTCHA v2, 2 = Invisible reCAPTCHA
-    'enable_comment'      => 1,
-    'enable_contact'      => 1,
-    'enable_emailstory'   => 1,
-    'enable_forum'        => 1,
-    'enable_registration' => 1,
-    'enable_loginform'    => 1,
-    'enable_getpassword'  => 1,
-    'enable_mediagallery' => 1,
-    'enable_rating'       => 1,
-    'enable_story'        => 1,
-    'enable_calendar'     => 1,
-    'enable_links'        => 1,
-);
+    // reCAPTCHA V3 since v1.2.4 (Geeklog 2.2.2)
+    'enable_comment'      => RECAPTCHA_SUPPORT_V3,
+    'enable_contact'      => RECAPTCHA_SUPPORT_V3,
+    'enable_emailstory'   => RECAPTCHA_SUPPORT_V3,
+    'enable_registration' => RECAPTCHA_SUPPORT_V3,
+    'enable_getpassword'  => RECAPTCHA_SUPPORT_V3,
+    'enable_loginform'    => RECAPTCHA_SUPPORT_V3,
+    'enable_story'        => RECAPTCHA_SUPPORT_V3,
+
+    'score_comment'      => RECAPTCHA_DEFAULT_SCORE_THRESHOLD,
+    'score_contact'      => RECAPTCHA_DEFAULT_SCORE_THRESHOLD,
+    'score_emailstory'   => RECAPTCHA_DEFAULT_SCORE_THRESHOLD,
+    'score_registration' => RECAPTCHA_DEFAULT_SCORE_THRESHOLD,
+    'score_getpassword'  => RECAPTCHA_DEFAULT_SCORE_THRESHOLD,
+    'score_loginform'    => RECAPTCHA_DEFAULT_SCORE_THRESHOLD,
+    'score_story'        => RECAPTCHA_DEFAULT_SCORE_THRESHOLD,
+];
 
 /**
  * Initializes reCAPTCHA plugin configuration
@@ -105,6 +110,10 @@ function plugin_initconfig_recaptcha()
         $so += 10;
         $c->add('invisible_secret_key', $_RECAPTCHA_DEFAULT['invisible_secret_key'], 'text', $sg, $fs, null, $so, true, $me, $tab);
         $so += 10;
+        $c->add('site_key_v3', $_RECAPTCHA_DEFAULT['site_key_v3'], 'text', $sg, $fs, null, $so, true, $me, $tab);
+        $so += 10;
+        $c->add('secret_key_v3', $_RECAPTCHA_DEFAULT['secret_key_v3'], 'text', $sg, $fs, null, $so, true, $me, $tab);
+        $so += 10;
         $c->add('logging', $_RECAPTCHA_DEFAULT['logging'], 'select', $sg, $fs, 0, $so, true, $me, $tab);
         $so += 10;
         $c->add('anonymous_only', $_RECAPTCHA_DEFAULT['anonymous_only'], 'select', $sg, $fs, 0, $so, true, $me, $tab);
@@ -124,22 +133,34 @@ function plugin_initconfig_recaptcha()
         $so += 10;
         $c->add('enable_emailstory', $_RECAPTCHA_DEFAULT['enable_emailstory'], 'select', $sg, $fs, 2, $so, true, $me, $tab);
         $so += 10;
-        $c->add('enable_forum', $_RECAPTCHA_DEFAULT['enable_forum'], 'select', $sg, $fs, 2, $so, true, $me, $tab);
-        $so += 10;
         $c->add('enable_registration', $_RECAPTCHA_DEFAULT['enable_registration'], 'select', $sg, $fs, 2, $so, true, $me, $tab);
         $so += 10;
         $c->add('enable_getpassword', $_RECAPTCHA_DEFAULT['enable_getpassword'], 'select', $sg, $fs, 2, $so, true, $me, $tab);
         $so += 10;
         $c->add('enable_loginform', $_RECAPTCHA_DEFAULT['enable_loginform'], 'select', $sg, $fs, 2, $so, true, $me, $tab);
-        $c->add('enable_mediagallery', $_RECAPTCHA_DEFAULT['enable_mediagallery'], 'select', $sg, $fs, 2, $so, true, $me, $tab);
-        $so += 10;
-        $c->add('enable_rating', $_RECAPTCHA_DEFAULT['enable_rating'], 'select', $sg, $fs, 2, $so, true, $me, $tab);
         $so += 10;
         $c->add('enable_story', $_RECAPTCHA_DEFAULT['enable_story'], 'select', $sg, $fs, 2, $so, true, $me, $tab);
         $so += 10;
-        $c->add('enable_calendar', $_RECAPTCHA_DEFAULT['enable_calendar'], 'select', $sg, $fs, 2, $so, true, $me, $tab);
+
+        // Since v1.2.4 (Geeklog 2.2.2)
+        $tab++;
+        $c->add('tab_score', null, 'tab', $sg, $fs, null, $so, true, $me, $tab);
         $so += 10;
-        $c->add('enable_links', $_RECAPTCHA_DEFAULT['enable_links'], 'select', $sg, $fs, 2, $so, true, $me, $tab);
+        $c->add('fs_score', null, 'fieldset', $sg, $fs, null, $so, true, $me, $tab);
+        $so += 10;
+        $c->add('score_comment', $_RECAPTCHA_DEFAULT['score_comment'], 'text', $sg, $fs, null, $so, true, $me, $tab);
+        $so += 10;
+        $c->add('score_contact', $_RECAPTCHA_DEFAULT['score_contact'], 'text', $sg, $fs, null, $so, true, $me, $tab);
+        $so += 10;
+        $c->add('score_emailstory', $_RECAPTCHA_DEFAULT['score_emailstory'], 'text', $sg, $fs, null, $so, true, $me, $tab);
+        $so += 10;
+        $c->add('score_registration', $_RECAPTCHA_DEFAULT['score_registration'], 'text', $sg, $fs, null, $so, true, $me, $tab);
+        $so += 10;
+        $c->add('score_getpassword', $_RECAPTCHA_DEFAULT['score_getpassword'], 'text', $sg, $fs, null, $so, true, $me, $tab);
+        $so += 10;
+        $c->add('score_loginform', $_RECAPTCHA_DEFAULT['score_loginform'], 'text', $sg, $fs, null, $so, true, $me, $tab);
+        $so += 10;
+        $c->add('score_story', $_RECAPTCHA_DEFAULT['score_story'], 'text', $sg, $fs, null, $so, true, $me, $tab);
     }
 
     return true;

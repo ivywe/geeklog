@@ -5,12 +5,12 @@
 // +---------------------------------------------------------------------------+
 // | geeklog/plugins/recaptcha/functions.inc                                   |
 // +---------------------------------------------------------------------------+
-// | Copyright (C) 2014-2017 mystral-kk - geeklog AT mystral-kk DOT net        |
+// | Copyright (C) 2014-2020 mystral-kk - geeklog AT mystral-kk DOT net        |
 // |                                                                           |
 // | Based on the CAPTCHA Plugin by Ben                                        |
 // |                                                - ben AT geeklog DOT fr    |
 // | Based on the original CAPTCHA Plugin by Mark R. Evans                     |
-// |                                                - mark AT glfusion DOT org | 
+// |                                                - mark AT glfusion DOT org |
 // | Constructed with the Universal Plugin                                     |
 // +---------------------------------------------------------------------------+
 // |                                                                           |
@@ -29,6 +29,12 @@
 // | Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.           |
 // |                                                                           |
 // +---------------------------------------------------------------------------+
+
+use Geeklog\Log;
+use ReCaptcha\ReCaptcha;
+use ReCaptcha\RequestMethod\CurlPost;
+use ReCaptcha\RequestMethod\Post;
+use ReCaptcha\RequestMethod\SocketPost;
 
 if (stripos($_SERVER['PHP_SELF'], basename(__FILE__)) !== false) {
     die('This file cannot be used on its own.');
@@ -49,7 +55,6 @@ global $_RECAPTCHA_CONF;
 
 require_once __DIR__ . '/config.php';
 RECAPTCHA_loadConfig();
-require_once __DIR__ . '/vendor/autoload.php';
 
 // +---------------------------------------------------------------------------+
 // | Geeklog Plugin API Implementations                                        |
@@ -79,16 +84,16 @@ function plugin_cclabel_recaptcha()
     if (SEC_hasRights('recaptcha.edit')) {
         $pi_name = RECAPTCHA_str('admin');
 
-        if (!RECAPTCHA_isRecaptchaEnabled() && !RECAPTCHA_isInvisibleRecaptchaEnabled()) {
-            $pi_name = COM_createControl('display-text-warning', array('text' => $pi_name));
+        if (!RECAPTCHA_isRecaptchaV2Enabled() && !RECAPTCHA_isRecaptchaV2InvisibleEnabled()) {
+            $pi_name = COM_createControl('display-text-warning', ['text' => $pi_name]);
         }
 
         $admin_url = $_CONF['site_admin_url'] . '/plugins/recaptcha/index.php';
         $icon_url = plugin_geticon_recaptcha();
 
-        return array($pi_name, $admin_url, $icon_url);
+        return [$pi_name, $admin_url, $icon_url];
     } else {
-        return array();
+        return [];
     }
 }
 
@@ -104,16 +109,16 @@ function plugin_getadminoption_recaptcha()
     if (SEC_hasRights('recaptcha.edit')) {
         $pi_name = RECAPTCHA_str('admin');
 
-        if (!RECAPTCHA_isRecaptchaEnabled() && !RECAPTCHA_isInvisibleRecaptchaEnabled()) {
-            $pi_name = COM_createControl('display-text-warning', array('text' => $pi_name));
+        if (!RECAPTCHA_isRecaptchaV2Enabled() && !RECAPTCHA_isRecaptchaV2InvisibleEnabled()) {
+            $pi_name = COM_createControl('display-text-warning', ['text' => $pi_name]);
         }
 
         $admin_url = $_CONF['site_admin_url'] . '/plugins/recaptcha/index.php';
         $num_items = 0;
 
-        return array($pi_name, $admin_url, $num_items);
+        return [$pi_name, $admin_url, $num_items];
     } else {
-        return array();
+        return [];
     }
 }
 
@@ -137,15 +142,15 @@ function plugin_chkVersion_recaptcha()
 function plugin_upgrade_recaptcha()
 {
     global $_CONF, $_TABLES, $_RECAPTCHA_CONF;
-    
-    require_once $_CONF['path'] . 'plugins/recaptcha/autoinstall.php';  
-    
-    // Retrieve other plugin info like min geeklog version and homepage 
-    $inst_parms = plugin_autoinstall_recaptcha('recaptcha');      
+
+    require_once __DIR__ . '/autoinstall.php';
+
+    // Retrieve other plugin info like min geeklog version and homepage
+    $inst_parms = plugin_autoinstall_recaptcha('recaptcha');
 
     $pluginVersionInDb = DB_getItem($_TABLES['plugins'], 'pi_version', "pi_name = 'recaptcha'");
     $originalPluginVersionInDb = $pluginVersionInDb;
-    
+
     // Does upgrading
     while (version_compare($pluginVersionInDb, $_RECAPTCHA_CONF['pi_version'], '<')) {
         switch ($pluginVersionInDb) {
@@ -157,15 +162,28 @@ function plugin_upgrade_recaptcha()
             case '1.1.3':
             case '1.1.4':
             case '1.1.5':
-                require_once dirname(__FILE__) . '/install_updates.php';
+                require_once __DIR__ . '/install_updates.php';
                 recaptcha_update_ConfValues_1_1_5();
                 $pluginVersionInDb = '1.1.6';
                 break;
 
             case '1.1.6':
-                require_once dirname(__FILE__) . '/install_updates.php';
+                require_once __DIR__ . '/install_updates.php';
                 recaptcha_update_ConfValues_1_1_6();
                 $pluginVersionInDb = '1.2.0';
+                break;
+
+            case '1.2.0':
+                require_once __DIR__ . '/install_updates.php';
+                recaptcha_update_ConfValues_1_2_0();
+                $pluginVersionInDb = '1.2.1';
+                break;
+
+            case '1.2.1':
+            case '1.2.2':
+                require_once __DIR__ . '/install_updates.php';
+                recaptcha_update_ConfValues_1_2_2();
+                $pluginVersionInDb = '1.2.4';
                 break;
 
             default:
@@ -176,8 +194,7 @@ function plugin_upgrade_recaptcha()
 
     // update plugin version number and other info
     DB_query("UPDATE {$_TABLES['plugins']} SET pi_version = '{$_RECAPTCHA_CONF['pi_version']}', pi_gl_version = '{$inst_parms['info']['pi_gl_version']}', pi_homepage = '{$inst_parms['info']['pi_homepage']}' WHERE pi_name = 'recaptcha'");
-
-    COM_errorLog( "Updated recaptcha plugin from v$originalPluginVersionInDb to v{$_RECAPTCHA_CONF['pi_version']}", 1 );       
+    COM_errorLog("Updated recaptcha plugin from v{$originalPluginVersionInDb} to v{$_RECAPTCHA_CONF['pi_version']}", 1);
 
     return true;
 }
@@ -191,18 +208,19 @@ function plugin_autouninstall_recaptcha()
 {
     global $_RECAPTCHA_CONF;
 
-    return array(
-        'tables'     => array(),
-        'groups'     => array('reCAPTCHA Admin'),
-        'features'   => $_RECAPTCHA_CONF['FEATURES'],
-        'php_blocks' => array(),
-        'vars'       => array(),
-    );
+    return [
+        'tables'     => [],
+        'groups'     => ['reCAPTCHA Admin'],
+        'features'   => ['recaptcha.edit'],
+        'php_blocks' => [],
+        'vars'       => [],
+    ];
 }
 
 /**
  * Return the URL to a given document
  *
+ * @param  string  $file
  * @return string
  */
 function plugin_getdocumentationurl_recaptcha($file)
@@ -217,17 +235,15 @@ function plugin_getdocumentationurl_recaptcha($file)
         $lang = 'english';
     }
 
-    $retval = $_CONF['site_admin_url'] . '/plugins/recaptcha/docs/' . $lang . '/' . $file . '.html';
-
-    return $retval;
+    return $_CONF['site_admin_url'] . '/plugins/recaptcha/docs/' . $lang . '/' . $file . '.html';
 }
 
 /**
  * Provides text for a Configuration tooltip
  *
- * @param  string $id  Id of config value
+ * @param  string  $id  Id of config value
  * @return mixed      Text to use regular tooltip, null to use config tooltip hack, or empty string
- *                     when not available
+ *                      when not available
  */
 function plugin_getconfigtooltip_recaptcha($id)
 {
@@ -238,70 +254,160 @@ function plugin_getconfigtooltip_recaptcha($id)
 /**
  * Callback function to add HTML text for reCAPTCHA
  *
- * @param  string   $type
- * @param  Template $template a reference to a Template class object
+ * @param  string    $type
+ * @param  Template  $template  a reference to a Template class object
  */
-function plugin_templatesetvars_recaptcha($type, &$template)
+function plugin_templatesetvars_recaptcha($type, Template $template)
 {
-    global $_RECAPTCHA_CONF, $_SCRIPTS;
+    global $_RECAPTCHA_CONF, $_SCRIPTS, $_CONF, $_USER;
+    static $pluginInfo = null;
+    static $firstTime = true; // Allows items to be set only once
 
-    if (RECAPTCHA_requireCaptcha($type)) {
-        $isInvisible = ($_RECAPTCHA_CONF['enable_' . $type] == 2);
-
-        if ($isInvisible) {
-            $formId = RECAPTCHA_getFormId($type);
-            if (empty($formId)) {
-                COM_errorLog(__FUNCTION__ . ': undefined form id for type:"' . $type . '"');
-            }
-            $code = <<<JS
-var onFormSubmit = function () {
-    var form = document.getElementById('{$formId}');
-    if (!form) {
-        form = document.getElementById('{$formId}_advanced');
+    if ($pluginInfo === null) {
+        $pluginInfo = PLG_collectRecaptchaInfo();
     }
-    
-    if (form) {
-        form.submit();
+
+    if (!array_key_exists($type, $pluginInfo) || !RECAPTCHA_requireCaptcha($type)) {
+        return;
+    }
+
+    $info = $pluginInfo[$type];
+
+    // Set to notify templates in case situation arises that the captcha should not be displayed
+    // (for example the Login Block)
+    $template->set_var('captcha_required', true);
+
+    $formId = $info['form_id'];
+    $js_onSubmit = '';
+    if ($_CONF['advanced_editor'] && $_USER['advanced_editor']) {
+        if (isset($info['js_onsubmit_advanced_editor']) && !empty($info['js_onsubmit_advanced_editor'])) {
+            $js_onSubmit = $info['js_onsubmit_advanced_editor'];
+        }
+    } else {
+        if (isset($info['js_onsubmit']) && !empty($info['js_onsubmit'])) {
+            $js_onSubmit = $info['js_onsubmit'];
+        }
+    }
+
+    if ($info['version'] == RECAPTCHA_SUPPORT_V2_INVISIBLE) {
+        $code = <<<JS
+var onFormSubmit = function () {
+    var gForm = document.getElementById('{$formId}');
+    if (!gForm) {
+        gForm = document.getElementById('{$formId}_advanced');
+    }
+
+	{$js_onSubmit}
+
+    if (gForm) {
+        gForm.submit();
     }
 };
 JS;
-            $_SCRIPTS->setJavaScript($code, false, false);
-        }
-
-        $_SCRIPTS->setJavaScriptFile(
-            'recaptcha',
-            'https://www.google.com/recaptcha/api.js?hl=' . RECAPTCHA_getLangCode(),
-            true
-        );
-
-        if ($isInvisible) {
-            // Invisible reCAPTCHA
-            $template->set_var(
-                'invisible_recaptcha',
-                sprintf(' data-sitekey="%s" data-callback="%s"', $_RECAPTCHA_CONF['invisible_site_key'], 'onFormSubmit')
-            );
-            $template->set_var('captcha', '');
-        } else {
-            // reCAPTCHA v2
-            $template->set_var('invisible_recaptcha', '');
-            $captcha = '<div class="g-recaptcha" data-sitekey="'
-                . RECAPTCHA_esc($_RECAPTCHA_CONF['site_key']) . '"></div>';
-            $template->set_var('captcha', $captcha);
-        }
+        $_SCRIPTS->setJavaScript($code, false, false);
     }
 
+    // Only need to set this once
+    if ($firstTime) {
+        if ($info['version'] == RECAPTCHA_SUPPORT_V3) {
+            // reCAPTCHA V3
+            $_SCRIPTS->setJavaScriptFile(
+                'recaptcha_v3',
+                'https://www.google.com/recaptcha/api.js?render=' . $_RECAPTCHA_CONF['site_key_v3'],
+                false,
+                100,
+                false
+            );
+            $code = <<<JS
+grecaptcha.ready(function() {
+    var resp = document.getElementById('g-recaptcha-response');
+
+    if (resp) {
+        var gForm = document.getElementById("{$formId}");
+        
+        if (!gForm) {
+            gForm = document.getElementById("{$formId}_advanced");
+        }
+    
+        if (gForm) {
+            // Add an event listener to the form we want to add reCAPTCHA to
+            gForm.addEventListener('submit', function(event) {
+                // Prevent the form from being submitted
+                event.preventDefault();
+            
+                // Get a token from reCAPTCHA service
+                grecaptcha.execute('{$_RECAPTCHA_CONF['site_key_v3']}', { action: '{$info['action']}' })
+                    .then(function(token) {
+                        var gForm = document.getElementById("{$formId}");
+                        
+                        if (!gForm) {
+                            gForm = document.getElementById("{$formId}_advanced");
+                        }
+
+                        // Set the token to <input> tag with its id being 'g-recaptcha-response' 
+                        var resp = document.getElementById('g-recaptcha-response');
+                        resp.value = token;
+    
+                        {$js_onSubmit}
+
+                        // Submit the form and send data to the web server    
+                        gForm.submit();
+                    });
+            }, false);
+        }
+    }
+});
+JS;
+            $_SCRIPTS->setJavaScript($code, false, true);
+        } else {
+            // reCAPTCHA V2 checkbox and invisible
+            $_SCRIPTS->setJavaScriptFile(
+                'recaptcha',
+                'https://www.google.com/recaptcha/api.js?hl=' . COM_getLangIso639Code(),
+                false,
+                100,
+                false
+            );
+        }
+
+        $firstTime = false;
+    }
+
+    $captcha = '';
+    $invisibleCaptcha = '';
+    $recaptcha_v3 = '';
+
+    if (($info['version'] == RECAPTCHA_SUPPORT_V2_INVISIBLE)) {
+        $invisibleCaptcha = sprintf(
+            ' data-sitekey="%s" data-callback="%s"',
+            RECAPTCHA_esc($_RECAPTCHA_CONF['invisible_site_key']), 'onFormSubmit'
+        );
+    } elseif ($info['version'] == RECAPTCHA_SUPPORT_V2) {
+        $captcha = sprintf(
+            '<div class="g-recaptcha" data-sitekey="%s"></div>',
+            RECAPTCHA_esc($_RECAPTCHA_CONF['site_key'])
+        );
+    } elseif ($info['version'] == RECAPTCHA_SUPPORT_V3) {
+        $recaptcha_v3 = '<input type="hidden" name="g-recaptcha-response" id="g-recaptcha-response" value="">';
+    }
+
+    $template->set_var([
+        'captcha'             => $captcha,
+        'invisible_recaptcha' => $invisibleCaptcha,
+        'recaptcha_v3'        => $recaptcha_v3
+    ]);
 }
 
 /**
  * Callback function to check the code entered by a user
  *
- * @param  int    $uid      (not used in this function)
- * @param  string $title    (not used in this function)
- * @param  string $comment  (not used in this function)
- * @param  string $sid      (not used in this function)
- * @param  int    $pid      (not used in this function)
- * @param  string $type     (not used in this function)
- * @param  string $postMode (not used in this function)
+ * @param  int     $uid       (not used in this function)
+ * @param  string  $title     (not used in this function)
+ * @param  string  $comment   (not used in this function)
+ * @param  string  $sid       (not used in this function)
+ * @param  int     $pid       (not used in this function)
+ * @param  string  $type      (not used in this function)
+ * @param  string  $postMode  (not used in this function)
  * @return string empty = success
  */
 function plugin_commentPreSave_recaptcha($uid, $title, $comment, $sid, $pid, $type, $postMode)
@@ -310,78 +416,24 @@ function plugin_commentPreSave_recaptcha($uid, $title, $comment, $sid, $pid, $ty
 }
 
 /**
- * Callback function to check the code entered by a user
+ * Callback function to check the action the user takes
  *
- * @param  string $type item type
- * @param  string $content
- * @return string empty = success
+ * @param  string  $type  item type
+ * @param  string  $content
+ * @return string empty on success, otherwise an error message
  */
 function plugin_itemPreSave_recaptcha($type, $content = '')
 {
-    global $_RECAPTCHA_CONF, $LANG_RECAPTCHA;
+    $response = isset($_POST['g-recaptcha-response']) ? $_POST['g-recaptcha-response'] : '';
 
-    $msg = '';
-
-    if (RECAPTCHA_requireCaptcha($type)) {
-        if ($_RECAPTCHA_CONF['enable_' . $type] == 1) {
-            $secretKey = $_RECAPTCHA_CONF['secret_key'];
-        } else {
-            $secretKey = $_RECAPTCHA_CONF['invisible_secret_key'];
-        }
-
-        if (is_callable('curl_init')) {
-            $recaptcha = new \ReCaptcha\ReCaptcha($secretKey, new \ReCaptcha\RequestMethod\CurlPost());
-        } elseif (@ini_get('allow_url_fopen')) {
-            $recaptcha = new \ReCaptcha\ReCaptcha($secretKey, new \ReCaptcha\RequestMethod\Post());
-        } else {
-            $recaptcha = new \ReCaptcha\ReCaptcha($secretKey, new \ReCaptcha\RequestMethod\SocketPost());
-        }
-
-        $resp = $recaptcha->verify(@$_POST['g-recaptcha-response'], RECAPTCHA_getIP());
-
-        if (!$resp->isSuccess()) {
-            $msg = implode(', ', $resp->getErrorCodes());
-
-            if ($_RECAPTCHA_CONF['logging']) {
-                $entry = sprintf(
-                    RECAPTCHA_str('entry_error', true),
-                    $type,
-                    $_SERVER['REMOTE_ADDR'],
-                    $msg
-                );
-                $entry = RECAPTCHA_esc($entry);
-                RECAPTCHA_errorLog($entry);
-            }
-    
-            /*
-            Error code reference for recaptcha V2 https://developers.google.com/recaptcha/docs/verify
-            Error code 	Description
-            missing-input-secret 	The secret parameter is missing.
-            invalid-input-secret 	The secret parameter is invalid or malformed.
-            missing-input-response 	The response parameter is missing. - User didn't do anything with the recaptcha
-            invalid-input-response 	The response parameter is invalid or malformed.
-            bad-request             The request is invalid or malformed.
-            */
-            switch ($msg) {
-                case 'missing-input-response':
-                    $msg = $LANG_RECAPTCHA['msg_error'];
-                    break;
-                default:
-                
-                    break;
-
-            }
-        }
-    }
-
-    return $msg;
+    return RECAPTCHA_verify($type, $response);
 }
 
 /**
  * Writes an entry into a log file
  *
- * @param  string $logEntry
- * @param  int    $override
+ * @param  string  $logEntry
+ * @param  int     $override
  */
 function RECAPTCHA_errorLog($logEntry, $override = 0)
 {
@@ -396,22 +448,7 @@ function RECAPTCHA_errorLog($logEntry, $override = 0)
     }
 
     if (!empty($logEntry)) {
-        $timestamp = date('Y-m-d H:i:s');
-        $logfile = $_CONF['path_log'] . 'recaptcha.log';
-        $entry = "{$timestamp} - {$logEntry} " . PHP_EOL;
-        $isSuccess = false;
-
-        for ($i = 0; $i < 10; $i++) {
-            $isSuccess = (@file_put_contents($logfile, $entry, FILE_APPEND | LOCK_EX) !== false);
-
-            if ($isSuccess) {
-                break;
-            }
-        }
-
-        if (!$isSuccess) {
-            COM_errorLog(__FUNCTION__ . ': cannot open "' . $logfile . '"');
-        }
+        Log::recaptcha($logEntry);
     }
 }
 
@@ -443,7 +480,7 @@ function RECAPTCHA_loadConfig()
 /**
  * Returns a string escaped for HTML output
  *
- * @param  string $str
+ * @param  string  $str
  * @return string
  */
 function RECAPTCHA_esc($str)
@@ -462,8 +499,8 @@ function RECAPTCHA_esc($str)
         return htmlspecialchars($str, ENT_QUOTES, $encoding, false);
     } else {
         return str_replace(
-            array('&amp;&amp;', '&amp;&lt;', '&amp;&gt;', '&amp;&quot;', '&amp;&#039;'),
-            array('&amp;', '&lt:', '&gt;', '&quot;', '&#039;'),
+            ['&amp;&amp;', '&amp;&lt;', '&amp;&gt;', '&amp;&quot;', '&amp;&#039;'],
+            ['&amp;', '&lt:', '&gt;', '&quot;', '&#039;'],
             htmlspecialchars($str, ENT_QUOTES, $encoding)
         );
     }
@@ -472,8 +509,8 @@ function RECAPTCHA_esc($str)
 /**
  * Return a lang var
  *
- * @param  string $index
- * @param  bool   $noEsc
+ * @param  string  $index
+ * @param  bool    $noEsc
  * @return string
  */
 function RECAPTCHA_str($index, $noEsc = false)
@@ -492,37 +529,49 @@ function RECAPTCHA_str($index, $noEsc = false)
 /**
  * Returns if the current type of item requires reCAPTCHA
  *
- * @param  string $type item type
- * @return bool   true = requires reCAPTCHA
+ * @param  string  $type  item type
+ * @return bool   true = requires reCAPTCHA, false otherwise
+ * @throws InvalidArgumentException
  */
 function RECAPTCHA_requireCaptcha($type)
 {
     global $_RECAPTCHA_CONF, $_USER;
+    static $pluginInfo = null;
+
+    if ($pluginInfo === null) {
+        $pluginInfo = PLG_collectRecaptchaInfo();
+    }
 
     // This item is not supported
-    if (!in_array($type, $_RECAPTCHA_CONF['supported_items'])) {
+    if (!array_key_exists($type, $pluginInfo)) {
         return false;
     }
 
-    switch ($_RECAPTCHA_CONF['enable_' . $type]) {
-        case 0:
-            // Disabled for this item
+    switch ($pluginInfo[$type]['version']) {
+        case RECAPTCHA_NO_SUPPORT:
+            // This item does not support reCAPTCHA
             return false;
 
-        case 1:
-            // reCAPTCHA v2 enabled
-            if (!RECAPTCHA_isRecaptchaEnabled()) {
+        case RECAPTCHA_SUPPORT_V2:
+            if (!RECAPTCHA_isRecaptchaV2Enabled()) {
                 return false;
             }
             break;
 
-        case 2:
-            // Invisible reCAPTCHA enabled
-            if (!RECAPTCHA_isInvisibleRecaptchaEnabled()) {
+        case RECAPTCHA_SUPPORT_V2_INVISIBLE:
+            if (!RECAPTCHA_isRecaptchaV2InvisibleEnabled()) {
                 return false;
             }
             break;
 
+        case RECAPTCHA_SUPPORT_V3:
+            if (!RECAPTCHA_isRecaptchaV3Enabled()) {
+                return false;
+            }
+            break;
+
+        default:
+            throw new InvalidArgumentException(__METHOD__ . ': unknown reCAPTCHA version: ' . $pluginInfo[$type]['which']);
     }
 
     if (!isset($_USER['uid'])) {
@@ -539,11 +588,11 @@ function RECAPTCHA_requireCaptcha($type)
 }
 
 /**
- * Returns if reCAPTCHA keys are set
+ * Returns if reCAPTCHA V2 keys are set
  *
  * @return bool true = OK
  */
-function RECAPTCHA_isRecaptchaEnabled()
+function RECAPTCHA_isRecaptchaV2Enabled()
 {
     global $_RECAPTCHA_CONF;
 
@@ -551,11 +600,11 @@ function RECAPTCHA_isRecaptchaEnabled()
 }
 
 /**
- * Returns if Invisible reCAPTCHA keys are set
+ * Returns if reCAPTCHA V2 Invisible keys are set
  *
  * @return bool true = OK
  */
-function RECAPTCHA_isInvisibleRecaptchaEnabled()
+function RECAPTCHA_isRecaptchaV2InvisibleEnabled()
 {
     global $_RECAPTCHA_CONF;
 
@@ -563,61 +612,15 @@ function RECAPTCHA_isInvisibleRecaptchaEnabled()
 }
 
 /**
- * Return language codes used by Google
+ * Returns if reCAPTCHA V3 keys are set
  *
- * @return string
- * @link    https://developers.google.com/recaptcha/docs/language
+ * @return bool true = OK
  */
-function RECAPTCHA_getLangCode()
+function RECAPTCHA_isRecaptchaV3Enabled()
 {
-    $mapping = array(
-        // GL language name   => Google language code
-        'afrikaans'           => 'af',
-        'bosnian'             => 'en',    // Not supported by Google
-        'bulgarian'           => 'bg',
-        'catalan'             => 'ca',
-        'chinese_simplified'  => 'zh-CN',
-        'chinese_traditional' => 'zh-TW',
-        'croatian'            => 'hr',
-        'czech'               => 'cs',
-        'danish'              => 'da',
-        'dutch'               => 'nl',
-        'english'             => 'en',
-        'estonian'            => 'et',
-        'farsi'               => 'fa',
-        'finnish'             => 'fi',
-        'french_canada'       => 'fr-CA',
-        'french_france'       => 'fr',
-        'german'              => 'de',
-        'german_formal'       => 'de',
-        'hebrew'              => 'iw',
-        'hellenic'            => 'el',
-        'indonesian'          => 'id',
-        'italian'             => 'it',
-        'japanese'            => 'ja',
-        'korean'              => 'ko',
-        'norwegian'           => 'no',
-        'polish'              => 'pl',
-        'portuguese'          => 'pt',
-        'portuguese_brazil'   => 'pt-BR',
-        'romanian'            => 'ro',
-        'russian'             => 'ru',
-        'serbian'             => 'sr',
-        'slovak'              => 'sk',
-        'slovenian'           => 'sl',
-        'spanish'             => 'es',
-        'spanish_argentina'   => 'es-419',
-        'swedish'             => 'sv',
-        'turkish'             => 'tr',
-        'ukrainian'           => 'uk',
-        'ukrainian_koi8-u'    => 'uk',
-    );
+    global $_RECAPTCHA_CONF;
 
-    $langName = COM_getLanguage();
-    $langName = strtolower($langName);
-    $langName = str_replace('_utf-8', '', $langName);
-
-    return isset($mapping[$langName]) ? $mapping[$langName] : 'en';
+    return ($_RECAPTCHA_CONF['site_key_v3'] !== '') && ($_RECAPTCHA_CONF['secret_key_v3'] !== '');
 }
 
 /**
@@ -632,71 +635,180 @@ function RECAPTCHA_getIP()
     } elseif (!empty($_SERVER['HTTP_X_FORWARDED_FOR'])) {
         $ip = $_SERVER['HTTP_X_FORWARDED_FOR'];
     } else {
-        $ip = $_SERVER['REMOTE_ADDR'];
+        $ip = \Geeklog\IP::getIPAddress();
     }
 
     return $ip;
 }
 
 /**
- * Return the form id to which the user attaches Invisible reCAPTCHA
+ * Verify a token
  *
- * @param  string $type
- * @return string
+ * @param  string  $type  item type
+ * @param  string  $token
+ * @return string         empty on success, an error message otherwise
  */
-function RECAPTCHA_getFormId($type) {
-    switch ($type) {
-        case 'comment':
-            $formId = 'commentform';
-            break;
+function RECAPTCHA_verify($type, $token)
+{
+    global $_RECAPTCHA_CONF, $LANG_RECAPTCHA;
+    static $pluginInfo = null;
 
-        case 'story':
-            $formId = 'submitstory';
-            break;
-
-        case 'registration':
-            $formId = 'registrationform';
-            break;
-
-        case 'loginform':
-            $formId = 'userloginform';
-            break;
-
-        case 'getpassword':
-            $formId = 'getpasswordform';
-            break;
-
-        case 'contact':
-            $formId = 'contactuserform';
-            break;
-
-        case 'emailstory':
-            $formId = 'contactauthorform';
-            break;
-
-        case 'links':
-            $formId = 'submitlink';
-            break;
-
-        case 'calendar':
-            $formId = 'submit_event_form';
-            break;
-
-        case 'forum':
-            $formId = 'forumform';
-            break;
-
-        case 'rating':
-            $formId = '';
-            break;
-
-        case 'mediagallery':
-            $formId = '';
-            break;
-
-        default:
-            $formId = '';
+    if ($pluginInfo === null) {
+        $pluginInfo = PLG_collectRecaptchaInfo();
     }
 
-    return $formId;
+    if (!RECAPTCHA_requireCaptcha($type)) {
+        return '';
+    }
+
+    $info = $pluginInfo[$type];
+
+    if ($info['version'] == RECAPTCHA_SUPPORT_V2) {
+        $secretKey = $_RECAPTCHA_CONF['secret_key'];
+    } elseif ($info['version'] == RECAPTCHA_SUPPORT_V2_INVISIBLE) {
+        $secretKey = $_RECAPTCHA_CONF['invisible_secret_key'];
+    } elseif ($info['version'] == RECAPTCHA_SUPPORT_V3) {
+        $secretKey = $_RECAPTCHA_CONF['secret_key_v3'];
+    } else {
+        $msg = __FUNCTION__ . ': unknown reCAPTCHA type: ' . $info['version'];
+        Log::error($msg);
+
+        return $msg;
+    }
+
+    if (is_callable('curl_init')) {
+        $recaptcha = new ReCaptcha($secretKey, new CurlPost());
+    } elseif (@ini_get('allow_url_fopen')) {
+        $recaptcha = new ReCaptcha($secretKey, new Post());
+    } else {
+        $recaptcha = new ReCaptcha($secretKey, new SocketPost());
+    }
+
+    // reCAPTCHA V3 supports 'action' and 'score'
+    if ($info['version'] == RECAPTCHA_SUPPORT_V3) {
+        $recaptcha
+            ->setExpectedAction($info['action'])
+            ->setScoreThreshold($info['score_threshold']);
+    }
+
+    $response = $recaptcha->verify($token, RECAPTCHA_getIP());
+
+    if ($response->isSuccess()) {
+        // @todo in case of V3, we should check if $response->getAction() === $info['action']
+        return '';
+    } else {
+        $msg = implode(', ', $response->getErrorCodes());
+
+        if ($_RECAPTCHA_CONF['logging']) {
+            $entry = sprintf(
+                RECAPTCHA_str('entry_error', true),
+                $type,
+                \Geeklog\IP::getIPAddress(),
+                $msg
+            );
+            $entry = RECAPTCHA_esc($entry);
+            RECAPTCHA_errorLog($entry);
+        }
+
+        /*
+        Error code reference for recaptcha V2 https://developers.google.com/recaptcha/docs/verify
+        Error code 	Description
+        missing-input-secret 	The secret parameter is missing.
+        invalid-input-secret 	The secret parameter is invalid or malformed.
+        missing-input-response 	The response parameter is missing. - User didn't do anything with the recaptcha
+        invalid-input-response 	The response parameter is invalid or malformed.
+        bad-request             The request is invalid or malformed.
+        */
+        switch ($msg) {
+            case 'missing-input-response':
+                $msg = $LANG_RECAPTCHA['msg_error'];
+                break;
+
+            default:
+                break;
+
+        }
+
+        return $msg;
+    }
+}
+
+/**
+ * Return the info asked by PLG_collectRecaptchaInfo().
+ *
+ * This function returns core-related parts.  Other plugins reply through plugin_supportsRecaptcha_xxx().
+ *
+ * @return  array of type => [
+ *              'type'                        => type                    // required, passed as the 1st parameter to
+ *              plugin_templatesetvars_xxx()
+ *              'version'                     => reCAPTCHA version,      // required: RECAPTCHA_NO_SUPPORT(0),
+ *              RECAPTCHA_SUPPORT_V2(1), RECAPTCHA_SUPPORT_V2_INVISIBLE(2), RECAPTCHA_SUPPORT_V3(4)
+ *              'form_id'                     => form id,                // required only for reCAPTCHA V2 Invisible
+ *              'js_onsubmit'                 => On Submit JavaScript,   // Used only for reCAPTCHA V2 Invisible if
+ *              needed
+ *              'js_onsubmit_advanced_editor' => On Submit JavaScript when advanced editor enabled, // Used only for
+ *              reCAPTCHA V2 Invisible if needed
+ *              'action'                      => action                  // Used only for reCAPTCHA V3
+ *              'score_threshold'             => score threshold         // Used only for reCAPTCHA V3
+ *           ]
+ */
+function plugin_supportsRecaptcha_recaptcha()
+{
+    global $_RECAPTCHA_CONF;
+
+    return [
+        [
+            'type'                        => 'comment',
+            'version'                     => $_RECAPTCHA_CONF['enable_comment'],
+            'form_id'                     => 'commentform',
+            'js_onsubmit'                 => '',
+            'js_onsubmit_advanced_editor' => 'set_postcontent();',
+            'action'                      => 'comment',
+            'score_threshold'             => $_RECAPTCHA_CONF['score_comment'],
+        ],
+        [
+            'type'            => 'contact',
+            'version'         => $_RECAPTCHA_CONF['enable_contact'],
+            'form_id'         => 'contactuserform',
+            'action'          => 'contact',
+            'score_threshold' => $_RECAPTCHA_CONF['score_contact'],
+        ],
+        [
+            'type'            => 'emailstory',
+            'version'         => $_RECAPTCHA_CONF['enable_emailstory'],
+            'form_id'         => 'contactauthorform',
+            'action'          => 'email',
+            'score_threshold' => $_RECAPTCHA_CONF['score_emailstory'],
+        ],
+        [
+            'type'            => 'registration',
+            'version'         => $_RECAPTCHA_CONF['enable_registration'],
+            'form_id'         => 'registrationform',
+            'action'          => 'registration',
+            'score_threshold' => $_RECAPTCHA_CONF['score_registration'],
+        ],
+        [
+            'type'            => 'getpassword',
+            'version'         => $_RECAPTCHA_CONF['enable_getpassword'],
+            'form_id'         => 'getpasswordform',
+            'action'          => 'getpassword',
+            'score_threshold' => $_RECAPTCHA_CONF['score_getpassword'],
+        ],
+        [
+            'type'            => 'loginform',
+            'version'         => $_RECAPTCHA_CONF['enable_loginform'],
+            'form_id'         => 'userloginform',
+            'action'          => 'login',
+            'score_threshold' => $_RECAPTCHA_CONF['score_loginform'],
+        ],
+        [
+            'type'                        => 'story',
+            'version'                     => $_RECAPTCHA_CONF['enable_story'],
+            'form_id'                     => 'submitstory',
+            'js_onsubmit'                 => '',
+            'js_onsubmit_advanced_editor' => 'set_postcontent();',
+            'action'                      => 'submit/story',
+            'score_threshold'             => $_RECAPTCHA_CONF['score_story'],
+        ],
+    ];
 }

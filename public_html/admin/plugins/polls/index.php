@@ -39,7 +39,7 @@
  * @subpackage admin
  */
 
-global $_CONF, $_USER, $MESSAGE, $LANG_ADMIN, $LANG21;
+global $_CONF, $_USER, $MESSAGE, $LANG_ADMIN, $LANG21, $LANG25;
 
 // Geeklog common function library and Admin authentication
 require_once '../../../lib-common.php';
@@ -78,7 +78,7 @@ function listpolls()
               'text' => $LANG_ADMIN['admin_home']));
 
     $help_url = COM_getDocumentUrl('docs', "polls.html");
-              
+
     $retval .= COM_startBlock($LANG25[18], $help_url,
         COM_getBlockTemplate('_admin_block', 'header'));
 
@@ -132,6 +132,7 @@ function listpolls()
  * @param    array  $Q            Array of poll questions
  * @param    string $mainPage     Checkbox: poll appears on homepage
  * @param    string $topic        The text for the topic
+ * @param    string $topic_description
  * @param    string $meta_description
  * @param    string $meta_keywords
  * @param    int    $statusCode   (unused)
@@ -148,14 +149,13 @@ function listpolls()
  * @param    int    $perm_members Permissions logged in members have on poll
  * @param    int    $perm_anon    Permissions anonymous users have on poll
  * @param    bool   $allow_multipleanswers
- * @param    string $topic_description
- * @param    string $description
+ * @param    array  $description  Questions descriptions
  * @return   string|void
  */
-function savepoll($pid, $old_pid, $Q, $mainPage, $topic, $meta_description, $meta_keywords, $statusCode, $open,
+function savepoll($pid, $old_pid, $Q, $mainPage, $topic, $topic_description, $meta_description, $meta_keywords, $statusCode, $open,
                   $hideResults, $commentCode, $A, $V, $R, $owner_id, $group_id,
                   $perm_owner, $perm_group, $perm_members, $perm_anon,
-                  $allow_multipleanswers, $topic_description, $description)
+                  $allow_multipleanswers, $description)
 {
     global $_CONF, $_TABLES, $_USER, $LANG21, $LANG25, $MESSAGE, $_POLL_VERBOSE,
            $_PO_CONF;
@@ -165,11 +165,10 @@ function savepoll($pid, $old_pid, $Q, $mainPage, $topic, $meta_description, $met
     // Convert array values to numeric permission values
     list($perm_owner, $perm_group, $perm_members, $perm_anon) = SEC_getPermissionValues($perm_owner, $perm_group, $perm_members, $perm_anon);
 
-    $topic = COM_stripslashes($topic);
     $topic = COM_checkHTML($topic);
-    $topic_description = GLText::stripTags(COM_stripslashes($topic_description));
-    $meta_description = GLText::stripTags(COM_stripslashes($meta_description));
-    $meta_keywords = GLText::stripTags(COM_stripslashes($meta_keywords));
+    $topic_description = GLText::stripTags($topic_description);
+    $meta_description = GLText::stripTags($meta_description);
+    $meta_keywords = GLText::stripTags($meta_keywords);
     $pid = COM_sanitizeID($pid);
     $old_pid = COM_sanitizeID($old_pid);
     if (empty($pid)) {
@@ -193,12 +192,15 @@ function savepoll($pid, $old_pid, $Q, $mainPage, $topic, $meta_description, $met
         COM_redirect($_CONF['site_admin_url'] . '/plugins/polls/index.php');
     }
 
-    // check for poll id change
-    if (!empty($old_pid) && ($pid != $old_pid)) {
+    // check for poll id change (on edits and new) to see if it matches another existing poll
+    if ((!empty($old_pid) && ($pid != $old_pid)) || (empty($old_pid) && !empty($pid))) {
         // check if new pid is already in use
         if (DB_count($_TABLES['polltopics'], 'pid', DB_escapeString($pid)) > 0) {
-            // TBD: abort, display editor with all content intact again
-            $pid = $old_pid; // for now ...
+            if (empty($old_pid)) { // New poll with no old id
+                $pid = COM_makeSid();
+            } else { // existing poll
+                $pid = $old_pid; // for now ...
+            }
         }
     }
 
@@ -273,10 +275,9 @@ function savepoll($pid, $old_pid, $Q, $mainPage, $topic, $meta_description, $met
     $num_total_votes = 0;
     $num_questions_exist = 0;
     for ($i = 0; $i < $num_questions; $i++) {
-        $Q[$i] = COM_stripslashes($Q[$i]);
         $Q[$i] = COM_checkHTML($Q[$i]);
         $Q[$i] = GLText::remove4byteUtf8Chars($Q[$i]);
-        $description[$i] = GLText::remove4byteUtf8Chars(COM_checkHTML(COM_stripslashes($description[$i])));
+        $description[$i] = GLText::remove4byteUtf8Chars(COM_checkHTML($description[$i]));
         if (isset($allow_multipleanswers[$i])) {
             $allow_multipleanswers[$i] = ($allow_multipleanswers[$i] == 'on') ? 1 : 0;
         } else {
@@ -295,10 +296,8 @@ function savepoll($pid, $old_pid, $Q, $mainPage, $topic, $meta_description, $met
             // votes and remarks
             $num_answers = count($A[$i]);
             for ($j = 0; $j < $num_answers; $j++) {
-                $A[$i][$j] = COM_stripslashes($A[$i][$j]);
                 $A[$i][$j] = COM_checkHTML($A[$i][$j]);
                 $A[$i][$j] = GLText::remove4byteUtf8Chars($A[$i][$j]);
-                $R[$i][$j] = COM_stripslashes($R[$i][$j]);
                 $R[$i][$j] = COM_checkHTML($R[$i][$j]);
                 $R[$i][$j] = GLText::remove4byteUtf8Chars($R[$i][$j]);
 
@@ -331,7 +330,7 @@ function savepoll($pid, $old_pid, $Q, $mainPage, $topic, $meta_description, $met
     // save topics after the questions so we can include question count into table
     $created_date = DB_escapeString($created_date);
     $modified_date = DB_escapeString(date('Y-m-d H:i:s'));
-    $sql = "'{$pid}','{$topic}','{$meta_description}','{$meta_keywords}',{$numVoters}, {$k}, '{$created_date}', '{$modified_date}' ";
+    $sql = "'{$pid}','{$topic}','{$topic_description}','{$meta_description}','{$meta_keywords}',{$numVoters}, {$k}, '{$created_date}', '{$modified_date}' ";
 
     if ($mainPage == 'on') {
         $sql .= ",1";
@@ -350,12 +349,12 @@ function savepoll($pid, $old_pid, $Q, $mainPage, $topic, $meta_description, $met
     }
 
     $sql .= ", {$statusCode}, {$commentCode}, {$owner_id}, {$group_id}, {$perm_owner}, {$perm_group}, "
-        . "{$perm_members}, {$perm_anon}, '{$topic_description}'";
+        . "{$perm_members}, {$perm_anon}";
 
     // Save poll topic
     DB_save(
         $_TABLES['polltopics'],
-        "pid, topic, meta_description, meta_keywords, voters, questions, created, modified, display, is_open, hideresults, statuscode, commentcode, owner_id, group_id, perm_owner, perm_group, perm_members, perm_anon,description",
+        "pid, topic, description, meta_description, meta_keywords, voters, questions, created, modified, display, is_open, hideresults, statuscode, commentcode, owner_id, group_id, perm_owner, perm_group, perm_members, perm_anon",
         $sql
     );
 
@@ -477,7 +476,7 @@ function editpoll($pid = '')
     $poll_templates->set_var('noscript', COM_getNoScript(false, ''));
 
     // Add JavaScript
-    // Hide the Advanced Editor as Javascript is required. If JS is enabled then the JS below will un-hide it
+    // Hide the Advanced Editor as JavaScript is required. If JS is enabled then the JS below will un-hide it
     $js = 'document.getElementById("advanced_editor").style.display="";';
     $_SCRIPTS->setJavaScript($js, true);
     $_SCRIPTS->setJavaScriptFile('polls_editor', '/polls/polls_editor.js');
@@ -485,13 +484,13 @@ function editpoll($pid = '')
     if ($_CONF['titletoid'] && empty($T['pid'])) {
         $_SCRIPTS->setJavaScriptFile('title_2_id', '/javascript/title_2_id.js');
         $poll_templates->set_var('titletoid', true);
-    }    
-    
+    }
+
     $poll_templates->set_var('lang_pollid', $LANG25[6]);
     $poll_templates->set_var('poll_id', $T['pid']);
     $poll_templates->set_var('lang_donotusespaces', $LANG25[7]);
     $poll_templates->set_var('lang_topic', $LANG25[9]);
-    $poll_templates->set_var('poll_topic', htmlspecialchars($T['topic']));
+    $poll_templates->set_var('poll_topic', COM_escHTML($T['topic']));
     $poll_templates->set_var('lang_mode', $LANG25[1]);
     $poll_templates->set_var('lang_topic_description', $LANG25[1003]);
     $poll_templates->set_var('topic_description', $T['description']);
@@ -569,20 +568,20 @@ function editpoll($pid = '')
             true
         );
         $Q = DB_fetchArray($questions);
-        $poll_templates->set_var('question_text', $Q['question']);
+        $poll_templates->set_var('question_text', isset($Q['question']) ? $Q['question'] : '');
         $poll_templates->set_var('question_id', $j);
         $poll_templates->set_var('lang_question', $LANG25[31] . " $display_id");
         $poll_templates->set_var('lang_saveaddnew', $LANG25[32]);
         $poll_templates->set_var('q_idx', $j);
         $poll_templates->set_var('lang_allow_multipleanswers', $LANG25[1001]);
-        if ($Q['allow_multipleanswers'] == 1) {
+        if (isset($Q['allow_multipleanswers']) && ($Q['allow_multipleanswers'] == 1)) {
             $poll_templates->set_var('poll_allow_multipleanswers', 'checked="checked"');
         } else {
             $poll_templates->set_var('poll_allow_multipleanswers', '');
         }
 
         $poll_templates->set_var('lang_questions_description', $LANG25[1002]);
-        $poll_templates->set_var('description', $Q['description']);
+        $poll_templates->set_var('description', isset($Q['description']) ? $Q['description'] : '');
 
         // answers
         $answer_sql = "SELECT answer,aid,votes,remark FROM {$_TABLES['pollanswers']} "
@@ -591,10 +590,9 @@ function editpoll($pid = '')
         $answers = DB_query($answer_sql);
 
         for ($i = 0; $i < $_PO_CONF['maxanswers']; $i++) {
-            if (isset($answers)) {
-                $A = DB_fetchArray($answers);
-                $poll_templates->set_var('answer_text',
-                    htmlspecialchars($A['answer']));
+            $A = DB_fetchArray($answers);
+            if (!empty($A)) {
+                $poll_templates->set_var('answer_text', COM_escHTML($A['answer']));
                 $poll_templates->set_var('answer_votes', $A['votes']);
                 $poll_templates->set_var('remark_text', $A['remark']);
             } else {
@@ -639,14 +637,20 @@ function deletePoll($pid)
         COM_accessLog("User {$_USER['username']} tried to illegally delete poll $pid.");
         COM_redirect($_CONF['site_admin_url'] . '/plugins/polls/index.php');
     }
+	
+	// Delete Comments for current item being deleted
+	CMT_deleteComment('', $pid, POLLS_PLUGIN_NAME, false);
+	
+	// Delete Likes for current item being deleted
+	LIKES_deleteActions(POLLS_PLUGIN_NAME, '', $pid);
 
     DB_delete($_TABLES['polltopics'], 'pid', $pid);
     DB_delete($_TABLES['pollanswers'], 'pid', $pid);
     DB_delete($_TABLES['pollquestions'], 'pid', $pid);
     DB_delete($_TABLES['pollvoters'], 'pid', $pid);
-    DB_delete($_TABLES['comments'], array('sid', 'type'),
-        array($pid, 'polls'));
-    PLG_itemDeleted($pid, 'polls');
+    
+	PLG_itemDeleted($pid, POLLS_PLUGIN_NAME);
+	
     COM_redirect($_CONF['site_admin_url'] . '/plugins/polls/index.php?msg=20');
 }
 
@@ -664,9 +668,6 @@ if ($mode === 'edit') {
     if (empty($pid) && !empty($old_pid)) {
         $pid = $old_pid;
     }
-    if (empty($old_pid) && (!empty($pid))) {
-        $old_pid = $pid;
-    }
     if (!empty($pid)) {
         $statuscode = (int) Geeklog\Input::fPost('statuscode', 0);
         $mainpage = Geeklog\Input::post('mainpage', '');
@@ -676,6 +677,7 @@ if ($mode === 'edit') {
             $pid, $old_pid,
             Geeklog\Input::post('question'), $mainpage,
             Geeklog\Input::post('topic'),
+            Geeklog\Input::post('topic_description'),
             Geeklog\Input::post('meta_description'),
             Geeklog\Input::post('meta_keywords'),
             $statuscode, $open, $hideresults,
@@ -690,7 +692,6 @@ if ($mode === 'edit') {
             Geeklog\Input::post('perm_members'),
             Geeklog\Input::post('perm_anon'),
             Geeklog\Input::post('allow_multipleanswers'),
-            Geeklog\Input::fPost('topic_description'),
             Geeklog\Input::post('description')
         );
     } else {
@@ -703,7 +704,7 @@ if ($mode === 'edit') {
         COM_errorLog('Ignored possibly manipulated request to delete a poll.');
         COM_redirect($_CONF['site_admin_url'] . '/plugins/polls/index.php');
     } elseif (SEC_checkToken()) {
-        $display .= deletePoll($pid);
+        deletePoll($pid);
     } else {
         COM_accessLog("User {$_USER['username']} tried to illegally delete poll {$pid} and failed CSRF checks.");
         COM_redirect($_CONF['site_admin_url'] . '/index.php');

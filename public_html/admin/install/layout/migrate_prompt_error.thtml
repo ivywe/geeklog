@@ -1,0 +1,10 @@
+<h1>{{ LANG.INSTALL.16 }}</h1>
+
+{{ migrate_errors }}
+
+<form action="index.php" method="post">
+    <input type="hidden" name="dbconfig_path" value="{! dbconfig_path !}">
+    <input type="hidden" name="mode" value="{! mode !}">
+    <input type="hidden" name="language" value="{! language !}">
+    <button type="submit" class="uk-button uk-button-primary uk-margin-small" name="install_type" value="{{ LANG.INSTALL.16 }}">{{ icon_arrow_prev }}&nbsp;&nbsp;{{ LANG.INSTALL.61 }}</button>
+</form>

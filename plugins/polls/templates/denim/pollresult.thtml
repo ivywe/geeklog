@@ -1,13 +1,24 @@
 {# begin {templatelocation} #}
 
-<span class="uk-align-right">{edit_icon}</span><div class="poll-topic">{poll_topic}{poll_topic_description}</div>
+{# use h1 for title only for normal view. #}
+{# display_type possible values 0 = Normal, 1 = In Block, 2 = autotag #}
+{# Only display Topic Description as a Tooltip for when poll in block #}
+{!!if {display_type} == '0' !!}
+<h1>{poll_topic}</h1>
+{!if poll_topic_description}
+<div class="poll-topic_description">{poll_topic_description}</div>
+{!endif}
+{!else}
+<div class="poll-topic">{poll_topic}{poll_topic_description_tooltip}</div>
+{!endif}
+<span class="uk-align-right">{edit_icon}</span>
+
 {poll_questions}
 
-{# display_type Possible values 0 = Normal, 1 = In Block, 2 = autotag #}
 {!!if {display_type} == '0' !!}
-<div>
-    {notification} <a href="{site_url}/polls/index.php">{lang_polltopics}</a> | {num_votes} {lang_voters}
-</div>
+<p>
+    {notification} <a href="{site_url}/polls/index.php">{lang_polltopics}</a> | {num_votes} {lang_voters}{!if likes_control} | {likes_control}{!endif}
+</p>
 {!else}
 <div class="pluginTinyText">
     {notification} <a href="{site_url}/polls/index.php">{lang_polltopics}</a> | {num_votes} {lang_voters} {poll_comments}
@@ -17,6 +28,9 @@
 <!-- BEGIN poll_question -->
 <div class="poll-questions">
     <p class="poll-question">{lang_question}{lang_question_number}{poll_question_text}</p>
+    {!if poll_description}
+    <p class="poll-description">{poll_description}</p>
+    {!endif}
     <table class="uk-table uk-table-striped">
         <tbody>
             {poll_votes}

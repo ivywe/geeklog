@@ -40,6 +40,11 @@
               {comment_options}
             </select></dd>
 
+        <dt><label for="sp-advanced_editor-structureddata">{lang_structured_data_type}</label></dt>
+        <dd><select name="structured_data_type" id="sp-advanced_editor-structureddata">
+              {structured_data_options}
+            </select></dd>
+
         <dt><label for="sel_editmode">{lang_postmode}</label></dt>
         <dd><select name="postmode" id="sel_editmode" {change_editormode} class="uk-select uk-form-width-medium">
               {post_options}
@@ -54,7 +59,7 @@
 
       <div class="story_editor">
         <span id="sel_toolbar" style="display:{show_adveditor};">{lang_toolbar}:&nbsp;
-          <select id="fckeditor_toolbar_selector" name="fckeditor_toolbar_selector" onchange="changeToolbar(this.value);" class="uk-select uk-form-width-medium">
+          <select id="adveditor_toolbar_selector" name="adveditor_toolbar_selector" onchange="changeToolbar(this.value);" class="uk-select uk-form-width-medium">
             <option value="editor-toolbar1">{toolbar1}</option>
             <option value="editor-toolbar2" selected="selected">{toolbar2}</option>
             <option value="editor-toolbar3">{toolbar3}</option>
@@ -83,21 +88,35 @@
         <dt><label for="sp-advanced_editor-draft_flag">{lang_draft}</label></dt>
         <dd class="controls_text"><input type="checkbox" name="draft_flag" id="sp-advanced_editor-draft_flag" class="uk-checkbox" {draft_flag_checked}{xhtml}></dd>
 
+        <dt><label for="sp-advanced_editor-search">{lang_search}</label></dt>
+        <dd><select name="search" id="sp-advanced_editor-search">
+              {search_options}
+            </select></dd>
+        <dd class="description">{lang_search_desc}</dd>      
+
+        <dt><label for="sp-advanced_editor-likes">{lang_likes}</label></dt>
+        <dd><select name="likes" id="sp-advanced_editor-likes">
+              {likes_options}
+            </select></dd>
+        <dd class="description">{lang_likes_desc}</dd>				
+
         <dt><label for="sp-advanced_editor-cache_time">{lang_cache_time}</label></dt>
-        <dd><input type="text" value="{cache_time}" name="cache_time" id="sp-advanced_editor-cachetime" class="uk-input uk-form-width-xsmall"{xhtml}></dd>
+        <dd><input type="text" value="{cache_time}" name="cache_time" id="sp-advanced_editor-cachetime" class="uk-input uk-form-width-small"{xhtml}></dd>
         <dd class="description">{lang_cache_time_desc}</dd>
 
         <dt><label for="sp-editor-sp_onlastupdate">{lang_lastupdated}</label></dt>
         <dd class="controls_text">
-            {sp_formateddate} 
+            {sp_formateddate}
             (<input type="checkbox" name="sp_onlastupdate" id="sp-editor-sp_onlastupdate" class="uk-checkbox" {onlastupdate_checked}{xhtml}> {lang_show_on_page})
+            {!if lang_show_on_page_date_disabled}<dd class="description">{lang_show_on_page_date_disabled}</dd>{!endif}
         </dd>
 
         <dt><label for="sp-editor-sp_onhits">{lang_hits}</label></dt>
         <dd class="controls_text">
-            <input type="hidden" name="sp_hits" value="{sp_hits}"{xhtml}>{sp_hits_formatted} 
+            <input type="hidden" name="sp_hits" value="{sp_hits}"{xhtml}>{sp_hits_formatted}
             (<input type="checkbox" name="sp_onhits" id="sp-editor-sp_onhits" class="uk-checkbox" {onhits_checked}{xhtml}> {lang_show_on_page})
-        </dd>        
+            {!if lang_show_on_page_hits_disabled}<dd class="description">{lang_show_on_page_hits_disabled}</dd>{!endif}
+        </dd>
 
         <dt><label>{lang_comments}</label></dt>
         <dd class="controls_text">{sp_comments}</dd>

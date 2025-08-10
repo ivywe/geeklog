@@ -8,8 +8,7 @@
 </head>
 
 <body>
-<p><a href="https://www.geeklog.net/" style="background:transparent"><img src="../images/newlogo.gif" alt="Geeklog"
-                                                                          width="243" height="90"/></a></p>
+<p><a href="https://www.geeklog.net/" style="background:transparent"><img src="../images/logo.gif" alt="Geeklog" width="243" height="90"/></a></p>
 <div class="menu"><a href="index.html">Geeklog Documentation</a> - Geeklog Spam-X Plugin</div>
 
 <h1>Geeklog Spam-X Plugin</h1>
@@ -54,7 +53,6 @@
 <p>Geeklog ships with the following examine modules:</p>
 
 <ul>
-    <li><a href="#slv">Spam Link Verification (SLV)</a></li>
     <li><a href="#personal">Personal Blacklist</a></li>
     <li><a href="#ip">IP Filter</a></li>
     <li><a href="#ipofurl">IP of URL Filter</a></li>
@@ -63,41 +61,6 @@
     <li><a href="#snl">Spam Number of Links (SNL)</a></li>
     <li><a href="#akismet">Akismet</a></li>
 </ul>
-
-<h3><a name="slv">Spam Link Verification (SLV)</a></h3>
-
-<p>SLV is a centralized, server-based service that examines posts made on
-    websites and detects when certain links show up in unusually high numbers. In
-    other words, when a spammer starts spamming a lot of sites with the same URLs
-    and those sites all report to SLV, the system will recognize this as a spam
-    wave and will flag posts containing these URLs as spam.</p>
-
-<p>In other words still, it's a dynamic blacklist that automatically updates
-    itself when a spammer starts spamming for their site. And it can only get
-    better (in terms of accuracy and reaction speed) the more sites use it.</p>
-
-<p>SLV is a free service run by Russ Jones at <a
-        href="http://www.linksleeve.org/">www.linksleeve.org</a>.</p>
-
-<p><strong><a name="slvprivacy">Privacy Notice:</a></strong>
-    It should be stressed that using SLV means that information from your site
-    is being sent to a third party's site. In some legislations you may have to
-    inform your users about this fact - please check with your local privacy
-    laws.</p>
-
-<p>Sending information to an external site may also be undesirable on some
-    setups, e.g. on a company intranet. You can disable SLV support by removing the
-    four files <span class="tt">SLV.Examine.class.php</span>, <span class="tt">SLVbase.class.php</span>,
-    <span class="tt">SLVreport.Action.class.php</span>, and <span class="tt">SLVwhitelist.Admin.class.php</span>
-    from your Spam-X directory (<span class="tt">/path/to/geeklog/plugins/spamx</span>). Or you
-    can simply disable the Spam-X plugin entirely (or uninstall it).</p>
-
-<p>The SLV Examine and Action modules will extract all URLs from a post and
-    only send those to SLV (i.e. the rest of the post's content is not being sent).
-    They also remove any links that contain your Geeklog site's URL. In case a post
-    does not contain any external links, the modules simply do not contact SLV at
-    all.</p>
-
 
 <h3><a name="personal">Personal Blacklist</a></h3>
 
@@ -131,6 +94,9 @@
     to block an IP address by one of the well-known ISPs. Often, the spammer will
     get a new IP address the next time he connects to the internet, while the
     blocked IP address will be reused and may be used by some innocent user.</p>
+
+<h4>Update!</h4>
+<p>As of Geeklog 2.2.1, IPv6 addresses are supported.</p>
 
 <h3><a name="ipofurl">IP of URL Filter</a></h3>
 
@@ -193,10 +159,11 @@
 <h3><a id="akismet">Akismet</a></h3>
 
 <p>With this module enabled, you can use Akismet service provided at
-    <a href="https://akismet.com/">https://akismet.com/</a>.  However, to enable this module,
-    you have to sign up at <a href="https://akismet.com/plans/">this page</a>,
+    <a href="https://akismet.com/">https://akismet.com/</a> to check submitted content to determine if it is spam or not.  
+    To enable this module, you have to sign up at <a href="https://akismet.com/plans/">this page</a>,
     get your API key, and set it at the Configuration &gt; Spam-X &gt; Modules &gt;
-    Akismet &gt; API Key.
+    Akismet &gt; API Key. This module takes the author name, ip and text of the submitted content and sends it to the Akismet service 
+    which then returns a response indicating if it thinks it is spam or not.
 </p>
 
 <h2><a name="action">Action Modules</a></h2>
@@ -223,11 +190,12 @@
     module has the value 8. So to activate both modules, add 128 + 8 = 136 and
     enter that in the Configuration admin panel.</p>
 
-<p>The SLV Examine module is complemented by a <strong>SLV Action</strong>
-    module that ensures that SLV is notified of spam posts caught by other examine
-    modules. It "piggybacks" on the Delete Action module, i.e. when you activate
-    the Delete Action module, you'll also enable the SLV Action module.</p>
-
+<p>Modules like the SNL Examine module (Spam Number of Links) is complemented by a <strong>SNL Action</strong>
+    module that ensures that SNL is notified of spam posts caught by other examine
+    modules. These modules can be enabled or disabled in the Spam-X configuration.</p> 
+	
+<p>Some modules may "piggyback" on the Delete Action module, i.e. when you activate
+    the Delete Action module, you'll also enable these relevant Action module.</p>
 
 <h2><a name="admin">Admin Modules</a></h2>
 
@@ -235,13 +203,6 @@
         href="#ip">IP Filter</a>, <a href="#ipofurl">IP of URL Filter</a>, and <a
         href="#header">HTTP Header Filter</a> modules provide you with a form to add
     new entries. To delete an existing entry, simply click on it.</p>
-
-<p>With the <strong>SLV Whitelist</strong> admin module you can add URLs that
-    you don't want to be reported to SLV. This is useful when posts on your site
-    happen to contain certain URLs quite often but you don't want those to be
-    considered spam by SLV.<br/>Note that your site's URL (i.e. <a
-            href="config.html#desc_site_url">$_CONF['site_url']</a>) is automatically
-    whitelisted, so you don't need to add it here.</p>
 
 <p>The <strong>Log View</strong> module lets you inspect and clear the Spam-X
     logfile. The logfile contains additional information about the spam posts, e.g.
@@ -306,7 +267,7 @@
     <tr>
         <td><a name="desc_timeout">timeout</a></td>
         <td>5</td>
-        <td>Timeout (in seconds) for contacting external services such as SLV and SFS.</td>
+        <td>Timeout (in seconds) for contacting external services such as Akismet and SFS.</td>
     </tr>
     <tr>
         <td><a name="desc_notification_email">notification_email</a></td>
@@ -327,8 +288,7 @@
     <tr>
         <td><a name="desc_max_age">max_age</a></td>
         <td>0</td>
-        <td>The max age in days to keep Spam-X records since there last update (0 = infinite). SLV Whitelist records
-            will not be deleted.
+        <td>The max age in days to keep Spam-X records since there last update (0 = infinite).
         </td>
     </tr>
     <tr>
@@ -341,7 +301,6 @@
                 <li>IP Blacklist = 'IP'</li>
                 <li>IP of URL Blacklist = 'IPofUrl'</li>
                 <li>SFS Email Blacklist = 'email'</li>
-                <li>SLV Whitelist = 'SLVwhitelist'</li>
             </ul>
         </td>
     </tr>
@@ -359,7 +318,9 @@
         <td><a name="desc_sfs_enabled">sfs_enabled</a></td>
         <td><code>true</code></td>
         <td>Whether the Stop Forum Spam (SFS) module is enabled or not. If enabled then email and ip addresses of new
-            user registrations will be checked with StopForumSpam.com to see if they are spam.
+            user registrations will be checked with StopForumSpam.com to see if they are spam. For more information see the 
+            <a href="#sfs">SFS introduction</a>.
+        </td>
         </td>
     </tr>
     <tr>
@@ -374,7 +335,8 @@
         <td><a name="desc_snl_enabled">snl_enabled</a></td>
         <td><code>true</code></td>
         <td>Whether the Spam Number of Links (SNL) module is enabled or not. If enabled it will only allow a specified
-            number of links in a post or when a user creates or updates their profile.
+            number of links in a post or when a user creates or updates their profile. For more information see the 
+            <a href="#snl">SNL introduction</a>.
         </td>
     </tr>
     <tr>
@@ -385,7 +347,9 @@
     <tr>
         <td><a name="desc_akismet_enabled">akismet_enabled</a></td>
         <td><code>false</code></td>
-        <td>Whether the Akismet module is enabled or not. If enabled it will check with Akismet service.
+        <td>Whether the Akismet module is enabled or not. If enabled it will check with the Akismet service to determine 
+            if the submitted content is spam (using the ip, author name, and text of the content). For more information see the 
+            <a href="#akismet">Akismet introduction</a>.
         </td>
     </tr>
     <tr>

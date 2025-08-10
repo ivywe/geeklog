@@ -51,16 +51,27 @@ $_UPDATES = array(
         "ALTER TABLE {$_TABLES['staticpage']} ADD `cache_time` INT NOT NULL DEFAULT '0' AFTER `template_id`",
         "ALTER TABLE {$_TABLES['staticpage']} CHANGE `sp_id` `sp_id` VARCHAR(128) NOT NULL DEFAULT ''"
     ),
-    
+
     '1.6.7' => array(
-        "ALTER TABLE {$_TABLES['staticpage']} ADD `sp_onhits` TINYINT NOT NULL DEFAULT '1' AFTER `sp_onmenu`",
-        "ALTER TABLE {$_TABLES['staticpage']} ADD `sp_onlastupdate` TINYINT NOT NULL DEFAULT '1' AFTER `sp_onhits`"
+        "ALTER TABLE {$_TABLES['staticpage']} ADD `sp_onhits` INT NOT NULL DEFAULT '1' AFTER `sp_onmenu`",
+        "ALTER TABLE {$_TABLES['staticpage']} ADD `sp_onlastupdate` INT NOT NULL DEFAULT '1' AFTER `sp_onhits`"
     ),
 
     '1.6.9' => array(
         "ALTER TABLE {$_TABLES['staticpage']} ADD `sp_prev` VARCHAR(128) NOT NULL DEFAULT '' AFTER `postmode`",
         "ALTER TABLE {$_TABLES['staticpage']} ADD `sp_next` VARCHAR(128) NOT NULL DEFAULT '' AFTER `sp_prev`",
         "ALTER TABLE {$_TABLES['staticpage']} ADD `sp_parent` VARCHAR(128) NOT NULL DEFAULT '' AFTER `sp_next`",
+    ),
+    '1.7.0' => array(
+        "ALTER TABLE {$_TABLES['staticpage']} ADD `structured_data_type` varchar(40) NOT NULL DEFAULT '' AFTER `commentcode`",
+        "ALTER TABLE {$_TABLES['staticpage']} ADD page_data TEXT DEFAULT NULL AFTER sp_content"
+    ),
+    '1.7.1' => array(
+        "ALTER TABLE {$_TABLES['staticpage']} ADD `search` INT NOT NULL DEFAULT '1' AFTER `draft_flag`;"
+    ),
+    '1.7.2' => array(
+        "ALTER TABLE {$_TABLES['staticpage']} ADD `likes` INT NOT NULL DEFAULT '-1' AFTER `search`;",
+		"UPDATE {$_TABLES['staticpage']} SET `likes` = '0' WHERE template_flag = 1;" // A template page does not use likes
     ),
 );
 

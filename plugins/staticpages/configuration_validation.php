@@ -59,6 +59,9 @@ $_CONF_VALIDATE['staticpages']['meta_tags'] = array('rule' => 'boolean');
 $_CONF_VALIDATE['staticpages']['comment_code'] = array(
     'rule' => array('inList', array('0', '-1'), true)
 );
+$_CONF_VALIDATE['staticpages']['structured_data_type_default'] = array(
+    'rule' => array('inList', array('', 'core-webpage', 'core-article', 'core-newsarticle', 'core-blogposting'), true)
+);
 $_CONF_VALIDATE['staticpages']['draft_flag'] = array('rule' => 'boolean');
 $_CONF_VALIDATE['staticpages']['disable_breadcrumbs_staticpages'] = array('rule' => 'boolean');
 $_CONF_VALIDATE['staticpages']['default_cache_time'] = array('rule' => 'numeric');
@@ -76,6 +79,7 @@ $_CONF_VALIDATE['staticpages']['includephp'] = array('rule' => 'boolean');
 $_CONF_VALIDATE['staticpages']['includesearch'] = array('rule' => 'boolean');
 $_CONF_VALIDATE['staticpages']['includesearchcenterblocks'] = array('rule' => 'boolean');
 $_CONF_VALIDATE['staticpages']['includesearchphp'] = array('rule' => 'boolean');
+$_CONF_VALIDATE['staticpages']['includesearchtemplate'] = array('rule' => 'boolean');
 
 // Default Permissions
 $_CONF_VALIDATE['staticpages']['default_permissions[0]'] = array(

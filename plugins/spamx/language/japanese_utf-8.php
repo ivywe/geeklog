@@ -6,10 +6,10 @@
  * 
  * Copyright (C) 2004-2017 by the following authors:
  * Author        Tom Willett        tomw AT pigstye DOT net
- * Tranlated by Ivy (Geeklog Japanese)
+ * Translated by Ivy (Geeklog Japanese)
  * Copyright (C) 2008 Takahiro Kambe
  * Additional translation to Japanese by taca AT back-street DOT net
- * Copyright (C) 2006-2017 Geeklog.jp group
+ * Copyright (C) 2006-2020 Geeklog.jp group
  * Additional translation to Japanese by Geeklog.jp group info AT geeklog DOT jp
  * 
  * Licensed under GNU General Public License
@@ -109,7 +109,7 @@ $LANG_SX00 = array(
     'initial_import' => 'MT-ブラックリストの初期インポート',
     'import_success' => '<p> %d 個のブラックリストエントリをインポートしました。',
     'import_failure' => '<p><strong>エラー:</strong> エントリが1つもありません。',
-    'allow_url_fopen' => '<p>あなたのWebサーバーのコンフィギュレーションはリモートファイルの読み込みを許可していません。 (<code>allow_url_fopen</code> がオフ)。次のURLからブラックリストをダウンロードしてGeeklogの "data" ディレクトリにアップロードしてください。<tt>%s</tt>, 再実行の前に:',
+    'allow_url_fopen' => '<p>あなたのWebサーバーのコンフィギュレーションはリモートファイルの読み込みを許可していません。 (<code>allow_url_fopen</code> がオフ)。次のURLからブラックリストをダウンロードしてGeeklogの "data" ディレクトリにアップロードしてください。<span style="font-family: monospace;">%s</span>, 再実行の前に:',
     'documentation' => 'Spam-X プラグインドキュメント',
     'emailmsg' => "新しいスパム投稿 \"%s\"\nUser UID: \"%s\"\n\nコンテンツ: \"%s\"",
     'emailsubject' => 'スパム投稿: %s',
@@ -130,7 +130,7 @@ $LANG_SX00 = array(
     'stats_ipofurl' => 'URLのIPアドレスによってブロックしました',
     'stats_header' => 'HTTPヘッダー',
     'stats_deleted' => 'スパム投稿削除数',
-    'invalid_email_or_ip' => '不正なe-mailアドレスまたはIPアドレスをブロックしています。',
+    'invalid_email_or_ip' => '不正なメールアドレスまたはIPアドレスをブロックしています。',
     'email_ip_spam' => '%s または %s の登録を試みますが、スパマーだと思われます。',
     'edit_personal_blacklist' => 'Edit パーソナルブラックリストを編集',
     'mass_delete_spam_comments' => 'スパムコメントを一括削除',
@@ -140,8 +140,7 @@ $LANG_SX00 = array(
     'edit_ip_url_blacklist' => 'Edit URLのIPアドレスのブラックリストを編集',
     'edit_sfs_blacklist' => 'Edit Stop Forum Spamのメールのブラックリストを編集',
     'edit_slv_whitelist' => 'Edit スパムリンク検証のホワイトリストを編集',
-    'plugin_name' => 'Spam-X',
-    'slvwhitelist' => 'スパムリンク検証のホワイトリスト'
+    'plugin_name' => 'Spam-X'
 );
 
 // Define Messages that are shown when Spam-X module action is taken

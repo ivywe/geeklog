@@ -106,7 +106,7 @@ function userlist($uid = 0)
  * @param    string $current_topic (optional) currently selected topic
  * @return   string                  HTML for the list of stories
  */
-function liststories($current_topic = '')
+function liststories($current_topic = '', $editaccessonly = '')
 {
     global $_CONF, $_TABLES, $_IMAGE_TYPE,
            $LANG09, $LANG_ADMIN, $LANG_ACCESS, $LANG24;
@@ -119,7 +119,22 @@ function liststories($current_topic = '')
         $current_topic = TOPIC_ALL_OPTION;
     }
 
-    $seltopics = TOPIC_getTopicListSelect($current_topic, 2);
+    if ($editaccessonly == 'on') {
+        // 3 = edit only, 2 = read and edit
+        $access = 3;
+    } else {
+        $editaccessonly = '';
+        // 3 = edit only, 2 = read and edit
+        $access = 2;
+    }
+
+    if ($access == 3) { // Edit only
+        // TOPIC_getTopicListSelect access uses different definitions
+        $seltopics = TOPIC_getTopicListSelect($current_topic, 2, false, '', false, 0, 2);
+    } else { // 0 = Read and Edit
+        $seltopics = TOPIC_getTopicListSelect($current_topic, 2, false, '', false, 0, 0);
+    }
+
     if (empty($seltopics)) {
         $retval .= COM_showMessage(101);
 
@@ -130,7 +145,7 @@ function liststories($current_topic = '')
         // $tid_list = TOPIC_getChildList(TOPIC_ROOT);
 
         // Retrieve list of all topics user has access to (did not do inherit way since may not see all stories has access too)
-        $tid_list = TOPIC_getList(0, true, false);
+        $tid_list = TOPIC_getList(0, true, false, $access);
 
         if (empty($tid_list)) {
             $retval .= COM_showMessage(101);
@@ -140,13 +155,19 @@ function liststories($current_topic = '')
         $excludetopics = " (tid IN ('" . implode("','", $tid_list) . "')) ";
     } else {
         // Retrieve list of inherited topics
-        $tid_list = TOPIC_getChildList($current_topic);
+        $tid_list = TOPIC_getChildList($current_topic, 0, $access);
 
-        // Get list of blocks to display (except for dynamic). This includes blocks for all topics, and child blocks that are inherited
         $excludetopics = " (ta.tid IN({$tid_list}) AND (ta.inherit = 1 OR (ta.inherit = 0 AND ta.tid = '{$current_topic}')))";
     }
 
-    $filter = COM_createControl('type-select-width-small', array(
+    $switch = ($editaccessonly == 'on') ? 'checked="checked"' : '';
+    $filter = COM_createControl('type-checkbox', array(
+        'name' => 'editaccessonly',
+        'onclick' => 'this.form.submit()',
+        'checked' => $switch,
+        'lang_label'   => $LANG_ADMIN['edit_access_only'] . "&nbsp;&nbsp;"
+    ));
+    $filter .= COM_createControl('type-select-width-small', array(
         'name'         => 'tid',
         'onchange'     => 'this.form.submit()',
         'select_items' => $seltopics,
@@ -199,12 +220,11 @@ function liststories($current_topic = '')
         'has_extras' => true,
         'form_url'   => $_CONF['site_admin_url'] . '/article.php',
     );
-
-    $sql = "SELECT {$_TABLES['stories']}.*, {$_TABLES['users']}.username, {$_TABLES['users']}.fullname, "
-        . "UNIX_TIMESTAMP(date) AS unixdate  FROM {$_TABLES['stories']} "
-        . "LEFT JOIN {$_TABLES['users']} ON {$_TABLES['stories']}.uid={$_TABLES['users']}.uid "
-        . "LEFT JOIN {$_TABLES['topic_assignments']} ta ON ta.type = 'article' AND ta.id = sid "
-        . "WHERE 1=1 ";
+	
+    $sql = "SELECT {$_TABLES['stories']}.*, {$_TABLES['users']}.username, {$_TABLES['users']}.fullname, UNIX_TIMESTAMP(date) AS unixdate "
+		. "FROM {$_TABLES['stories']},{$_TABLES['topic_assignments']} ta, {$_TABLES['users']} "
+        . "WHERE {$_TABLES['stories']}.uid={$_TABLES['users']}.uid AND ta.type = 'article' AND ta.id = sid ";
+    $sql .= COM_getPermSQL('AND', 0, $access);	
 
     if (!empty($excludetopics)) {
         $excludetopics = 'AND ' . $excludetopics;
@@ -215,7 +235,7 @@ function liststories($current_topic = '')
         'query_group'    => "sid,{$_TABLES['users']}.username, {$_TABLES['users']}.fullname, {$_TABLES['stories']}.uid,"
             . "{$_TABLES['stories']}.draft_flag, {$_TABLES['stories']}.date, {$_TABLES['stories']}.title, "
             . "{$_TABLES['stories']}.page_title, {$_TABLES['stories']}.introtext, {$_TABLES['stories']}.bodytext, "
-            . "{$_TABLES['stories']}.text_version, {$_TABLES['stories']}.hits, {$_TABLES['stories']}.numemails, "
+            . "{$_TABLES['stories']}.text_version, {$_TABLES['stories']}.hits, {$_TABLES['stories']}.numpages, {$_TABLES['stories']}.numemails, "
             . "{$_TABLES['stories']}.comments, {$_TABLES['stories']}.comment_expire, {$_TABLES['stories']}.trackbacks, "
             . "{$_TABLES['stories']}.related, {$_TABLES['stories']}.featured, {$_TABLES['stories']}.show_topic_icon, "
             . "{$_TABLES['stories']}.commentcode, {$_TABLES['stories']}.trackbackcode, {$_TABLES['stories']}.statuscode, "
@@ -223,13 +243,13 @@ function liststories($current_topic = '')
             . "{$_TABLES['stories']}.frontpage, {$_TABLES['stories']}.meta_description, {$_TABLES['stories']}.meta_keywords, "
             . "{$_TABLES['stories']}.cache_time, {$_TABLES['stories']}.owner_id, {$_TABLES['stories']}.group_id, "
             . "{$_TABLES['stories']}.perm_owner, {$_TABLES['stories']}.perm_group, {$_TABLES['stories']}.perm_members, "
-            . "{$_TABLES['stories']}.perm_anon ",
+            . "{$_TABLES['stories']}.perm_anon, {$_TABLES['stories']}.modified, {$_TABLES['stories']}.structured_data_type ",
         'query_fields'   => array('title', 'introtext', 'bodytext', 'sid', 'tid'),
         'default_filter' => $excludetopics . COM_getPermSQL('AND'),
     );
 
     // Add in topic filter so it is remembered with paging
-    $pagenavurl = '&amp;tid=' . $current_topic;
+    $pagenavurl = "&amp;tid=$current_topic&amp;editaccessonly=$editaccessonly";
 
     $retval .= ADMIN_list('story', 'ADMIN_getListField_stories', $header_arr,
         $text_arr, $query_arr, $defsort_arr, $filter, '', '', $form_arr, true, $pagenavurl);
@@ -250,7 +270,8 @@ function liststories($current_topic = '')
 function storyeditor($sid = '', $mode = '', $errormsg = '')
 {
     global $_CONF, $_TABLES, $_USER, $LANG24, $LANG_ACCESS, $LANG_ADMIN,
-           $MESSAGE, $_SCRIPTS, $LANG_DIRECTION, $LANG_MONTH, $LANG_WEEK;
+           $MESSAGE, $_SCRIPTS, $LANG_DIRECTION, $LANG_MONTH, $LANG_WEEK,
+           $LANG_STRUCT_DATA;
 
     $display = '';
 
@@ -263,17 +284,7 @@ function storyeditor($sid = '', $mode = '', $errormsg = '')
     }
 
     $story = new Article();
-    if ($mode == 'preview') {
-        // Handle Magic GPC Garbage:
-        foreach ($_POST as $key => $value) {
-            if (!is_array($value)) {
-                $_POST[$key] = COM_stripslashes($value);
-            } else {
-                foreach ($value as $subkey => $subvalue) {
-                    $value[$subkey] = COM_stripslashes($subvalue);
-                }
-            }
-        }
+    if ($mode === 'preview') {
         $result = $story->loadFromArgsArray($_POST);
 
         if ($_CONF['maximagesperarticle'] > 0) {
@@ -577,6 +588,13 @@ function storyeditor($sid = '', $mode = '', $errormsg = '')
     } else {
         $story_templates->set_var('show_topic_icon_checked', '');
     }
+
+    $story_templates->set_var('lang_structured_data_type', $LANG_STRUCT_DATA['lang_structured_data_type']);
+    $story_templates->set_var(
+        'structured_data_options',
+        COM_optionListFromLangVariables('LANG_structureddatatypes', $story->EditElements('structured_data_type'))
+    );
+
     $story_templates->set_var('lang_cachetime', $LANG24['cache_time']);
     $story_templates->set_var('lang_cachetime_desc', $LANG24['cache_time_desc']);
     $story_templates->set_var('cache_time', $story->EditElements('cache_time'));
@@ -739,16 +757,17 @@ function storyeditor($sid = '', $mode = '', $errormsg = '')
             $largename = $LANG24[97];
             $imagelink = '';
             $largelink = '';
-            $thumblink = '';
-            $largethumblink = '';
+            $thumblink = '/images/articles/no_image_thumbnail.png';
+            $largethumblink = '/images/articles/no_image_thumbnail.png';
             if (!empty($ai_filenames[$z])) {
                 $imagename = $ai_filenames[$z];
-                $imagelink = $_CONF['site_url'] . '/images/articles/' . $ai_filenames[$z];
+                $imagelink = $_CONF['site_url'] . '/images/articles/' . $imagename;
+                $imagepath = $_CONF['path_images'] . 'articles/' . $imagename;
 
                 $thumbname = substr_replace($imagename, '_64x64px.', strrpos($imagename, '.'), 1);
                 $thumblink = $_CONF['site_url'] . '/images/_thumbs/articles/'. $thumbname;
                 $thumbpath = $_CONF['path_images'] . '_thumbs/articles/' . $thumbname;
-                if (!file_exists($thumbpath)) {
+                if (!file_exists($thumbpath) && file_exists($imagepath)) {
                     createThumbnail($imagename);
                 }
 
@@ -854,7 +873,8 @@ function storyeditor($sid = '', $mode = '', $errormsg = '')
 /**
  * Create thumbnail of attached image
  *
- * @param    string $ai_fname file name of attached image
+ * @param    string     $ai_fname file name of attached image
+ * @return   boolean    true on success
  */
 function createThumbnail($ai_fname)
 {
@@ -875,19 +895,30 @@ function createThumbnail($ai_fname)
         }
     }
 
-    if (!$upload->setPath($_CONF['path_images'] . 'articles')) {
-        $output = COM_showMessageText($upload->printErrors(false), $LANG24[30]);
-        $output = COM_createHTMLDocument($output, array('pagetitle' => $LANG24[30]));
-        echo $output;
+    if (!$upload->setPath($_CONF['path_images'] . 'articles')
+        || !$upload->setThumbsPath($_CONF['path_images'] . '_thumbs/articles')
+        || !file_exists($_CONF['path_images'] . 'articles/' . $ai_fname)
+        ) {
+
+        // Don't print a message let calling function handle any errors
+        return false;
+        /*
+        if (empty($upload->printErrors(false))) {
+            $errormsg = $LANG24[30];
+        } else {
+            $errormsg = $upload->printErrors(false);
+        }
+        $display = COM_showMessageText($errormsg, $LANG24[30]);
+        $display = COM_createHTMLDocument($display, array('pagetitle' => $LANG24[30]));
+         COM_output($display);
         exit;
+        */
+
+    } else {
+        $upload->createThumbnail($ai_fname);
+
+        return true;
     }
-    if (!$upload->setThumbsPath($_CONF['path_images'] . '_thumbs/articles')) {
-        $output = COM_showMessageText($upload->printErrors(false), $LANG24[30]);
-        $output = COM_createHTMLDocument($output, array('pagetitle' => $LANG24[30]));
-        echo $output;
-        exit;
-    }
-    $upload->createThumbnail($ai_fname);
 }
 
 /**
@@ -924,17 +955,6 @@ function submitstory($type = '')
     $output = '';
 
     $args = &$_POST;
-
-    // Handle Magic GPC Garbage:
-    foreach ($args as $key => $value) {
-        if (!is_array($value)) {
-            $args[$key] = COM_stripslashes($value);
-        } else {
-            foreach ($value as $subkey => $subvalue) {
-                $value[$subkey] = COM_stripslashes($subvalue);
-            }
-        }
-    }
 
     /* ANY FURTHER PROCESSING on POST variables - COM_stripslashes etc.
      * Do it HERE on $args */
@@ -1001,11 +1021,13 @@ if (($mode == $LANG_ADMIN['delete']) && !empty($LANG_ADMIN['delete'])) {
         COM_redirect($_CONF['site_admin_url'] . '/moderation.php');
     } else {
         $current_topic = '';
+        $editaccessonly = '';
         if (empty($mode)) {
             $current_topic = Geeklog\Input::fGetOrPost('tid', '');
+            $editaccessonly = Geeklog\Input::fGetOrPost('editaccessonly', '');
         }
         $display .= COM_showMessageFromParameter();
-        $display .= liststories($current_topic);
+        $display .= liststories($current_topic, $editaccessonly);
         $display = COM_createHTMLDocument($display, array('pagetitle' => $LANG24[22]));
     }
     COM_output($display);

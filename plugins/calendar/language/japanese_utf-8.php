@@ -173,7 +173,8 @@ $LANG_CAL_ADMIN = array(
     33 => '削除対象のイベントを選択していません。',
     34 => 'イベント ID',
     35 => '削除できませんでした。',
-    36 => '削除したイベント'
+    36 => '削除したイベント',
+    'num_events' => '%s 件のイベント'
 );
 
 $LANG_CAL_MESSAGE = array(
@@ -214,6 +215,8 @@ $LANG_confignames['calendar'] = array(
     'notification' => 'メールで通知する',
     'delete_event' => '所有者の削除と共に削除する',
     'aftersave' => 'イベント保存後の画面遷移',
+    'recaptcha' => 'reCAPTCHA',
+    'recaptcha_score' => 'reCAPTCHAスコア',
     'default_permissions' => 'パーミッション',
     'autotag_permissions_event' => '[event: ] パーミッション',
     'block_enable' => '有効',
@@ -253,5 +256,6 @@ $LANG_configselects['calendar'] = array(
     12 => array('アクセス不可' => 0, '表示' => 2, '表示・編集' => 3),
     13 => array('アクセス不可' => 0, '利用する' => 2),
     14 => array('アクセス不可' => 0, '表示' => 2),
-    15 => array('すべて' => 'all', 'ホームページのみ' => 'homeonly', '話題を選択する' => 'selectedtopics')
+    15 => array('すべて' => 'all', 'ホームページのみ' => 'homeonly', '話題を選択する' => 'selectedtopics'),
+    16 => array('無効' => 0, 'reCAPTCHA V2' => 1, 'reCAPTCHA V2 Invisible' => 2, 'reCAPTCHA V3' => 4)
 );

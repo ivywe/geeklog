@@ -14,7 +14,11 @@
           <li class="li-importantstuff">{lang_instr_line2}</li>
           <li class="li-importantstuff">{lang_instr_line3}</li>
           <li class="li-importantstuff">{lang_instr_line4}</li>
+          {!if is_anon}
+          <li class="li-importantstuff">{lang_instr_line6}</li>
+          {!else}
           <li class="li-importantstuff">{lang_instr_line5}</li>
+          {!endif}
         </ul>
       </dd>
     </dl>
@@ -29,7 +33,6 @@
          <input type="hidden" name="{nprefix}pid" value="{pid}"{xhtml}>
          <input type="hidden" name="{nprefix}type" value="{type}"{xhtml}>
          <input type="hidden" name="{gltoken_name}" value="{gltoken}"{xhtml}>
-         <input type="hidden" name="{nprefix}uid" value="{uid}"{xhtml}>
          {username}<span{hidewhenediting}>&nbsp;[<a href="{action_url}" rel="nofollow" class="logoutorcreateaccount">{lang_logoutorcreateaccount}</a>]</span>
       </dd>
 
@@ -49,19 +52,26 @@
       {record_edit}
     </dl>
 
-    {captcha}
+    {!if captcha}
+    <dl class="form_block">
+      <dt></dt>
+        <dd>{captcha}</dd>
+    </dl>
+    {!endif}
 
     <div class="submit">
 {!if allow_save}
       <button type="submit" name="{nprefix}mode" value="{lang_save}" class="uk-button uk-button-primary g-recaptcha"{!if invisible_recaptcha}{invisible_recaptcha}{!endif}>{lang_save}</button>
+      <input type="hidden" name="{nprefix}mode" value="{lang_save}"{xhtml}> {# Needed for Invisible reCaptcha Error message and must be before preview #}
+      {recaptcha_v3}
 {!endif}
       <button type="submit" name="{nprefix}mode" value="{lang_preview}" class="uk-button uk-button-default">{lang_preview}</button>
 {!if allow_delete}
-      <button type="submit" name="mode" value="{lang_delete}" class="uk-button uk-button-danger g-recaptcha" onclick="return confirm('{confirm_message}');"{!if invisible_recaptcha}{invisible_recaptcha}{!endif}>{lang_delete}</button>
+      <button type="submit" name="{nprefix}mode" value="{lang_delete}" class="uk-button uk-button-danger g-recaptcha" onclick="return confirm('{confirm_message}');"{!if invisible_recaptcha}{invisible_recaptcha}{!endif}>{lang_delete}</button>
 {!endif}
       <button type="submit" name="{nprefix}mode" value="{lang_cancel}" class="uk-button uk-button-default">{lang_cancel}</button>
       <input type="hidden" name="formtype" value="{formtype}"{xhtml}>
-{!if allow_notify}          
+{!if allow_notify}
       <div class="uk-margin-top"><input type="checkbox" name="notify"{notify_checked}>{lang_notify}</div>
 {!endif}
     </div>
@@ -77,7 +87,7 @@
 <!-- END record_edit -->
 
 <!-- BEGIN username_anon -->
-<input type="text" name="username" size="16" value="{username_value}" maxlength="32" class="uk-input"{xhtml}> ({lang_anonymous})
+<input type="text" name="{nprefix}username" size="16" value="{username_value}" maxlength="32" class="uk-input"{xhtml}> ({lang_anonymous})
 <!-- END username_anon -->
 
 {# end {templatelocation} #}

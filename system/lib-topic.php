@@ -6,9 +6,9 @@
 // +---------------------------------------------------------------------------+
 // | lib-topic.php                                                             |
 // |                                                                           |
-// | Geeklog syndication library.                                              |
+// | Geeklog Topic library.                                                    |
 // +---------------------------------------------------------------------------+
-// | Copyright (C) 2003-2011 by the following authors:                         |
+// | Copyright (C) 2003-2019 by the following authors:                         |
 // |                                                                           |
 // | Authors: Tom Homer        - tomhomer AT gmail DOT com                     |
 // +---------------------------------------------------------------------------+
@@ -38,8 +38,9 @@ $_TOPIC_DEBUG = COM_isEnableDeveloperModeLog('topic');
 
 // These constants are used by topic assignments table and when the user selects
 // a topic option.
-// The global variable $topic should never be one of these. It should be set to
+// The global variable $_USER['topic_id'] should NEVER be one of these. It should be set to
 // either a topic id the user has access to or empty (which means all topics).
+// Currently plugins when setting Blocks (left, right, or center) will use a '' instead of TOPIC_ALL_OPTION
 define("TOPIC_ALL_OPTION", 'all');
 define("TOPIC_NONE_OPTION", 'none');
 define("TOPIC_HOMEONLY_OPTION", 'homeonly');
@@ -47,6 +48,26 @@ define("TOPIC_SELECTED_OPTION", 'selectedtopics');
 define("TOPIC_ROOT", 'root');
 
 define('TOPIC_PLACEHOLDER', 'topic_placeholder');
+
+
+
+/**
+ * Figure out if depreciated global $topic array is used. If so update $_USER array as needed
+ * Note: This function starts with _ therefore it is only meant to be called from within Geeklog Core for a specific task
+ *
+ */
+function _depreciatedCheckGlobalTopicVariableUsed() {
+	global $_USER;
+
+    // NOTE: currently for backwards compatibility the functions TOPIC_getTopic and TOPIC_setTopic will set the global $topic variable (as well as the proper variable)
+    // These functions will need to be updated to remove this for Geeklog v3.0.0
+
+	// Check if global $topic variable exists
+	if (array_key_exists('topic', $GLOBALS)) {
+		COM_deprecatedLog('Global $topic Variable', '2.2.1', '3.0.0', '$_USER[' . "'topic_id'" . '] variable instead to determine the current user topic id');
+		$_USER['topic_id'] = $GLOBALS['topic']; // not sure if needed for backwards compatibility but kept anyways...
+	}
+}
 
 /**
  * Return the topic tree structure in an array.
@@ -113,12 +134,6 @@ function TOPIC_buildTree($id, $parent = '', $branch_level = -1, $tree_array = ar
     if ($nrows > 0) {
         // Figure out if any excluded topics
         $excluded_tids = '';
-        if (!COM_isAnonUser()) {
-            $excluded_tids = DB_getItem($_TABLES['userindex'], 'tids', "uid = '{$_USER['uid']}'");
-            if (!empty($excluded_tids)) {
-                $excluded_tids = "'" . str_replace(' ', "','", $excluded_tids) . "'";
-            }
-        }
 
         for ($i = 0; $i < $nrows; $i++) {
             $A = DB_fetchArray($result);
@@ -132,11 +147,6 @@ function TOPIC_buildTree($id, $parent = '', $branch_level = -1, $tree_array = ar
             $tree_array[$total_topic]['inherit'] = $A['inherit'];
             $tree_array[$total_topic]['hidden'] = $A['hidden'];
             $tree_array[$total_topic]['exclude'] = 0;
-            if (!empty($excluded_tids)) {
-                if (MBYTE_strpos($excluded_tids, $A['tid']) !== false) {
-                    $tree_array[$total_topic]['exclude'] = 1;
-                }
-            }
             $tree_array[$total_topic]['access'] = SEC_hasAccess($A['owner_id'], $A['group_id'], $A['perm_owner'], $A['perm_group'], $A['perm_members'], $A['perm_anon']); // Current User Access
             $tree_array[$total_topic]['owner_id'] = $A['owner_id'];
             $tree_array[$total_topic]['group_id'] = $A['group_id'];
@@ -184,9 +194,10 @@ function TOPIC_getIndex($id)
  *
  * @param        string $id  The id of the parent topic
  * @param        int    $uid user id or 0 = current user
+ * @param        int    $access access to check for (2=read, 3=r&write)
  * @return       string
  */
-function TOPIC_getChildList($id, $uid = 0)
+function TOPIC_getChildList($id, $uid = 0, $access = 2)
 {
     global $_TOPICS;
 
@@ -217,7 +228,7 @@ function TOPIC_getChildList($id, $uid = 0)
                 }
 
                 // Make sure to show topics for proper language and access level only
-                if ($specified_user_access > 0 && (($min_branch_level < $_TOPICS[$count_topic]['branch_level']) && (($lang_id == '') || ($lang_id != '' && ($_TOPICS[$count_topic]['language_id'] == $lang_id || $_TOPICS[$count_topic]['language_id'] == ''))))) {
+                if ($specified_user_access >= $access && (($min_branch_level < $_TOPICS[$count_topic]['branch_level']) && (($lang_id == '') || ($lang_id != '' && ($_TOPICS[$count_topic]['language_id'] == $lang_id || $_TOPICS[$count_topic]['language_id'] == ''))))) {
 
                     if ($_TOPICS[$count_topic]['inherit'] == 1) {
                         $retval .= ", '" . $_TOPICS[$count_topic]['id'] . "'";
@@ -239,13 +250,14 @@ function TOPIC_getChildList($id, $uid = 0)
 /**
  * This function creates html options for Inherited and default Topics
  *
- * @param    string $type Type of object to display access for
- * @param    string $id   Id of onject
- * @param           string /array    $selected_ids   Topics Ids to mark as selected
- * @param           string /array    $tids           Topics Ids to use instead of retrieving from db
- * @return   HTML string
+ * @param    string         $type           Type of object to display access for
+ * @param    string         $id             Id of onject
+ * @param    string/array   $selected_ids   Topics Ids to mark as selected
+ * @param    string/array   $tids           Topics Ids to use instead of retrieving from db
+ * @param    string         $sub_type       Sub type of plugin to allow plugins to have topic assigments for more than one type of item.
+ * @return   HTML                           string
  */
-function TOPIC_getOtherListSelect($type, $id, $selected_ids = array(), $tids = array())
+function TOPIC_getOtherListSelect($type, $id, $selected_ids = array(), $tids = array(), $sub_type = '')
 {
     global $_CONF, $LANG27, $_TABLES;
 
@@ -267,10 +279,15 @@ function TOPIC_getOtherListSelect($type, $id, $selected_ids = array(), $tids = a
 
 
     if ($from_db) {
+        if (!empty($sub_type)) {
+            $sql_sub_type = " AND ta.subtype = '$sub_type'";
+        } else {
+            $sql_sub_type = '';
+        }
         // Retrieve Topic options
         $sql = "SELECT ta.tid, t.topic
             FROM {$_TABLES['topic_assignments']} ta, {$_TABLES['topics']} t
-            WHERE t.tid = ta.tid AND ta.type = '$type' AND ta.id ='$id'
+            WHERE t.tid = ta.tid AND ta.type = '$type' AND ta.id ='$id' $sql_sub_type
             ORDER BY t.topic ASC";
     } else {
         $sql = "SELECT tid, topic
@@ -346,10 +363,10 @@ function TOPIC_checkList($selected_ids = '', $fieldname = '', $language_specific
 
     $tcc = COM_newTemplate(CTL_core_templatePath($_CONF['path_layout'] . 'controls'));
     $tcc->set_file('checklist', 'checklist.thtml');
-    $tcc->set_block('checklist', 'item'); 
+    $tcc->set_block('checklist', 'item');
     $tcc->set_block('checklist', 'item-default');
     $tcc->set_block('checklist', 'item-indent');
-    
+
     for ($count_topic = $start_topic; $count_topic <= $total_topic; $count_topic++) {
         // Check to see if we need to include id (this is done for stuff like topic edits that cannot include themselves or child as parent
         if ($branch_level_skip >= $_TOPICS[$count_topic]['branch_level']) {
@@ -399,9 +416,10 @@ function TOPIC_checkList($selected_ids = '', $fieldname = '', $language_specific
  *                                           parent id)
  * @param    boolean      $remove_archive    Remove archive topic from list if any
  * @param    int          $uid               User id or 0 = current user
- * @return   string                              HTML
+ * @param    int          $access_type       Return only topics that user has following access: 0 = Read/Edit, 1 = Read/Edit (with read disabled), 2 = Edit only
+ * @return   string                          HTML
  */
-function TOPIC_getTopicListSelect($selected_ids = array(), $include_root_all = 1, $language_specific = false, $remove_id = '', $remove_archive = false, $uid = 0)
+function TOPIC_getTopicListSelect($selected_ids = array(), $include_root_all = 1, $language_specific = false, $remove_id = '', $remove_archive = false, $uid = 0, $access_type = 0)
 {
     global $_TOPICS, $_TABLES, $LANG21;
 
@@ -483,8 +501,15 @@ function TOPIC_getTopicListSelect($selected_ids = array(), $include_root_all = 1
                     $specified_user_access = SEC_hasAccess($_TOPICS[$count_topic]['owner_id'], $_TOPICS[$count_topic]['group_id'], $_TOPICS[$count_topic]['perm_owner'], $_TOPICS[$count_topic]['perm_group'], $_TOPICS[$count_topic]['perm_members'], $_TOPICS[$count_topic]['perm_anon'], $uid);
                 }
 
+                // See if only show edit access
+                if ($access_type == 2) {
+                    $access_required = 3; // edit
+                } else {
+                    $access_required = 2; // read
+                }
+
                 // Make sure to show topics for proper language and access level only
-                if ($archive_tid != $id && $specified_user_access > 0 && $id != $remove_id && (($lang_id == '') || ($lang_id != '' && ($_TOPICS[$count_topic]['language_id'] == $lang_id || $_TOPICS[$count_topic]['language_id'] == '')))) {
+                if ($archive_tid != $id && $specified_user_access >= $access_required && $id != $remove_id && (($lang_id == '') || ($lang_id != '' && ($_TOPICS[$count_topic]['language_id'] == $lang_id || $_TOPICS[$count_topic]['language_id'] == '')))) {
                     $title = $_TOPICS[$count_topic]['title'];
 
                     $branch_spaces = "";
@@ -492,7 +517,13 @@ function TOPIC_getTopicListSelect($selected_ids = array(), $include_root_all = 1
                         $branch_spaces .= "&nbsp;&nbsp;&nbsp;";
                     }
 
-                    $retval .= '<option value="' . $id . '"';
+                    // Show topics with read access but require edit access to enable
+                    if ($access_type == 1 && $access_required == 2 && $specified_user_access < 3) {
+                        $topic_disabled = ' disabled="disabled"';
+                    } else {
+                        $topic_disabled = "";
+                    }
+                $retval .= '<option' . $topic_disabled . ' value="' . $id . '"';
                     $retval .= ' title="' . $title . '"';
 
                     if (in_array($id, $selected_ids)) {
@@ -519,7 +550,7 @@ function TOPIC_getTopicListSelect($selected_ids = array(), $include_root_all = 1
  * @param    boolean $title      Return topic ids as well as topic titles
  * @return   array               Array of topics
  */
-function TOPIC_getList($sortcol = 0, $ignorelang = true, $title = true)
+function TOPIC_getList($sortcol = 0, $ignorelang = true, $title = true, $access = 2)
 {
     global $_TABLES;
 
@@ -538,9 +569,9 @@ function TOPIC_getList($sortcol = 0, $ignorelang = true, $title = true)
 
     $sql = "SELECT $selection FROM $table";
     if ($ignorelang) {
-        $sql .= COM_getPermSQL();
+        $sql .= COM_getPermSQL('WHERE', 0, $access);
     } else {
-        $permsql = COM_getPermSQL();
+        $permsql = COM_getPermSQL('WHERE', 0, $access);
         if (empty($permsql)) {
             $sql .= COM_getLangSQL($id);
         } else {
@@ -568,20 +599,21 @@ function TOPIC_getList($sortcol = 0, $ignorelang = true, $title = true)
 }
 
 /**
- * Check for topic access from a list of topics or for an object
- * If multiple topics then will return the lowest access level found
+ * Check for topic access of current user from a list of topics or for an object
+ * If multiple topics then will return the lowest access level found. If topic
+ * does not exist then 0 for no access is returned
  * (need to handle 'all' and 'homeonly' as special cases)
  *
- * @param    string $type                                Type of object to find topic access about. If 'topic' then
- *                                                       will check post array for topic selection control
- * @param           string                     /array    $id     ID of object to check topic access for (not requried
- *                                                       if $type is
- *                                                       'topic')
- * @param           string                     /array    $tid    ID of topic to check topic access for (not requried
- *                                                       and not used if $type is 'topic')
- * @return   int                     returns 3 for read/edit 2 for read only 0 for no access
+ * @param    string          $type      Type of object to find topic access about. If 'topic' then
+ *                                      will check post array for topic selection control
+ * @param    string/array    $id        ID of object to check topic access for (not required
+ *                                      if $type is 'topic')
+ * @param    string/array    $tid       ID of topic to check topic access for (not required
+ *                                      and not used if $type is 'topic'). Also can just specify this
+ * @param    string          $sub_type  Sub type of plugin to allow plugins to have topic assignments for more than one type of item.
+ * @return   int                        returns 3 for read/edit 2 for read only 0 for no access
  */
-function TOPIC_hasMultiTopicAccess($type, $id = '', $tid = '')
+function TOPIC_hasMultiTopicAccess($type, $id = '', $tid = '', $sub_type = '')
 {
     global $_TABLES;
 
@@ -610,16 +642,37 @@ function TOPIC_hasMultiTopicAccess($type, $id = '', $tid = '')
             $tid = $topic_list;
         }
     } else {
-        // Retrieve Topic options
-        $sql = "SELECT tid FROM {$_TABLES['topic_assignments']} WHERE type = '$type' AND id ='$id'";
-        if ($tid != '') {
-            $sql .= " AND tid = '$tid'";
-        }
+        if (!empty($type) && !empty($id)) {
+            if (!empty($sub_type)) {
+                $sql_sub_type = " AND subtype = '$sub_type'";
+            } else {
+                $sql_sub_type = '';
+            }
+            // Retrieve Topic options
+            $sql = "SELECT tid FROM {$_TABLES['topic_assignments']} WHERE type = '$type' AND id ='$id' $sql_sub_type";
+            if ($tid != '') {
+                $sql .= " AND tid = '$tid'";
+            }
 
-        $result = DB_query($sql);
-        $A = DB_fetchArray($result);
-        $nrows = DB_numRows($result);
-        $tid = $A['tid'];
+            $result = DB_query($sql);
+            $A = DB_fetchArray($result);
+            $nrows = DB_numRows($result);
+			if ($nrows > 0) {
+				$tid = $A['tid'];
+			}
+        } else {
+            if (is_array($tid)) {
+                $nrows = count($tid);
+                if ($nrows > 0) {
+                    $tid = $tid[0];
+                } else {
+                    $tid = '';
+                }
+            } else {
+                $nrows = 1;
+                $tid = $tid;
+            }
+        }
     }
     if ($tid == TOPIC_ALL_OPTION || $tid == TOPIC_HOMEONLY_OPTION) {
         $access = 3;
@@ -630,6 +683,8 @@ function TOPIC_hasMultiTopicAccess($type, $id = '', $tid = '')
         for ($i = 1; $i < $nrows; $i++) {
             if ($type == 'topic') {
                 $tid = $id[$i];
+            } elseif (empty($type) && empty($id)) {
+                $tid = $tid[$i];
             } else {
                 $A = DB_fetchArray($result);
                 $tid = $A['tid'];
@@ -682,78 +737,110 @@ function TOPIC_checkTopicSelectionControl()
  * This will save the selections from the topic control seen on the
  * admin screen for GL objects (i.e. stories, blocks, etc)
  *
- * @param        string $type Type of object to display access for
- * @param        string $id   Id of object
- * @return       boolean  true if successful else false
+ * @param        string     $type       Type of object to display access for
+ * @param        string     $id         Id of object
+ * @param        string     $sub_type   Sub type of plugin to allow plugins to have topic assigments for more than one type of item.
+ * @return       boolean                true if successful else false
  */
-function TOPIC_saveTopicSelectionControl($type, $id)
+function TOPIC_saveTopicSelectionControl($type, $id, $sub_type = '')
 {
     global $_TABLES;
 
-    // Retrieve Archive Topic if any
-    $archive_tid = DB_getItem($_TABLES['topics'], 'tid', 'archive_flag = 1');
+    // Just in case lets double check (this should have been done before) that the user
+    // has at least read access to all the topics in the post data OR there is no topic selected (there by deleting any previously saved topic assignments)
+    if (TOPIC_hasMultiTopicAccess('topic') > 2 OR !TOPIC_checkTopicSelectionControl()) {
+        // Retrieve Archive Topic if any
+        $archive_tid = DB_getItem($_TABLES['topics'], 'tid', 'archive_flag = 1');
 
-    TOPIC_getDataTopicSelectionControl($topic_option, $tids, $inherit_tids, $default_tid);
+        TOPIC_getDataTopicSelectionControl($topic_option, $tids, $inherit_tids, $default_tid);
 
-    $topic_inherit_hide = (int) Geeklog\Input::fPost('topic_inherit_hide', 1);
-    $topic_default_hide = (int) Geeklog\Input::fPost('topic_default_hide', 1);
+        $topic_inherit_hide = (int) Geeklog\Input::fPost('topic_inherit_hide', 1);
+        $topic_default_hide = (int) Geeklog\Input::fPost('topic_default_hide', 1);
 
-    // Save Topic Assignments
-    if (is_array($tids) && $topic_option == TOPIC_SELECTED_OPTION && !empty($tids)) {
-        DB_delete($_TABLES['topic_assignments'], array('type', 'id'), array($type, $id));
-
-        // Check if archive topic selected, if so then archive
-        if (in_array($archive_tid, $tids)) {
-            DB_save($_TABLES['topic_assignments'], 'tid,type,id,inherit,tdefault', "'$archive_tid', '$type', '$id', 0 , 1");
-        } else {
-            // Check if default in tid array, if not then set first topic as default
-            if (!in_array($default_tid, $tids)) {
-                $default_tid = $tids[0];
+        // Save Topic Assignments
+        if (is_array($tids) && $topic_option == TOPIC_SELECTED_OPTION && !empty($tids)) {
+            if (empty($sub_type)) {
+                DB_delete($_TABLES['topic_assignments'], array('type', 'id'), array($type, $id));
+            } else {
+                DB_delete($_TABLES['topic_assignments'], array('type', 'id', 'subtype'), array($type, $id, $sub_type));
             }
-            $set_default = false;
-            foreach ($tids as $value) {
-                $value = COM_applyFilter($value);
 
-                if ($topic_inherit_hide) {
-                    $inherit = 1;
+            // Check if archive topic selected, if so then archive
+            if (in_array($archive_tid, $tids)) {
+                if (empty($sub_type)) {
+                    DB_save($_TABLES['topic_assignments'], 'tid,type,id,inherit,tdefault', "'$archive_tid', '$type', '$id', 0 , 1");
                 } else {
-                    if (in_array($value, $inherit_tids)) {
+                    DB_save($_TABLES['topic_assignments'], 'tid,type,subtype,id,inherit,tdefault', "'$archive_tid', '$type', '$sub_type', '$id', 0 , 1");
+                }
+            } else {
+                // Check if default in tid array, if not then set first topic as default
+                if (!in_array($default_tid, $tids)) {
+                    $default_tid = $tids[0];
+                }
+                $set_default = false;
+                foreach ($tids as $value) {
+                    $value = COM_applyFilter($value);
+
+                    if ($topic_inherit_hide) {
                         $inherit = 1;
                     } else {
-                        $inherit = 0;
+                        if (in_array($value, $inherit_tids)) {
+                            $inherit = 1;
+                        } else {
+                            $inherit = 0;
+                        }
+                    }
+
+                    if ($topic_default_hide) {
+                        // Need to set at least one default so set first one if none selected or option hidden
+                        if (!$set_default) {
+                            $default = 1;
+                            $set_default = true;
+                        } else {
+                            $default = 0;
+                        }
+                    } else {
+                        if ($value == $default_tid) {
+                            $default = 1;
+                        } else {
+                            $default = 0;
+                        }
+                    }
+
+                    if (empty($sub_type)) {
+                        DB_save($_TABLES['topic_assignments'], 'tid,type,id,inherit,tdefault', "'$value', '$type', '$id', $inherit, $default");
+                    } else {
+                        DB_save($_TABLES['topic_assignments'], 'tid,type,subtype,id,inherit,tdefault', "'$value', '$type', '$sub_type', '$id', $inherit, $default");
                     }
                 }
+            }
+        } else {
+            if ($topic_option == TOPIC_ALL_OPTION || $topic_option == TOPIC_HOMEONLY_OPTION) {
+                if (empty($sub_type)) {
+                    DB_delete($_TABLES['topic_assignments'], array('type', 'id'), array($type, $id));
 
-                if ($topic_default_hide) {
-                    // Need to set at least one default so set first one if none selected or option hidden
-                    if (!$set_default) {
-                        $default = 1;
-                        $set_default = true;
-                    } else {
-                        $default = 0;
-                    }
+                    DB_save($_TABLES['topic_assignments'], 'tid,type,id,inherit,tdefault', "'$topic_option', '$type', '$id', 0 , 0");
                 } else {
-                    if ($value == $default_tid) {
-                        $default = 1;
-                    } else {
-                        $default = 0;
-                    }
-                }
+                    DB_delete($_TABLES['topic_assignments'], array('type', 'id', 'subtype'), array($type, $id, $sub_type));
 
-                DB_save($_TABLES['topic_assignments'], 'tid,type,id,inherit,tdefault', "'$value', '$type', '$id', $inherit, $default");
+                    DB_save($_TABLES['topic_assignments'], 'tid,type,subtype,id,inherit,tdefault', "'$topic_option', '$type', '$sub_type', '$id', 0 , 0");
+                }
+            // Delete Old selected topics since nothing selected. If a seleciton is required then this needs to be checked before this funciton is called
+            } elseif ($topic_option == TOPIC_SELECTED_OPTION) {
+                if (empty($sub_type)) {
+                    DB_delete($_TABLES['topic_assignments'], array('type', 'id'), array($type, $id));
+                } else {
+                    DB_delete($_TABLES['topic_assignments'], array('type', 'id', 'subtype'), array($type, $id, $sub_type));
+                }
+            } else {
+                return false;
             }
         }
+
+        return true;
     } else {
-        if ($topic_option == TOPIC_ALL_OPTION || $topic_option == TOPIC_HOMEONLY_OPTION) {
-            DB_delete($_TABLES['topic_assignments'], array('type', 'id'), array($type, $id));
-
-            DB_save($_TABLES['topic_assignments'], 'tid,type,id,inherit,tdefault', "'$topic_option', '$type', '$id', 0 , 0");
-        } else {
-            return false;
-        }
+        return false;
     }
-
-    return true;
 
 }
 
@@ -784,16 +871,19 @@ function TOPIC_getDataTopicSelectionControl(&$topic_option, &$tids, &$inherit_ti
  * This will return the HTML needed to create the topic control seen on the
  * admin screen for GL objects (i.e. stories, blocks, etc)
  *
- * @param        string  $type         Type of object to display access for
- * @param        string  $id           Id of onject (if '' then load date from control)
- * @param        boolean $show_options True/False. If true then All and Homepage options will be visible
- * @param        boolean $show_inherit True/False. If true then inhert selection will be enabled
- * @param        boolean $show_default True/False. If true then default topic selection will be enabled
+ * @param        string  $type                      Type of object (plugin) to display access for
+ * @param        string  $id                        Id of object (if '' then load date from control)
+ * @param        boolean $show_options              True/False. If true then All and Homepage options will be visible
+ * @param        boolean $show_inherit              True/False. If true then inhert selection will be enabled
+ * @param        boolean $show_default              True/False. If true then default topic selection will be enabled
+ * @param        boolean $set_topic_default_on_new  True/False. If true then default topic will be used as selection for an object that does not have any topic assignments
+ * @param        int     $access_type               Return only topics that user has following access: 0 = Read/Edit, 1 = Read/Edit (with read disabled), 2 = Edit only
+ * @param        string  $sub_type                  Sub type of plugin to allow plugins to have topic assigments for more than one type of item.
  * @return       string  needed HTML (table) in HTML
  */
-function TOPIC_getTopicSelectionControl($type, $id, $show_options = false, $show_inherit = false, $show_default = false)
+function TOPIC_getTopicSelectionControl($type, $id, $show_options = false, $show_inherit = false, $show_default = false, $set_topic_default_on_new = true, $access_type = 0, $sub_type = '')
 {
-    global $_CONF, $LANG27, $_TABLES, $topic, $_SCRIPTS;
+    global $_CONF, $LANG27, $_TABLES, $_USER, $_SCRIPTS;
 
     $tids = array();
     $inherit_tids = array();
@@ -818,15 +908,20 @@ function TOPIC_getTopicSelectionControl($type, $id, $show_options = false, $show
         } else {
             // Figure out if we set current topic for first display or use default topic
             if ($topic_option == TOPIC_SELECTED_OPTION && empty($tids)) {
-                if ($topic == '') {
+                if ($_USER['topic_id'] == '' AND $set_topic_default_on_new) {
                     $tids = DB_getItem($_TABLES['topics'], 'tid', 'is_default = 1' . COM_getPermSQL('AND'));
                 } else {
-                    $tids = $topic;
+                    $tids = $_USER['topic_id'];
                 }
             }
         }
     } else {
-        $sql = "SELECT * FROM {$_TABLES['topic_assignments']} WHERE type = '$type' AND id ='$id'";
+        if (!empty($sub_type)) {
+            $sql_sub_type = " AND subtype = '$sub_type'";
+        } else {
+            $sql_sub_type = '';
+        }
+        $sql = "SELECT * FROM {$_TABLES['topic_assignments']} WHERE type = '$type' AND id ='$id' $sql_sub_type ";
 
         $result = DB_query($sql);
         $B = DB_fetchArray($result);
@@ -871,15 +966,30 @@ function TOPIC_getTopicSelectionControl($type, $id, $show_options = false, $show
     $_SCRIPTS->setJavaScriptLibrary('jquery');
     $_SCRIPTS->setJavascriptFile('topic_control', '/javascript/topic_control.js');
 
-    $topiclist = TOPIC_getTopicListSelect($tids, false);
-    if (!$show_options && $topiclist == '') { // If access to no topics return nothing
+    // Generate topic list for topic select
+    if ($access_type == 1) { // Generate list when read access topics are disabled
+        // First see if any topics have edit access because if none we need to disable topic list
+        // Not the best way to do this...
+        $topiclist = TOPIC_getTopicListSelect($tids, false, false, '', false, 0 , 2);
+        if (!empty($topiclist)) {
+            // So at least one topic id passed has edit access so regenerate list with read access topics disabled along with edit access topics
+            $topiclist = TOPIC_getTopicListSelect($tids, false, false, '', false, 0 , $access_type);
+        }
+    } else {
+        // Generate list as normal for either read or just edit access
+        $topiclist = TOPIC_getTopicListSelect($tids, false, false, '', false, 0 , $access_type);
+    }
+
+    if (!$show_options && $topiclist == '') { // If access to no topics what so ever return nothing
         return '';
     }
 
     $topic_hide = false; // If false then topics multi select box will be visible
+    $topic_disabled = false; // Disabled if not topics are found to display for user (depends on access set to view)
     $val_hide = 'display:none;';
     if ($topiclist == '') { // Topics do not exist
         $topic_hide = true;
+        $topic_disabled = true;
         $topic_templates->set_var('topic_option_hide', $val_hide);
     } else {
         $topic_templates->set_var('topic_options', $topiclist);
@@ -898,6 +1008,16 @@ function TOPIC_getTopicSelectionControl($type, $id, $show_options = false, $show
     if ($show_options) {
         $topic_templates->set_var('topic_options_hide', '0');
         $topic_info = $LANG27[41];
+        if ($topic_disabled){
+            $topic_info .= $LANG27['topic_control_select_topics'];
+            $topic_info .= $LANG27['topic_control_no_topics'];
+        } else {
+            if ($access_type == 1) {
+                $topic_info .= $LANG27['topic_control_select_topics_disabled'];
+            } else {
+                $topic_info .= $LANG27['topic_control_select_topics'];
+            }
+        }
         $val_checked = 'checked="checked"';
         $all_checked = ($topic_option == TOPIC_ALL_OPTION) ? $val_checked : '';
         $homeonly_checked = ($topic_option == TOPIC_HOMEONLY_OPTION) ? $val_checked : '';
@@ -918,34 +1038,38 @@ function TOPIC_getTopicSelectionControl($type, $id, $show_options = false, $show
     $opt_dummy = '<option value="dummy">dummy</option>';
     $inherit_options = $opt_dummy;
     $topic_inherit_hide = '1';
-    if ($show_inherit) {
+    if ($show_inherit && !$topic_disabled) {
         $topic_inherit_hide = '0';
         $topic_info .= $LANG27[42];
         if (!empty($inherit_tids) OR !empty($tids)) { // Can have no inherited topics selected but if topics selected and show_inherit then need to display
             if ($from_db) {
-                $inherit_options = TOPIC_getOtherListSelect($type, $id, $inherit_tids);
+                $inherit_options = TOPIC_getOtherListSelect($type, $id, $inherit_tids, array(), $sub_type);
             } else {
-                $inherit_options = TOPIC_getOtherListSelect($type, $id, $inherit_tids, $tids);
+                $inherit_options = TOPIC_getOtherListSelect($type, $id, $inherit_tids, $tids, $sub_type);
             }
         } else {
             $inherit_hide = true;
         }
+    } else {
+        $inherit_hide = true;
     }
 
     $default_options = $opt_dummy;
     $topic_default_hide = '1';
-    if ($show_default) {
+    if ($show_default && !$topic_disabled) {
         $topic_default_hide = '0';
         $topic_info .= $LANG27[43];
         if (!empty($default_tid)) {
             if ($from_db) {
-                $default_options = TOPIC_getOtherListSelect($type, $id, $default_tid);
+                $default_options = TOPIC_getOtherListSelect($type, $id, $default_tid, array(), $sub_type);
             } else {
-                $default_options = TOPIC_getOtherListSelect($type, $id, $default_tid, $tids);
+                $default_options = TOPIC_getOtherListSelect($type, $id, $default_tid, $tids, $sub_type);
             }
         } else {
             $default_hide = true;
         }
+    } else {
+        $default_hide = true;
     }
 
     $topic_templates->set_var('topic_inherit_hide', $topic_inherit_hide);
@@ -972,13 +1096,13 @@ function TOPIC_getTopicSelectionControl($type, $id, $show_options = false, $show
 /**
  * Retrieve topics from selection or retrieve topics for object from db
  *
- * @param    string $type  Type of object to find topic access about. If 'topic' then will check post array for topic
- *                         selection control
- * @param           string /array    $id     ID of block or topic to check if block topic access
- * @param    int    $uid   User id (not currently implemented) or 0 = current user or -1 = do not check access
- * @return   array                   Returns default topic id or empty string if not found
+ * @param    string         $type       Type of object to find topic access about. If 'topic' then will check post array for topic selection control
+ * @param    string/array   $id         ID of block or topic to check if block topic access
+ * @param    int            $uid        User id (not currently implemented) or 0 = current user or -1 = do not check access
+ * @param    string         $sub_type   Sub type of plugin to allow plugins to have topic assigments for more than one type of item.
+ * @return   array                      Returns default topic id or empty string if not found
  */
-function TOPIC_getTopicIdsForObject($type, $id = '', $uid = -1)
+function TOPIC_getTopicIdsForObject($type, $id = '', $uid = -1, $sub_type = '')
 {
     global $_TABLES;
 
@@ -989,12 +1113,17 @@ function TOPIC_getTopicIdsForObject($type, $id = '', $uid = -1)
             $tids = Geeklog\Input::fPost('tid');
         }
     } else {
+        if (!empty($sub_type)) {
+            $sql_sub_type = " AND subtype = '$sub_type'";
+        } else {
+            $sql_sub_type = '';
+        }
         // Retrieve topic assignments
         if ($uid == 0) {
             $sql = "SELECT ta.tid, t.topic
                 FROM {$_TABLES['topics']} t, {$_TABLES['topic_assignments']} ta
                 WHERE t.tid = ta.tid
-                AND ta.type = '$type' AND ta.id = '$id'
+                AND ta.type = '$type' AND ta.id = '$id' $sql_sub_type
                 " . COM_getPermSQL('AND', 0, 2, 't') . COM_getLangSQL('tid', 'AND', 't')
                 . " ORDER BY tdefault DESC, topic ASC";
         } elseif ($uid > 0) {
@@ -1002,7 +1131,7 @@ function TOPIC_getTopicIdsForObject($type, $id = '', $uid = -1)
 
 
         } else {
-            $sql = "SELECT tid FROM {$_TABLES['topic_assignments']} WHERE type = '$type' AND id ='$id'";
+            $sql = "SELECT tid FROM {$_TABLES['topic_assignments']} WHERE type = '$type' AND id ='$id' $sql_sub_type";
         }
 
         $result = DB_query($sql);
@@ -1019,12 +1148,12 @@ function TOPIC_getTopicIdsForObject($type, $id = '', $uid = -1)
 /**
  * Retrieve default topic from selection
  *
- * @param    string $type  Type of object to find topic access about. If 'topic' then will check post array for topic
- *                         selection control
- * @param           string /array    $id     ID of block or topic to check if block topic access
- * @return   string                  Returns default topic id or empty string if not found
+ * @param    string         $type       Type of object to find topic access about. If 'topic' then will check post array for topic selection control
+ * @param    string/array   $id         ID of block or topic to check if block topic access
+ * @param    string         $sub_type   Sub type of plugin to allow plugins to have topic assigments for more than one type of item.
+ * @return   string                     Returns default topic id or empty string if not found
  */
-function TOPIC_getTopicDefault($type, $id = '')
+function TOPIC_getTopicDefault($type, $id = '', $sub_type = '')
 {
     global $_TABLES;
 
@@ -1039,8 +1168,13 @@ function TOPIC_getTopicDefault($type, $id = '')
             }
         }
     } else {
+        if (!empty($sub_type)) {
+            $sql_sub_type = " AND subtype = '$sub_type'";
+        } else {
+            $sql_sub_type = '';
+        }
         // Retrieve default topic from db
-        $sql = "SELECT tid FROM {$_TABLES['topic_assignments']} WHERE type = '$type' AND id ='$id' AND tdefault = 1";
+        $sql = "SELECT tid FROM {$_TABLES['topic_assignments']} WHERE type = '$type' AND id ='$id' $sql_sub_type AND tdefault = 1";
 
         $result = DB_query($sql);
         $A = DB_fetchArray($result);
@@ -1052,27 +1186,33 @@ function TOPIC_getTopicDefault($type, $id = '')
 }
 
 /**
- * Delete Topic Assignments for a specfic object
+ * Delete Topic Assignments for a specific object
  *
- * @param    string $type Type of object to find topic access about.
- * @param           string /array    $id     ID of object
+ * @param    string         $type       Type of object (plugin) to find topic access about.
+ * @param    string/array   $id         ID of object
+ * @param    string         $sub_type   Sub type of plugin to allow plugins to have topic assigments for more than one type of item.
  * @return   nothing
  */
-function TOPIC_deleteTopicAssignments($type, $id)
+function TOPIC_deleteTopicAssignments($type, $id, $sub_type = '')
 {
     global $_TABLES;
 
-    DB_delete($_TABLES['topic_assignments'], array('type', 'id'), array($type, $id));
+    if (empty($sub_type)) {
+        DB_delete($_TABLES['topic_assignments'], array('type', 'id'), array($type, $id));
+    } else {
+        DB_delete($_TABLES['topic_assignments'], array('type', 'id', 'subtype'), array($type, $id, $sub_type));
+    }
 }
 
 /**
- * Add Topic Assignments for a specfic object
+ * Add Topic Assignments for a specific object
  *
- * @param    string $type Type of object to find topic access about.
- * @param           string /array    $id     ID of object
+ * @param    string         $type       Type of object to find topic access about.
+ * @param    string/array   $id         ID of object
+ * @param    string         $sub_type   Sub type of plugin to allow plugins to have topic assigments for more than one type of item.
  * @return   nothing
  */
-function TOPIC_addTopicAssignments($type, $id, $tid = '')
+function TOPIC_addTopicAssignments($type, $id, $tid = '', $sub_type = '')
 {
     global $_TABLES;
 
@@ -1080,25 +1220,36 @@ function TOPIC_addTopicAssignments($type, $id, $tid = '')
         $tid = TOPIC_ALL_OPTION;
     }
 
-    DB_save($_TABLES['topic_assignments'], 'tid,type,id,inherit,tdefault', "'$tid', '$type', '$id', 0 , 0");
+    if (empty($sub_type)) {
+        DB_save($_TABLES['topic_assignments'], 'tid,type,id,inherit,tdefault', "'$tid', '$type', '$id', 0 , 0");
+    } else {
+        DB_save($_TABLES['topic_assignments'], 'tid,type,subtype,id,inherit,tdefault', "'$tid', '$type', '$sub_type', '$id', 0 , 0");
+    }
+
 }
 
 /**
  * Return Topic list for Admin list Topic Column
  * (need to handle 'all' and 'homeonly' as special cases)
  *
- * @param    string $type Type of object to find topic access about.
- * @param           string /array    $id     ID of object
- * @return   string                  Returns topic list
+ * @param    string         $type       Type of object (plugin) to find topic access about.
+ * @param    string/array   $id         ID of object
+ * @param    string         $sub_type   Sub type of plugin to allow plugins to have topic assigments for more than one type of item.
+ * @return   string                     Returns topic list
  */
-function TOPIC_getTopicAdminColumn($type, $id)
+function TOPIC_getTopicAdminColumn($type, $id, $sub_type = '')
 {
     global $_TABLES, $LANG21;
 
     $retval = '';
 
+    if (!empty($sub_type)) {
+        $sql_sub_type = " AND subtype = '$sub_type'";
+    } else {
+        $sql_sub_type = '';
+    }
     // Retrieve topic assignments
-    $sql = "SELECT * FROM {$_TABLES['topic_assignments']} WHERE type = '$type' AND id = '$id'";
+    $sql = "SELECT * FROM {$_TABLES['topic_assignments']} WHERE type = '$type' AND id = '$id' $sql_sub_type";
 
     $result = DB_query($sql);
     $A = DB_fetchArray($result);
@@ -1121,43 +1272,88 @@ function TOPIC_getTopicAdminColumn($type, $id)
 }
 
 /**
+ * Set the current topic
+ *
+ * @param    string         tid         Topic id
+ * @return   string                     Returns topic id set. This may differ is current user doesn't have permissions
+ */
+function TOPIC_setTopic($tid)
+{
+	global $_TABLES, $_USER;
+
+    // Make sure TOPIC_ALL_OPTION is not used to set all topics
+	if ($tid == '' OR $tid == TOPIC_ALL_OPTION) {
+		$_USER['topic_id'] = '';
+	} else {
+		// See if user has access to new topic. If not then keep same topic since assume user has access to it...
+		$test_topic = DB_getItem($_TABLES['topics'], 'tid', "tid = '" . DB_escapeString($tid) . "' " . COM_getPermSQL('AND'));
+		if (strtolower($tid) == strtolower($test_topic)) {
+			$_USER['topic_id'] = $test_topic; // Set to topic id in database incase the letter case is incorrect
+		}
+	}
+
+    // **************************************
+    // Remove as of Geeklog v3.0.0
+    // Plugins at this point will be required to use TOPIC_setTopic, TOPIC_currentTopic and TOPIC_getTopic instead of global $topic variable
+    global $topic;
+    $topic = $_USER['topic_id'];
+    // **************************************
+
+	// Return topic it was set to incase topic passed couldn't be set to permission issues, etc...
+	return $_USER['topic_id'];
+}
+
+/**
+ * Retrieve current topic id
+ *
+ * @return   string                     Returns current topic id. If all topics will return TOPIC_ALL_OPTION constant
+ */
+function TOPIC_currentTopic()
+{
+	global $_USER;
+
+	return $_USER['topic_id'];
+}
+
+/**
  * Figure out the current topic for a plugin. If permissions or language wrong
  * will find default else end with a '' topic (which is all). Needs to be run
  * on page that is affected by the topic after lib-common.php so it can grab
  * topic in url if need be. Also if pass blank $type and $id then return just last topic
  *
- * @param    string $type Type of object to find topic access about.
- * @param           string /array    $id     ID of object
+ * @param    string         $type       Type of item (plugin) to find topic access about.
+ * @param    string/array   $id         ID of object
+ * @param    string         $sub_type   Sub type of plugin to allow plugins to have topic assigments for more than one type of item.
  * @return   void
  */
-function TOPIC_getTopic($type = '', $id = '')
+function TOPIC_getTopic($type = '', $id = '', $sub_type = '')
 {
-    global $_TABLES, $topic;
+    global $_TABLES, $_USER;
 
     $find_another = false;
     $found = false;
 
     // Double check
-    $topic = COM_applyFilter($topic);
-    if ($topic == TOPIC_ALL_OPTION) {
-        $topic = ''; // Do not use 'all' option. Nothing is the same thing
+    $_USER['topic_id'] = COM_applyFilter($_USER['topic_id']);
+    if ($_USER['topic_id'] == TOPIC_ALL_OPTION) { // should not happen
+        $_USER['topic_id'] = ''; // Do not use '' as 'all' option is the same thing
     }
     // See if user has access to view topic
-    if ($topic != '') {
-        $test_topic = DB_getItem($_TABLES['topics'], 'tid', "tid = '$topic' " . COM_getPermSQL('AND'));
-        if (strtolower($topic) != strtolower($test_topic)) {
-            $topic = '';
+    if (!empty($_USER['topic_id'])) {
+		$test_topic = DB_getItem($_TABLES['topics'], 'tid', "tid = '{$_USER['topic_id']}' " . COM_getPermSQL('AND'));
+        if (strtolower($_USER['topic_id']) != strtolower($test_topic)) {
+            $_USER['topic_id'] = TOPIC_ALL_OPTION;
         } else { // Make it equal to the db version since case maybe different
-            $topic = $test_topic;
+            $_USER['topic_id'] = $test_topic;
         }
     }
 
     // Check and return Previous topic if no current topic
-    if ($topic == '') {
+    if (empty($_USER['topic_id'])) {
         // Blank could mean all topics or that we do not know topic
         // retrieve previous topic
-        $last_topic = SESS_getVariable('topic');
-        
+        $last_topic = SESS_getVariable('topic_id');
+
         // Need to test last topic in session just in case it doesn't exist anymore or got corrupted some how (possibly by incorrect retrieval by 3rd party plugin)
         $test_topic = DB_getItem($_TABLES['topics'], 'tid', "tid = '$last_topic' " . COM_getPermSQL('AND'));
         if (strtolower($last_topic) != strtolower($test_topic)) {
@@ -1166,13 +1362,13 @@ function TOPIC_getTopic($type = '', $id = '')
             $last_topic = $test_topic;
         }
     } else {
-        $last_topic = $topic;
+        $last_topic = $_USER['topic_id'];
     }
 
     // ***********************************
     // Special Cases
     if ($type == '') { // used by search, submit, etc to find last topic
-        $topic = $last_topic;
+        $_USER['topic_id'] = $last_topic;
         $found = true;
     } elseif ($type == 'comment') {
         if ($id != '') {
@@ -1191,19 +1387,24 @@ function TOPIC_getTopic($type = '', $id = '')
                 $id = $A['sid'];
 
             } else {
-                // Could not find comment so set topic to nothing (all)
-                $topic = '';
+                // Could not find comment so set topic to all
+                $_USER['topic_id'] = '';
                 $found = true;
             }
         } else {
             // If no id then probably a submit form
-            $topic = $last_topic;
+            $_USER['topic_id'] = $last_topic;
             $found = true;
         }
     }
     // ***********************************
 
     if (!$found) {
+        if (!empty($sub_type)) {
+            $sql_sub_type = " AND ta.subtype = '$sub_type'";
+        } else {
+            $sql_sub_type = '';
+        }
         if ($last_topic != '') {
             // see if object belongs to topic or any child inherited topics
             $tid_list = TOPIC_getChildList($last_topic);
@@ -1211,7 +1412,7 @@ function TOPIC_getTopic($type = '', $id = '')
             $sql = "SELECT ta.tid
                 FROM {$_TABLES['topics']} t, {$_TABLES['topic_assignments']} ta
                 WHERE t.tid = ta.tid
-                AND ta.type = '$type' AND ta.id = '$id'
+                AND ta.type = '$type' AND ta.id = '$id' $sql_sub_type
                 AND (ta.tid IN({$tid_list}) AND (ta.inherit = 1 OR (ta.inherit = 0 AND ta.tid = '{$last_topic}')))
                 " . COM_getLangSQL('tid', 'AND', 't') . COM_getPermSQL('AND', 0, 2, 't')
                 . " ORDER BY tdefault DESC, tid ASC"; // Order by default first and then tid alphabetically since no defined sort order of topics. This needs to be the same as when topics are displayed (index.php)
@@ -1220,12 +1421,12 @@ function TOPIC_getTopic($type = '', $id = '')
             $nrows = DB_numRows($result);
             if ($nrows > 0) {
                 $A = DB_fetchArray($result);
-                $topic = $A['tid']; // Default topic if returned else first topic in order by tid
+                $_USER['topic_id'] = $A['tid']; // Default topic if returned else first topic in order by tid
 
                 // Need to check if topic assignment exists for last topic if so make that the topic instead
                 while ($A = DB_fetchArray($result)) {
                     if ($last_topic == $A['tid']) {
-                        $topic = $A['tid'];
+                        $_USER['topic_id'] = $A['tid'];
                     }
                 }
             } else {
@@ -1240,7 +1441,7 @@ function TOPIC_getTopic($type = '', $id = '')
             $sql = "SELECT ta.*
                 FROM {$_TABLES['topics']} t, {$_TABLES['topic_assignments']} ta
                 WHERE t.tid = ta.tid
-                AND ta.type = '$type' AND ta.id = '$id'
+                AND ta.type = '$type' AND ta.id = '$id' $sql_sub_type
                 " . COM_getLangSQL('tid', 'AND', 't') . COM_getPermSQL('AND', 0, 2, 't') . "
                 ORDER by ta.tdefault DESC";
 
@@ -1248,24 +1449,32 @@ function TOPIC_getTopic($type = '', $id = '')
             $nrows = DB_numRows($result);
             if ($nrows > 0) {
                 $A = DB_fetchArray($result);
-                $topic = $A['tid'];
+                $_USER['topic_id'] = $A['tid'];
             } else {
-                $topic = '';
+                $_USER['topic_id'] = '';
             }
         }
     }
+
+    // **************************************
+    // Remove as of Geeklog v3.0.0
+    // Plugins at this point will be required to use TOPIC_setTopic, TOPIC_currentTopic and TOPIC_getTopic instead of global $topic variable
+    global $topic;
+    $topic = $_USER['topic_id'];
+    // **************************************
 }
 
 /**
  * If found returns one or more html breadcrumb. Used by Topics, Stories and Plugins.
  *
- * @param    string $type Type of object to create breadcrumb trail
- * @param           string /array    $id     ID of object
- * @return   string                  1 or more breadcrumb trail in html
+ * @param    string         $type       Type of object (plugin) to create breadcrumb trail
+ * @param    string/array   $id         ID of object
+ * @param    string         $sub_type   Sub type of plugin to allow plugins to have topic assigments for more than one type of item.
+ * @return   string                     1 or more breadcrumb trail in html
  */
-function TOPIC_breadcrumbs($type, $id)
+function TOPIC_breadcrumbs($type, $id, $sub_type = '')
 {
-    global $_CONF, $_TABLES, $LANG27, $_TOPICS, $topic;
+    global $_CONF, $_TABLES, $LANG27, $_TOPICS, $_USER, $_STRUCT_DATA;
 
     $breadcrumbs_output = '';
 
@@ -1281,14 +1490,19 @@ function TOPIC_breadcrumbs($type, $id)
         $sql = "SELECT tid, topic, parent_id FROM {$_TABLES['topics']} "
             . "WHERE tid = '$id'" . COM_getPermSQL('AND', 0, 2);
     } else {
+        if (!empty($sub_type)) {
+            $sql_sub_type = " AND ta.subtype = '$sub_type'";
+        } else {
+            $sql_sub_type = '';
+        }
         // Retrieve all topics assignments that point to this object
         $sql = "SELECT t.tid, t.topic, t.parent_id "
             . "FROM {$_TABLES['topic_assignments']} ta, {$_TABLES['topics']} t "
-            . "WHERE ta.type = '$type' AND ta.id = '$id' AND t.tid = ta.tid"
+            . "WHERE ta.type = '$type' AND ta.id = '$id' $sql_sub_type AND t.tid = ta.tid"
             . COM_getPermSQL('AND', 0, 2, 't');
 
         if (!$_CONF['multiple_breadcrumbs']) {
-            $sql .= " AND ta.tid = '$topic'";
+            $sql .= " AND ta.tid = '{$_USER['topic_id']}'";
         }
     }
     $result = DB_query($sql);
@@ -1300,15 +1514,14 @@ function TOPIC_breadcrumbs($type, $id)
         $breadcrumb_t->set_block('breadcrumbs_list', 'breadcrumb_item');
         $breadcrumb_t->set_block('breadcrumbs_list', 'breadcrumb_item_nolink');
 
-        if (in_array($_CONF['doctype'], array('html5', 'xhtml5'))) {
-            $breadcrumb_t->set_var('microdata', true);
-        }
         $rootname = $_CONF['breadcrumb_root_site_name'] ?
             $_CONF['site_name'] : $LANG27['breadcrumb_root'];
         $separator = htmlspecialchars($LANG27['breadcrumb_separator']);
 
         while ($A = DB_fetchArray($result)) {
-            $breadcrumb_a = array();
+            // Setup structured data for breadcrumb list
+            $_STRUCT_DATA->add_BreadcrumbList('core-breadcrumb', $A['tid']);
+
             $breadcrumb_a[] = $A;
             $parent_id = $A['parent_id'];
             while ($parent_id != TOPIC_ROOT) {
@@ -1328,7 +1541,6 @@ function TOPIC_breadcrumbs($type, $id)
             // Now flip array so it is printed out in proper order (top to bottom)
             $breadcrumb_a = array_reverse($breadcrumb_a);
 
-            $retval = '';
             $count = 0;
             foreach ($breadcrumb_a as $value) {
                 $count++;
@@ -1356,6 +1568,9 @@ function TOPIC_breadcrumbs($type, $id)
                 $breadcrumb_t->set_var('count', $count);
                 $breadcrumb_t->set_var('separator', ($count == 1) ? '' : $separator);
                 $breadcrumb_t->parse('breadcrumb_items', $use_block, ($count == 1) ? false : true);
+
+                // Add Structured Data for breadcrumb
+                $_STRUCT_DATA->set_breadcrumb_item('core-breadcrumb', $A['tid'], $count, $url, $value['topic']);
             }
             $breadcrumb_t->parse('breadcrumbs', 'breadcrumb', true);
         }
@@ -1375,12 +1590,12 @@ function TOPIC_breadcrumbs($type, $id)
  */
 function TOPIC_inPath($tid, $current_tid = '')
 {
-    global $_TOPICS, $topic;
+    global $_TOPICS, $_USER;
 
     $found = false;
 
     if ($current_tid == '') {
-        $current_tid = $topic;
+        $current_tid = $_USER['topic_id'];
     }
 
     if ($current_tid != '') {
@@ -1389,7 +1604,7 @@ function TOPIC_inPath($tid, $current_tid = '')
         while ($found == false) {
             if ($check_tid != TOPIC_ROOT) {
                 $index = TOPIC_getIndex($check_tid);
-                if ($_TOPICS[$index]['access'] > 0 && $index != 0) {
+                if (isset($_TOPICS[$index]) && ($_TOPICS[$index]['access'] > 0) && ($index != 0)) {
                     if ($check_tid == $tid) {
                         $found = true;
                     }
@@ -1410,13 +1625,14 @@ function TOPIC_inPath($tid, $current_tid = '')
  * This function creates an html list of topics the object belongs too or
  * creates a similar list based on topics passed to it
  *
- * @param    string  $type Type of object to display access for
- * @param    string  $id   Id of onject
- * @param    integer $max  Max number of items returned
- * @param            string /array    $tids           Topics Ids to use instead of retrieving from db
+ * @param    string         $type       Type of object to display access for
+ * @param    string         $id         Id of onject
+ * @param    integer        $max        Max number of items returned
+ * @param    string/array   $tids       Topics Ids to use instead of retrieving from db
+ * @param    string         $sub_type   Sub type of plugin to allow plugins to have topic assigments for more than one type of item.
  * @return   HTML string
  */
-function TOPIC_relatedTopics($type, $id, $max = 6, $tids = array())
+function TOPIC_relatedTopics($type, $id, $max = 6, $tids = array(), $sub_type = '')
 {
     global $_CONF, $LANG27, $_TABLES;
 
@@ -1437,10 +1653,15 @@ function TOPIC_relatedTopics($type, $id, $max = 6, $tids = array())
     }
 
     if ($from_db) {
+        if (!empty($sub_type)) {
+            $sql_sub_type = " AND ta.subtype = '$sub_type'";
+        } else {
+            $sql_sub_type = '';
+        }
         // Retrieve Topic options
         $sql = "SELECT ta.tid, t.topic
             FROM {$_TABLES['topic_assignments']} ta, {$_TABLES['topics']} t
-            WHERE t.tid = ta.tid AND ta.type = '$type' AND ta.id ='$id'
+            WHERE t.tid = ta.tid AND ta.type = '$type' AND ta.id ='$id' $sql_sub_type
             " . COM_getPermSQL('AND', 0, 2, 't') . COM_getLangSQL('tid', 'AND', 't') . "
             AND t.tid != '" . TOPIC_ALL_OPTION . "' AND t.tid != '" . TOPIC_HOMEONLY_OPTION . "'";
     } else {
@@ -1494,14 +1715,15 @@ function TOPIC_relatedTopics($type, $id, $max = 6, $tids = array())
  * This function creates a list of the newest and recently modified items that are related based on
  * the topics passed or that the object belongs too
  *
- * @param    string  $type Type of object to display access for
- * @param    string  $id   Id of onject
- * @param    integer $max  Max number of items returned
- * @param    integer $trim Max length of link text
- * @param            string /array    $tids           Topics Ids to use instead of retrieving from db
+ * @param    string          $type      Type of object (plugin) to display access for
+ * @param    string          $id        Id of onject
+ * @param    integer         $max       Max number of items returned
+ * @param    integer         $trim      Max length of link text
+ * @param    string          $sub_type  Sub type of plugin to allow plugins to have topic assigments for more than one type of item.
+ * @param    string/array    $tids      Topics Ids to use instead of retrieving from db
  * @return   HTML string
  */
-function TOPIC_relatedItems($type, $id, $include_types = array(), $max = 10, $trim = 0, $tids = array())
+function TOPIC_relatedItems($type, $id, $include_types = array(), $max = 10, $trim = 0, $tids = array(), $sub_type = '')
 {
     global $_CONF, $LANG27, $_TABLES;
 
@@ -1524,10 +1746,15 @@ function TOPIC_relatedItems($type, $id, $include_types = array(), $max = 10, $tr
 
     // Find all topics user has access too
     if ($from_db) {
+        if (!empty($sub_type)) {
+            $sql_sub_type = " AND ta.subtype = '$sub_type'";
+        } else {
+            $sql_sub_type = '';
+        }
         // Retrieve Topic options
         $sql = "SELECT ta.tid, t.topic
             FROM {$_TABLES['topic_assignments']} ta, {$_TABLES['topics']} t
-            WHERE t.tid = ta.tid AND ta.type = '$type' AND ta.id ='$id'
+            WHERE t.tid = ta.tid AND ta.type = '$type' AND ta.id ='$id' $sql_sub_type
             AND t.tid != '" . TOPIC_ALL_OPTION . "' AND t.tid != '" . TOPIC_HOMEONLY_OPTION . "'";
     } else {
         $sql = "SELECT tid, topic
@@ -1568,7 +1795,7 @@ function TOPIC_relatedItems($type, $id, $include_types = array(), $max = 10, $tr
     }
 
     // Make html list
-    $retval = COM_makeList($related_items, 'list-new-plugins');
+    $retval = COM_makeList($related_items, PLG_getThemeItem('topic-css-list-related', 'topic'));
 
     return $retval;
 }
@@ -1590,6 +1817,10 @@ function TOPIC_getUrl($topicId)
                 'topic'           => $topicId,
             ))
         );
+
+        if (strpos($retval, '?') !== false) {
+            $retval = $_CONF['site_url'] . '/index.php/topic/' . rawurlencode($topicId);
+        }
     /*
     if ($_CONF['url_rewrite'] && ($_CONF['url_routing'] == Router::ROUTING_WITH_INDEX_PHP)) {
         $retval = COM_buildURL(
@@ -1631,7 +1862,7 @@ function TOPIC_getUrl($topicId)
  * @param    string $op      operation to perform
  * @param    string $content item (e.g. topic text), including the autotag
  * @param    array  $autotag parameters used in the autotag
- * @param           mixed               tag names (for $op='tagname') or formatted content
+ * @param    mixed           tag names (for $op='tagname') or formatted content
  */
 
 function plugin_autotags_topic($op, $content = '', $autotag = '')
@@ -1700,6 +1931,7 @@ function plugin_autotags_topic($op, $content = '', $autotag = '')
         } elseif ($autotag['tag'] == 'related_topics') {
             $id = COM_applyFilter($autotag['parm1']);
             $type = '';
+            $sub_type = '';
             $max = $_CONF['related_topics_max']; // Article Default
             $tids = array();
             $skip = 0;
@@ -1710,6 +1942,10 @@ function plugin_autotags_topic($op, $content = '', $autotag = '')
                     if (substr($part, 0, 5) == 'type:') {
                         $a = explode(':', $part);
                         $type = $a[1];
+                        $skip++;
+                    } elseif (substr($part, 0, 4) == 'sub:') {
+                        $a = explode(':', $part);
+                        $sub_type = $a[1];
                         $skip++;
                     } elseif (substr($part, 0, 4) == 'max:') {
                         $a = explode(':', $part);
@@ -1728,7 +1964,7 @@ function plugin_autotags_topic($op, $content = '', $autotag = '')
             $related_topics = '';
             if (!empty($type) AND !empty($id)) {
                 // Return topics of object
-                $related_topics = TOPIC_relatedTopics($type, $id, $max);
+                $related_topics = TOPIC_relatedTopics($type, $id, $max, array(), $sub_type);
             } elseif (!empty($tids)) {
                 // Since list of topics specified add id to topic list (since really a topic)
                 if (!empty($id)) {
@@ -1743,6 +1979,7 @@ function plugin_autotags_topic($op, $content = '', $autotag = '')
         } elseif ($autotag['tag'] == 'related_items') {
             $id = COM_applyFilter($autotag['parm1']);
             $type = '';
+            $sub_type = '';
             $max = $_CONF['related_topics_max']; // Article Default
             $trim = 0;
             $include_types = array();
@@ -1755,6 +1992,10 @@ function plugin_autotags_topic($op, $content = '', $autotag = '')
                     if (substr($part, 0, 5) == 'type:') {
                         $a = explode(':', $part);
                         $type = $a[1];
+                        $skip++;
+                    } elseif (substr($part, 0, 4) == 'sub:') {
+                        $a = explode(':', $part);
+                        $sub_type = $a[1];
                         $skip++;
                     } elseif (substr($part, 0, 4) == 'max:') {
                         $a = explode(':', $part);
@@ -1781,7 +2022,7 @@ function plugin_autotags_topic($op, $content = '', $autotag = '')
             $related_items = '';
             if (!empty($type) AND !empty($id)) {
                 // Return topics of object
-                $related_items = TOPIC_relatedItems($type, $id, $include_types, $max, $trim, $tids);
+                $related_items = TOPIC_relatedItems($type, $id, $include_types, $max, $trim, $tids, $sub_type);
             } elseif (!empty($tids) OR !empty($id)) {
                 // Since list of topics specified add id to topic list (since really a topic)
                 $tids[] = $id;
@@ -1983,4 +2224,3 @@ function plugin_getiteminfo_topic($tid, $what, $uid = 0, $options = array())
 
     return $retval;
 }
-

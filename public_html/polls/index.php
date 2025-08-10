@@ -67,6 +67,8 @@ function polllist()
     ) {
         $retval .= SEC_loginRequiredForm();
     } else {
+		$retval .= COM_startBlock($LANG_POLLS['pollstitle']);
+		
         require_once($_CONF['path_system'] . 'lib-admin.php');
         $header_arr = array(    // display 'text' and use table field 'field'
             array('text' => $LANG25[9], 'field' => 'topic', 'sort' => true),
@@ -79,7 +81,8 @@ function polllist()
 
         $text_arr = array(
             'has_menu' => false,
-            'title'    => $LANG_POLLS['pollstitle'], 'instructions' => "",
+            // 'title'    => $LANG_POLLS['pollstitle'], 
+			'instructions' => "",
             'icon'     => '',
             'form_url' => $_CONF['site_url'] . '/polls/index.php',
         );
@@ -94,6 +97,8 @@ function polllist()
         );
 
         $retval .= ADMIN_list('polls', 'plugin_getListField_polls', $header_arr, $text_arr, $query_arr, $defsort_arr);
+		
+		$retval .= COM_endBlock();
     }
 
     return $retval;
@@ -131,7 +136,8 @@ if (isset($_REQUEST['pid'])) {
 }
 
 $order = Geeklog\Input::fRequest('order', '');
-$mode = Geeklog\Input::fRequest('mode', '');
+//$mode = Geeklog\Input::fRequest('mode', '');
+$mode = Geeklog\Input::fRequest('mode', Geeklog\Input::fRequest('format', ''));
 $page = (int) Geeklog\Input::fRequest('cpage', 1);
 $msg = (int) Geeklog\Input::fRequest('msg', 0);
 
@@ -148,9 +154,13 @@ if (empty($pid)) {
     $display .= polllist();
     $display = COM_createHTMLDocument($display, array('pagetitle' => $LANG_POLLS['pollstitle']));
 } elseif ((isset($_POST['aid']) && is_array($_POST['aid']) && (count($_POST['aid']) == $nquestions)) && !isset($_COOKIE['poll-' . $pid])) {
-    setcookie('poll-' . $pid, implode('-', $_POST['aid']), time() + $_PO_CONF['pollcookietime'],
-        $_CONF['cookie_path'], $_CONF['cookiedomain'],
-        $_CONF['cookiesecure']);
+    $aids = '';
+    foreach ($aid as $answer) {
+        $aids .= $answer[0] . '-';
+    }
+    $aids = substr($aids, 0, -1);
+
+    SEC_setCookie('poll-' . $pid, $aids, time() + $_PO_CONF['pollcookietime']);
     $display .= POLLS_pollsave($pid, $aid);
     $display = COM_createHTMLDocument($display);
 } elseif (!empty($pid)) {
@@ -159,11 +169,11 @@ if (empty($pid)) {
         . "WHERE pid = '" . DB_escapeString($pid) . "' " . COM_getPermSQL('AND'));
     $A = DB_fetchArray($result);
 
-    $polltopic = $A['topic'];
-    if (empty($polltopic)) {
+    if (!isset($A['topic']) || empty($A['topic'])) {
         // poll doesn't exist or user doesn't have access
         COM_handle404($_CONF['site_url'] . '/polls/index.php');
     } else {
+		$polltopic = $A['topic'];
         // Meta Tags
         $headercode = '';
 

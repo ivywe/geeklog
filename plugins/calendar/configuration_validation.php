@@ -2,13 +2,13 @@
 
 /* Reminder: always indent with 4 spaces (no tabs). */
 // +---------------------------------------------------------------------------+
-// | Calendar                                                              |
+// | Calendar                                                                  |
 // +---------------------------------------------------------------------------+
 // | configuration_validation.php                                              |
 // |                                                                           |
-// | List of validation rules for the Links plugin configurations                          |
+// | List of validation rules for the Links plugin configurations              |
 // +---------------------------------------------------------------------------+
-// | Copyright (C) 2007-2010 by the following authors:                         |
+// | Copyright (C) 2007-2020 by the following authors:                         |
 // |                                                                           |
 // | Authors: Akeda Bagus       - admin AT gedex DOT web DOT id                |
 // |          Tom Homer         - tomhomer AT gmail DOT com                    |
@@ -44,12 +44,14 @@ $_CONF_VALIDATE['calendar']['upcomingeventsrange'] = array('rule' => 'numeric');
 $_CONF_VALIDATE['calendar']['hour_mode'] = array(
     'rule' => array('inList', array('12', '24'), true)
 );
-$_CONF_VALIDATE['calendar']['event_types'] = array('rule' => 'boolean');
+$_CONF_VALIDATE['calendar']['event_types'] = array('rule' => 'stringOrEmpty');
 $_CONF_VALIDATE['calendar']['notification'] = array('rule' => 'boolean');
 $_CONF_VALIDATE['calendar']['delete_event'] = array('rule' => 'boolean');
 $_CONF_VALIDATE['calendar']['aftersave'] = array(
     'rule' => array('inList', array('item', 'list', 'plugin', 'home', 'admin'), true)
 );
+$_CONF_VALIDATE['calendar']['recaptcha'] = ['rule' => ['inList', ['0', '1', '2', '4'], true]];
+$_CONF_VALIDATE['calendar']['recaptcha_score'] = ['rule' => ['range', 0, 1]];
 
 // Default Permissions
 $_CONF_VALIDATE['calendar']['default_permissions[0]'] = array(

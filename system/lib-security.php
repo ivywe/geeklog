@@ -58,6 +58,8 @@
 // Turn this on to get various debug messages from the code in this library
 // Need to perform check as lib-security is also loaded by the Geeklog Emergency Rescue Tool
 // which does not load lib-common.php
+use Geeklog\Session;
+
 if (function_exists('COM_isEnableDeveloperModeLog')) {
     $_SEC_VERBOSE = COM_isEnableDeveloperModeLog('security');
 } else {
@@ -69,12 +71,12 @@ if (stripos($_SERVER['PHP_SELF'], basename(__FILE__)) !== false) {
 }
 
 /* Constants for account status */
-define('USER_ACCOUNT_DISABLED', 0); // Account is banned/disabled
-define('USER_ACCOUNT_AWAITING_ACTIVATION', 1); // Account awaiting user to login. Email has been sent
-define('USER_ACCOUNT_AWAITING_APPROVAL', 2); // Account awaiting moderator approval
+define('USER_ACCOUNT_DISABLED', 0); // Account is banned/disabled. Username is crossed out, User cannot login, emails to account is disabled, profile cannot be viewed
+define('USER_ACCOUNT_AWAITING_ACTIVATION', 1); // New Account awaiting user to login. Email has been sent but not verified. This is only set when a new account
+define('USER_ACCOUNT_AWAITING_APPROVAL', 2); // Account awaiting moderator approval in the User Submission Queue. Not for remote accounts. This is only set when a new account
 define('USER_ACCOUNT_ACTIVE', 3); // Active account
-define('USER_ACCOUNT_LOCKED', 4); // Account is locked. User cannot login, emails to account is disabled
-define('USER_ACCOUNT_NEW_EMAIL', 5); // Emails to account is disabled. User when login must submit new email address and verify before access to rest of website (under the user account)
+define('USER_ACCOUNT_LOCKED', 4); // Account is locked. User cannot login, emails to account is disabled, profile can still be viewed
+define('USER_ACCOUNT_NEW_EMAIL', 5); // Emails to account is disabled. User when login must submit new email address and verify before access to rest of website (under the user account). Status stays this until email verified
 define('USER_ACCOUNT_NEW_PASSWORD', 6); // User when login must submit new password before access to rest of website (under the user account), Only for regular accounts and not remote
 
 /* Constant for Security Token */
@@ -327,14 +329,14 @@ function SEC_hasModerationAccess()
     }
 
     if (PLG_isModerator()) {
-        $hasAccess = false;
+        $hasAccess = true;
     }
 
     return $hasAccess;
 }
 
 /**
- * Checks to see if current user has access to a topic
+ * Checks to see if current user has access to a topic. If not exist then no access returned
  *
  * @param        string $tid ID for topic to check on
  * @return       int     returns 3 for read/edit 2 for read only 0 for no access
@@ -350,7 +352,11 @@ function SEC_hasTopicAccess($tid)
     $result = DB_query("SELECT owner_id,group_id,perm_owner,perm_group,perm_members,perm_anon FROM {$_TABLES['topics']} WHERE tid = '$tid'");
     $A = DB_fetchArray($result);
 
-    return SEC_hasAccess($A['owner_id'], $A['group_id'], $A['perm_owner'], $A['perm_group'], $A['perm_members'], $A['perm_anon']);
+    if (DB_numrows($result) > 0) { // Make sure record return else no access
+        return SEC_hasAccess($A['owner_id'], $A['group_id'], $A['perm_owner'], $A['perm_group'], $A['perm_members'], $A['perm_anon']);
+    } else {
+        return 0;
+    }
 }
 
 /**
@@ -413,11 +419,19 @@ function SEC_hasAccess($owner_id, $group_id, $perm_owner, $perm_group, $perm_mem
  *
  * @param        string|array $features Features to check
  * @param        string       $operator Either 'and' or 'or'. Default is 'and'.  Used if checking more than one feature.
+ * @param    int    $uid     (optional) user ID else current user (0)
  * @return       boolean     Return true if current user has access to feature(s), otherwise false.
  */
-function SEC_hasRights($features, $operator = 'AND')
+function SEC_hasRights($features, $operator = 'AND', $uid = 0)
 {
-    global $_RIGHTS, $_SEC_VERBOSE;
+    global $_RIGHTS, $_SEC_VERBOSE, $_USER;
+
+    if (empty($uid)) {
+		// Then use current user rights
+		$userRights = $_RIGHTS;
+    } else {
+		$userRights = explode(',', SEC_getUserPermissions(0, $uid));
+	}
 
     if (is_string($features) && strstr($features, ',')) {
         $features = explode(',', $features);
@@ -428,18 +442,18 @@ function SEC_hasRights($features, $operator = 'AND')
         for ($i = 0; $i < count($features); $i++) {
             if ($operator == 'OR') {
                 // OR operator, return as soon as we find a true one
-                if (in_array($features[$i], $_RIGHTS)) {
+                if (in_array($features[$i], $userRights)) {
                     if ($_SEC_VERBOSE) {
-                        COM_errorLog('SECURITY: user has access to ' . $features[$i], 1);
+                        COM_errorLog("SECURITY: user $uid has access to " . $features[$i], 1);
                     }
 
                     return true;
                 }
             } else {
                 // this is an "AND" operator, bail if we find a false one
-                if (!in_array($features[$i], $_RIGHTS)) {
+                if (!in_array($features[$i], $userRights)) {
                     if ($_SEC_VERBOSE) {
-                        COM_errorLog('SECURITY: user does not have access to ' . $features[$i], 1);
+                        COM_errorLog("SECURITY: user $uid does not have access to " . $features[$i], 1);
                     }
 
                     return false;
@@ -449,13 +463,13 @@ function SEC_hasRights($features, $operator = 'AND')
 
         if ($operator == 'OR') {
             if ($_SEC_VERBOSE) {
-                COM_errorLog('SECURITY: user does not have access to ' . $features[$i], 1);
+                COM_errorLog("SECURITY: user $uid does not have access to " . $features[$i], 1);
             }
 
             return false;
         } else {
             if ($_SEC_VERBOSE) {
-                COM_errorLog('SECURITY: user has access to ' . $features[$i], 1);
+                COM_errorLog("SECURITY: user $uid has access to " . $features[$i], 1);
             }
 
             return true;
@@ -463,14 +477,14 @@ function SEC_hasRights($features, $operator = 'AND')
     } else {
         // Check the one value
         if ($_SEC_VERBOSE) {
-            if (in_array($features, $_RIGHTS)) {
-                COM_errorLog('SECURITY: user has access to ' . $features, 1);
+            if (in_array($features, $userRights)) {
+                COM_errorLog("SECURITY: user $uid has access to " . $features, 1);
             } else {
-                COM_errorLog('SECURITY: user does not have access to ' . $features, 1);
+                COM_errorLog("SECURITY: user $uid does not have access to " . $features, 1);
             }
         }
 
-        return in_array($features, $_RIGHTS);
+        return in_array($features, $userRights);
     }
 }
 
@@ -542,7 +556,7 @@ function SEC_getPermissionsHTML($perm_owner, $perm_group, $perm_members, $perm_a
  * @param    int $uid    User to check, if empty current user.
  * @return   string  returns comma delimited list of features the user has access to
  */
-function SEC_getUserPermissions($grp_id = '', $uid = '')
+function SEC_getUserPermissions($grp_id = 0, $uid = 0)
 {
     global $_TABLES, $_USER, $_SEC_VERBOSE, $_GROUPS;
 
@@ -702,11 +716,9 @@ function SEC_getPermissionValue($perm_x)
  * @param    int    $uid     (optional) user ID
  * @return   int                 group ID or 0
  */
-function SEC_getFeatureGroup($feature, $uid = '')
+function SEC_getFeatureGroup($feature, $uid = 0)
 {
     global $_GROUPS, $_TABLES, $_USER;
-
-    $ugroups = array();
 
     if (empty($uid)) {
         if (empty($_USER['uid'])) {
@@ -755,19 +767,24 @@ function SEC_authenticate($username, $password, &$uid)
 {
     global $_CONF, $_TABLES, $LANG01;
 
+    $uidToCheck = Session::getVar('uid_to_check', -1);
     $password = str_replace(array("\015", "\012"), '', $password);
 
-    $result = DB_query("SELECT uid, status, passwd, email, uid, invalidlogins, lastinvalid + {$_CONF['invalidloginmaxtime']} lastinvalidcheck, UNIX_TIMESTAMP() currenttime  FROM {$_TABLES['users']} WHERE username='$username' AND ((remoteservice is null) or (remoteservice = ''))");
+    $result = DB_query("SELECT uid, status, passwd, email, uid, invalidlogins, lastinvalid + {$_CONF['invalidloginmaxtime']} AS lastinvalidcheck, UNIX_TIMESTAMP() AS currenttime  FROM {$_TABLES['users']} WHERE username='$username' AND ((remoteservice is null) or (remoteservice = ''))");
     $tmp = DB_error();
     $nrows = DB_numRows($result);
 
-    if (($tmp == 0) && ($nrows == 1)) {
+    if (empty($tmp) && ($nrows == 1)) {
         $U = DB_fetchArray($result);
-        $uid = $U['uid'];
+        $uid = (int) $U['uid'];
+
         if ($U['status'] == USER_ACCOUNT_DISABLED) {
             // banned, jump to here to save an password hash calc.
             return USER_ACCOUNT_DISABLED;
-        } elseif (SEC_encryptUserPassword($password, $uid) < 0) {
+        } elseif ((SEC_encryptUserPassword($password, $uid) < 0) ||
+                // The person who is trying to reauthenticate has entered the correct pair of
+                // user name and password, but they are not his/hers
+                (($uidToCheck > Session::ANON_USER_ID) && ($uidToCheck !== $uid))) {
             $tmp = $LANG01['error_invalid_password'] . ": '" . $username . "'";
             COM_accessLog($tmp);
 
@@ -907,6 +924,7 @@ function SEC_remoteAuthentication(&$loginname, $passwd, $service, &$uid)
     $servicefile = $_CONF['path_system'] . 'classes/authentication/' . $service
         . '.auth.class.php';
     if (file_exists($servicefile)) {
+        /** @noinspection PhpIncludeInspection */
         require_once $servicefile;
 
         $authmodule = new $service();
@@ -985,14 +1003,16 @@ function SEC_collectRemoteAuthenticationModules()
  * @author Trinity L Bays, trinity93 AT gmail DOT com
  * @param  string $uid   Their user id
  * @param  string $gname The group name
- * @return boolean status, true or false.
+ * @return bool
  */
 function SEC_addUserToGroup($uid, $gname)
 {
-    global $_TABLES, $_CONF;
+    global $_TABLES;
 
     $remote_grp = DB_getItem($_TABLES['groups'], 'grp_id', "grp_name='" . $gname . "'");
-    DB_query("INSERT INTO {$_TABLES['group_assignments']} (ug_main_grp_id,ug_uid) VALUES ($remote_grp, $uid)");
+    $retval = DB_query("INSERT INTO {$_TABLES['group_assignments']} (ug_main_grp_id,ug_uid) VALUES ($remote_grp, $uid)");
+
+    return $retval;
 }
 
 /**
@@ -1040,9 +1060,9 @@ function SEC_setDefaultPermissions(&$A, $use_permissions = array())
  */
 function SEC_buildAccessSql($clause = 'AND')
 {
-    global $_TABLES, $_USER;
+    global $_USER;
 
-    if (isset($_USER) AND $_USER['uid'] > 1) {
+    if (isset($_USER) && $_USER['uid'] > 1) {
         $uid = $_USER['uid'];
     } else {
         $uid = 1;
@@ -1108,7 +1128,7 @@ function SEC_removeFeatureFromDB($feature_name, $logging = false)
  */
 function SEC_getGroupDropdown($group_id, $access)
 {
-    global $_CONF, $_TABLES;
+    global $_TABLES;
 
     $groupdd = '';
 
@@ -1244,14 +1264,14 @@ function SEC_generateSalt()
 
 /**
  * Encrypt User Password
- * Verify that the provided password authenticates the specified user (defualts
+ * Verify that the provided password authenticates the specified user (defaults
  * to the current user).
  *
  * @param  string $password password to verify
  * @param  int    $uid      user id to authenticate
  * @return int     0 for success, non-zero for failure or error
  */
-function SEC_encryptUserPassword($password, $uid = '')
+function SEC_encryptUserPassword($password, $uid = 0)
 {
     global $_USER, $_CONF, $_TABLES;
 
@@ -1306,7 +1326,8 @@ function SEC_encryptUserPassword($password, $uid = '')
  * Check if password passes minimum strength tests
  * Passwords must be a minimum of 8 characters and have at least 1 letter and 1 number
  *
- * @return  boolean
+ * @param  string $password
+ * @return bool
  */
 function SEC_checkPasswordStrength($password) {
 
@@ -1322,7 +1343,7 @@ function SEC_checkPasswordStrength($password) {
  * Generate Random Password
  * Generates a random string of human readable characters that has at least 1 number and 1 letter.
  *
- * @return  string  generated random password
+ * @return string  generated random password
  */
 function SEC_generateRandomPassword()
 {
@@ -1334,17 +1355,18 @@ function SEC_generateRandomPassword()
     mt_srand(rand());
     srand(mt_rand());
 
-    $entropy = str_split(hash('sha256', uniqid('awesomesalt', TRUE) . mcrypt_create_iv(64) . microtime() . rand() . mt_rand(), TRUE));
+    $entropy = str_split(hash('sha256', uniqid('awesomesalt', true) . SEC_randomBytes(64) . microtime() . rand() . mt_rand(), true));
     $alphabet = "abcdefghijklmnopqrstuwxyzABCDEFGHIJKLMNOPQRSTUWXYZ0123456789!@#$%^&*()_+=-";
     $pass = array(); //remember to declare $pass as an array
     $alphaLength = strlen($alphabet); //put the length in cache
-    $rand = floor(ord(array_pop($entropy)) * 50 / 255.1);
+    $rand = (int) floor(ord(array_pop($entropy)) * 50 / 255.1);
     $pass[] = $alphabet[0 + $rand]; // Grab a random letter.
-    $rand = floor(ord(array_pop($entropy)) * 10 / 255.1);
+    $rand = (int) floor(ord(array_pop($entropy)) * 10 / 255.1);
     $pass[] = $alphabet[50 + $rand]; // Grab a random number.
+
     for ($i = 0; $i < 6; $i++) {
-      $rand = floor(ord(array_pop($entropy)) * $alphaLength / 255.1);
-      $pass[] = $alphabet[$rand];
+        $rand = (int) floor(ord(array_pop($entropy)) * $alphaLength / 255.1);
+        $pass[] = $alphabet[$rand];
     }
 
     shuffle($pass);
@@ -1358,9 +1380,9 @@ function SEC_generateRandomPassword()
  *
  * @param  string $password Password to encrypt
  * @param  int    $uid      User id to update
- * @return int     0 for success, non-zero indicates error.
+ * @return int              0 for success, non-zero indicates error.
  */
-function SEC_updateUserPassword(&$password = '', $uid = '')
+function SEC_updateUserPassword(&$password = '', $uid = 0)
 {
     global $_TABLES, $_CONF, $_USER;
 
@@ -1382,10 +1404,13 @@ function SEC_updateUserPassword(&$password = '', $uid = '')
     // update the database with the new password using algorithm and stretch from $_CONF
     $salt = SEC_generateSalt();
     $newhash = SEC_encryptPassword($password, $salt, $_CONF['pass_alg'], $_CONF['pass_stretch']);
-    $query = 'UPDATE ' . $_TABLES['users'] . " SET passwd = '$newhash', "
+    $sql = 'UPDATE ' . $_TABLES['users'] . " SET passwd = '$newhash', "
         . "salt = '$salt', algorithm ='" . $_CONF['pass_alg'] . "', "
         . 'stretch = ' . $_CONF['pass_stretch'] . " WHERE uid = $uid";
-    DB_query($query);
+    DB_query($sql);
+
+    // Delete all autologin keys associated with user since password reset
+    SESS_deleteUserAutoLoginKeys($uid);
 
     // return success
     return 0;
@@ -1403,7 +1428,7 @@ function SEC_updateUserPassword(&$password = '', $uid = '')
  */
 function SEC_createToken($ttl = 1200)
 {
-    global $_TABLES, $_USER;
+    global $_CONF, $_TABLES, $_USER;
 
     static $last_token;
 
@@ -1411,7 +1436,11 @@ function SEC_createToken($ttl = 1200)
         return $last_token;
     }
 
-    $uid = isset($_USER['uid']) ? $_USER['uid'] : 1;
+    $uid = isset($_USER['uid']) ? (int) $_USER['uid'] : 1;
+
+    // Save user ID to the current session to make sure the user getting the CSRF token
+    // is the same person that will be check by SEC_checkToken() later
+    Session::setVar('uid_to_check', $uid);
 
     /* Figure out the full url to the current page */
     $pageURL = COM_getCurrentURL();
@@ -1427,24 +1456,23 @@ function SEC_createToken($ttl = 1200)
         . " AND (ttl > 0)";
     DB_query($sql);
 
-    /* Destroy tokens for this user/url combination. Since anonymous user share same id do not delete */
-    if (!(isset($_CONF['demo_mode']) && $_CONF['demo_mode'])) {
+    // Destroy tokens for this user/url combination. Since anonymous user share same id do not delete
+    if (!COM_isDemoMode()) {
         if ($uid != 1) {
             $sql = "DELETE FROM {$_TABLES['tokens']} WHERE owner_id = '{$uid}' AND urlfor= '$pageURL'";
             DB_query($sql);
         }
     }
 
-    /* Create a token for this user/url combination */
-    /* NOTE: TTL mapping for PageURL not yet implemented */
+    // Create a token for this user/url combination
+    // TODO: TTL mapping for PageURL not yet implemented
     $sql = "INSERT INTO {$_TABLES['tokens']} (token, created, owner_id, urlfor, ttl) "
         . "VALUES ('$token', NOW(), $uid, '$pageURL', $ttl)";
     DB_query($sql);
 
     $last_token = $token;
 
-    /* And return the token to the user */
-
+    // And return the token to the user
     return $token;
 }
 
@@ -1497,7 +1525,7 @@ function SEC_checkToken()
             . SECINT_authform($returnurl, $method, $postdata, $getdata, $files);
     }
     $display = COM_createHTMLDocument($display, array('pagetitle' => $LANG20[1]));
-    
+
     COM_output($display);
     exit;
 
@@ -1513,10 +1541,13 @@ function SEC_checkToken()
  */
 function SECINT_checkToken()
 {
-    global $_TABLES, $_USER, $_DB_dbms;
+    global $_TABLES, $_USER;
+
+    if (Session::getVar('uid_to_check', -1) !== Session::getUid()) {
+        return false;
+    }
 
     $token = Geeklog\Input::fGetOrPost(CSRF_TOKEN, ''); // Default to no token
-    $return = false; // Default to fail.
 
     if (trim($token) != '') {
         $sql['mysql'] = "SELECT ((DATE_ADD(created, INTERVAL ttl SECOND) < NOW()) AND ttl > 0) as expired, owner_id, urlfor FROM "
@@ -1552,6 +1583,10 @@ function SECINT_checkToken()
         $return = false; // no token.
     }
 
+    if ($return) {
+        Session::unsetVar('uid_to_check');
+    }
+
     return $return;
 }
 
@@ -1562,7 +1597,8 @@ function SECINT_checkToken()
  * @param    string $method    original request method: POST or GET
  * @param    string $postdata  serialized POST data
  * @param    string $getdata   serialized GET data
- * @return   string              HTML for the authentication form
+ * @param    string $files
+ * @return   string            HTML for the authentication form
  * @access   private
  */
 function SECINT_authform($returnurl, $method, $postdata = '', $getdata = '', $files = '')
@@ -1725,11 +1761,11 @@ function SEC_getTokenExpiryNotice($token, $extra_msg = '')
         if ($expirytime > 0) {
             $tcc = COM_newTemplate(CTL_core_templatePath($_CONF['path_layout'] . 'controls'));
             $tcc->set_file('expiry_message', 'expiry_message.thtml');
-            
-            $tcc->set_var('lang_token_expiry', sprintf($LANG_ADMIN['token_expiry'], strftime($_CONF['timeonly'], $expirytime)));
+
+            $tcc->set_var('lang_token_expiry', sprintf($LANG_ADMIN['token_expiry'], COM_strftime($_CONF['timeonly'], $expirytime)));
             $tcc->set_var('lang_extra_msg', $extra_msg);
-            
-            $retval = $tcc->finish($tcc->parse('output', 'expiry_message'));        
+
+            $retval = $tcc->finish($tcc->parse('output', 'expiry_message'));
         }
     }
 
@@ -1742,20 +1778,22 @@ function SEC_getTokenExpiryNotice($token, $extra_msg = '')
  * Browsers that support the HttpOnly flag will not allow JavaScript access
  * to such a cookie.
  *
- * @param    string  $name   cookie name
- * @param    string  $value  cookie value
- * @param    int     $expire expire time
- * @param    string  $path   path on the server or $_CONF['cookie_path']
- * @param    string  $domain domain or $_CONF['cookiedomain']
- * @param    boolean $secure whether to use HTTPS or $_CONF['cookiesecure']
+ * @param  string  $name   		cookie name
+ * @param  string  $value  		cookie value
+ * @param  int     $expire 		expire time
+ * @param  string  $path   		path on the server or $_CONF['cookie_path']
+ * @param  string  $domain 		domain or $_CONF['cookiedomain']
+ * @param  bool    $secure 		whether to use HTTPS or $_CONF['cookiesecure']
+ * @param  string  $samesite	either None, Lax or Strict
+ * @return bool
  * @link http://blog.mattmecham.com/2006/09/12/http-only-cookies-without-php-52/
  */
-function SEC_setCookie($name, $value, $expire = 0, $path = null, $domain = null, $secure = null)
+function SEC_setCookie($name, $value, $expire = 0, $path = null, $domain = null, $secure = null, $samesite = null)
 {
     global $_CONF;
 
-    $retval = false;
-
+	$retval = false;
+	
     if ($path === null) {
         $path = $_CONF['cookie_path'];
     }
@@ -1765,10 +1803,46 @@ function SEC_setCookie($name, $value, $expire = 0, $path = null, $domain = null,
     if ($secure === null) {
         $secure = $_CONF['cookiesecure'];
     }
+	
+	// Below line is original way Geeklog set cookies
+	// return setcookie($name, $value, $expire, $path, $domain, $secure, true);
+	
+	// ********************
+	// Now we should set samesite for new browser cookie default rules. Setting thiss depends on PHP version
 
-    $retval = setcookie($name, $value, $expire, $path, $domain, $secure, true);
+	// SameSite=Strict 	Domain in URL bar equals the cookie’s domain (first-party) AND the link isn’t coming from a third-party
+	// SameSite=Lax 	Domain in URL bar equals the cookie’s domain (first-party) 	New default if SameSite is not set
+	// SameSite=None 	No domain limitations and third-party cookies can fire 	Previous default; now needs to specify 'None; Secure' for Chrome 80
+	if ($samesite === null || !(strtolower($samesite) == 'lax' || strtolower($samesite) == 'none' || strtolower($samesite) == 'strict')) {
+		$samesite = 'Lax';
+	}
+	
+	// https://www.php.net/manual/en/function.setcookie.php
+	// Fix for Warning in New Browsers: Mark cross-site cookies as Secure to allow them to be sent in cross-site requests
+	// In a future version of the browser, cookies marked with SameSite=None must also be marked with Secure to get sent in cross-site requests. This behavior protects user data from being sent over an insecure connection.
+	// SameSite attribute can only be set in PHP v7.3 and higher so do this the old way
+	// To add the "samesite" attribute, you can concatenate it to the path option (since we can only use the setcookie function options array in PHP 7.3+)
+	//  samesite element should be either None, Lax or Strict (Cookies without a SameSite attribute will be treated as SameSite=Lax)
+	if (version_compare(PHP_VERSION, '7.3.0', '<')) {
+		// Note this way by adding to path only works on PHP version lower than 7.3
+		$path .= '; SameSite=' . $samesite;
 
-    return $retval;
+		$retval = setcookie($name, $value, $expire, $path, $domain, $secure, true);
+	} else {
+		// Required to use options array (as the old way errors out on PHP 7.3+)
+		$arr_cookie_options = array(
+			'expires' => $expire,
+			'path' => $path,
+			'domain' => $domain,
+			'secure' => $secure,
+			'httponly' => true,
+			'samesite' => $samesite
+		);
+			
+		$retval = setcookie($name, $value, $arr_cookie_options);  		
+	}
+	
+	return $retval;
 }
 
 /**
@@ -1844,7 +1918,7 @@ function SEC_hasAccess2($A)
  */
 function SEC_loginRequiredForm()
 {
-    global $_CONF, $LANG_LOGIN;
+    global $LANG_LOGIN;
 
     $cfg = array(
         'title'   => $LANG_LOGIN[1],
@@ -1918,8 +1992,6 @@ function SEC_loginForm($use_config = array())
         $loginform->set_var('forgetpassword_link', $forget);
     }
     $loginform->set_var('lang_login', $config['button_text']);
-    $loginform->set_var('lang_remote_login', $LANG04[167]);
-    $loginform->set_var('lang_remote_login_desc', $LANG04[168]);
     $loginform->set_var('end_block', COM_endBlock());
 
     // 3rd party remote authentication.
@@ -2002,7 +2074,7 @@ function SEC_loginForm($use_config = array())
         } else {
             $html_oauth = '';
             // Grab oauth icons from theme
-            if ($_CONF['theme_oauth_icons']) {
+            if (!empty($_CONF['theme_oauth_icons'])) {
                 $icon_path = $_CONF['layout_url'] . '/images/';
             } else {
                 $icon_path = $_CONF['site_url'] . '/images/';
@@ -2034,7 +2106,11 @@ function SEC_loginForm($use_config = array())
     }
 
     if ($have_remote_login) {
-        $loginform->set_var('remote_login_class', 'remote-login-enabled');
+        $loginform->set_var('remote_login_class', 'remote-login-enabled'); // Used by Older themes
+		
+		$loginform->set_var('lang_remote_login', $LANG04[167]);
+		$loginform->set_var('lang_remote_login_desc', $LANG04[168]);
+		$loginform->set_var('user_remote_login_desc_long', $LANG04['user_remote_login_desc_long']);
     }
 
     if (!$config['no_plugin_vars']) {
@@ -2102,4 +2178,43 @@ function SEC_getDefaultRootUser()
     $A = DB_fetchArray($result);
 
     return $A['uid'];
+}
+
+/**
+ * Return random bytes
+ *
+ * @param  int $length
+ * @return string
+ */
+function SEC_randomBytes($length)
+{
+    $length = (int) $length;
+    if ($length < 1) {
+        $length = 32;
+    }
+
+    try {
+        $retval = random_bytes($length);
+    } catch (Exception $e) {
+        $retval = false;
+        $isStrong = true;
+
+        if (is_callable('openssl_random_pseudo_bytes ')) {
+            $retval = openssl_random_pseudo_bytes($length, $isStrong);
+
+            if ($isStrong === false) {
+                $retval = false;
+            }
+        }
+
+        if ($retval === false) {
+            $retval = '';
+
+            for ($i = 0; $i < $length; $i++) {
+                $retval .= substr(md5(rand()), 0, 1);
+            }
+        }
+    }
+
+    return $retval;
 }

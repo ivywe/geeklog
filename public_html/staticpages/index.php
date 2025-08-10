@@ -38,10 +38,13 @@
  * @subpackage public_html
  */
 
-/**
- * Geeklog common function library
- */
-require_once '../lib-common.php';
+// Geeklog common function library. If VERSION set then lib-common already loaded. Check required for URL Routing functionality (with or without "index.php")
+if (!defined('VERSION')) {
+    require_once '../lib-common.php';
+} else {
+     // You have to set any global variables used by this file since the scope is different as it is routed through index.php (and lib-common is loaded from there. See Github Issue #945 for more info
+     global $_PLUGINS;
+}
 
 if (!in_array('staticpages', $_PLUGINS)) {
     COM_handle404();
@@ -60,9 +63,12 @@ TOPIC_getTopic('staticpages', $page);
 // from comments display refresh:
 if (isset($_REQUEST['order'])) {
     $comment_order = Geeklog\Input::fRequest('order');
-    $comment_mode = Geeklog\Input::fRequest('mode');
+    //$comment_mode = Geeklog\Input::fRequest('mode');
+    $comment_mode = Geeklog\Input::fRequest('mode', Geeklog\Input::fRequest('format', ''));
     if (isset($_REQUEST['cpage'])) {
         $comment_page = Geeklog\Input::fRequest('cpage');
+    } else {
+        $comment_page = 1;
     }
     if ((strcasecmp($comment_order, 'ASC') != 0) &&
         (strcasecmp($comment_order, 'DESC') != 0)

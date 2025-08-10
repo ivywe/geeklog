@@ -5,7 +5,7 @@
 // +---------------------------------------------------------------------------+
 // | geeklog/plugins/recaptcha/autoinstall.php                                 |
 // +---------------------------------------------------------------------------+
-// | Copyright (C) 2014-2017 mystral-kk - geeklog AT mystral-kk DOT net        |
+// | Copyright (C) 2014-2020 mystral-kk - geeklog AT mystral-kk DOT net        |
 // |                                                                           |
 // | Based on the CAPTCHA Plugin by Ben                                        |
 // |                                                - ben AT geeklog DOT fr    |
@@ -45,25 +45,25 @@ function plugin_autoinstall_recaptcha($pi_name)
     global $_CONF, $_RECAPTCHA_CONF;
 
     // IF demo mode (since GL 2.2.0) is in effect, return no valid information
-    if (isset($_CONF['demo_mode']) && $_CONF['demo_mode']) {
-        return array();
+    if (COM_isDemoMode()) {
+        return [];
     }
 
     require_once __DIR__ . '/config.php';
 
-    return array(
-        'info'     => array(
+    return [
+        'info'     => [
             'pi_name'         => 'recaptcha',
             'pi_display_name' => 'reCAPTCHA',
             'pi_version'      => $_RECAPTCHA_CONF['pi_version'],
             'pi_gl_version'   => $_RECAPTCHA_CONF['gl_version'],
             'pi_homepage'     => $_RECAPTCHA_CONF['pi_url'],
-        ),
+        ],
         'groups'   => $_RECAPTCHA_CONF['GROUPS'],
         'features' => $_RECAPTCHA_CONF['FEATURES'],
         'mappings' => $_RECAPTCHA_CONF['MAPPINGS'],
-        'tables'   => array(),
-    );
+        'tables'   => [],
+    ];
 }
 
 /**
@@ -95,5 +95,5 @@ function plugin_compatible_with_this_version_recaptcha($pi_name)
     $geeklogVersion = preg_replace('/[^0-9.]/', '', VERSION);
 
     return version_compare(PHP_VERSION, '5.3.0', '>=') &&
-        version_compare($geeklogVersion, $_RECAPTCHA_CONF['gl_version'], '>=');
+        COM_versionCompare($geeklogVersion, $_RECAPTCHA_CONF['gl_version'], '>=');
 }

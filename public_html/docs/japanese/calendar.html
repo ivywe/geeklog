@@ -9,7 +9,7 @@
 </head>
 
 <body>
-<p><a href="http://www.geeklog.jp" style="background:transparent"><img src="../images/newlogo.gif" alt="Geeklog Documentation" width="243" height="90" /></a></p>
+<p><a href="https://www.geeklog.jp" style="background:transparent"><img src="../images/logo.gif" alt="Geeklog Documentation" width="243" height="90" /></a></p>
 <div class="menu"><a href="index.html">Geeklogドキュメント</a> - カレンダープラグイン</div>
 
 <h1>カレンダープラグイン</h1>
@@ -33,7 +33,7 @@
   <td>はい(1)にすると、登録ユーザーしかカレンダーにアクセスできなくなります。<br />
     この設定値よりも、「管理者用メニュー - コンフィギュレーション - Geeklog - ユーザーと投稿」の「<a href="config.html#desc_loginrequired">すべてにログインを要求する(loginrequired)</a>」の設定の方が優先されます。「すべてにログインを要求する」をはい(1)にすると、カレンダープラグインでログインを要求していなくても、ゲストユーザーはカレンダーにアクセスできなくなります。</td>
 </tr>
-<tr class="r2">
+<tr>
   <td><a name="desc_hidecalendarmenu">メニューに表示しない(hidecalendarmenu)</a></td>
   <td>いいえ(0)</td>
   <td>はい(1)にすると、サイトのメニューに「カレンダー」メニューを表示しません。</td>
@@ -43,7 +43,7 @@
   <td>いいえ(0)</td>
   <td>はい(1)にすると、登録ユーザーが個人カレンダーを持てるようになります。</td>
 </tr>
-<tr class="r2">
+<tr>
   <td><a name="desc_eventsubmission">イベント投稿を管理者が承認する(eventsubmission)</a></td>
   <td>はい(1)</td>
   <td>はい(1)にすると、ユーザーが投稿したイベントは管理者の承認待ちの状態になり、いいえ(0)にすると、即座に登録・表示されるようになります。</td>
@@ -53,9 +53,9 @@
   <td>はい(1)</td>
   <td>はい(1)にすると、別のブロックに近い将来のイベントを表示します。</td>
 </tr>
-<tr class="r2">
+<tr>
   <td><a name="desc_upcomingeventsrange">イベント予告を表示する期間(upcomingeventsrange)</a></td>
-  <td>14（日）</td>
+  <td>14(日)</td>
   <td>何日先の予定まで表示するかを指定します。</td>
 </tr>
 <tr>
@@ -63,9 +63,9 @@
   <td>12</td>
   <td>イベントを投稿・編集するときに12時間制にするか24時間制にするかを指定します。「管理者用メニュー - コンフィギュレーション - Geeklog - 言語とロケール」の「時間制(hour_mode)」の設定値がデフォルトとして設定されています。</td>
 </tr>
-<tr class="r2">
+<tr>
   <td><a name="desc_event_types">イベントの種類(event_types)</a></td>
-  <td>Anniversary, Appointment, Birthday, Business, Education, Holiday, Meeting, Miscellaneous, Personal, Phone Call, Special Occasion, Travel, Vacation<br />（訳注）日本語版では、記念日、約束、誕生日、打ち合わせ、セミナー、休日、会議、用事、個人の用事、電話、特別な行事、旅行、休暇となっています。</td>
+  <td>Anniversary, Appointment, Birthday, Business, Education, Holiday, Meeting, Miscellaneous, Personal, Phone Call, Special Occasion, Travel, Vacation<br />(訳注)日本語版では、記念日、約束、誕生日、打ち合わせ、セミナー、休日、会議、用事、個人の用事、電話、特別な行事、旅行、休暇となっています。</td>
   <td>サイトカレンダーと個人カレンダーで使用されるイベントの種類です。</td>
 </tr>
 <tr>
@@ -73,10 +73,10 @@
   <td>いいえ(0)</td>
   <td>はい(1)にすると、サイトカレンダーに新規イベントが投稿されたときに、管理者にEメールで通知します。個人カレンダーのイベントの場合は通知されません。</td>
 </tr>
-<tr class="r2">
+<tr>
   <td><a name="desc_delete_event">所有者の削除と共に削除する(delete_event)</a></td>
   <td>いいえ(0)</td>
-  <td>はい(1)にすると、イベント所有者のアカウントが削除されたときに、所有していたすべてのイベントが削除され、いいえ(0)にすると、Rootグループに属するユーザー（たとえば、サイトの管理者）に引き継がれるます。これはサイトのイベントにしか当てはまりません。つまり、ユーザーの個人カレンダーのイベントは常に削除されます。</td>
+  <td>はい(1)にすると、イベント所有者のアカウントが削除されたときに、所有していたすべてのイベントが削除され、いいえ(0)にすると、Rootグループに属するユーザー(たとえば、サイトの管理者)に引き継がれるます。これはサイトのイベントにしか当てはまりません。つまり、ユーザーの個人カレンダーのイベントは常に削除されます。</td>
 </tr>
 <tr>
   <td><a name="desc_aftersave">イベント保存後の画面遷移(aftersave)</a></td>
@@ -84,46 +84,63 @@
   <td>イベントを保存した後にどのページへ移動するかを設定します。
     <ul>
     <li>作成したイベントを表示する(item): イベントの詳細を表示します。</li>
-    <li>カレンダー管理を表示する(list): 管理者用のイベントのリストを表示します（デフォルト）。</li>
+    <li>カレンダー管理を表示する(list): 管理者用のイベントのリストを表示します(デフォルト)。</li>
     <li>カレンダーを表示する(plugin): カレンダーを表示します。</li>
-    <li>Homeを表示する(home): サイトのHomeページ（トップページ）を表示します。</li>
+    <li>Homeを表示する(home): サイトのHomeページ(トップページ)を表示します。</li>
     <li>管理画面TOPを表示する(admin): 管理画面を表示します。</li>
     </ul></td>
 </tr>
+<tr>
+  <td><a name="desc_recaptcha">reCAPTCHA(recaptcha)</a></td>
+  <td>'reCAPTCHA V3'</td>
+  <td>使用するreCAPTCHAのバージョンを設定します。
+    <ul>
+      <li>無効: reCAPTCHAを表示しません。</li>
+      <li>reCAPTCHA V2: reCAPTCHA V2を表示します</li>
+      <li>reCAPTCHA V2 Invisible: reCAPTCHA V2 Invisibleを表示します。</li>
+      <li>reCAPTCHA V3: reCAPTCHA V3を表示します。(初期値)</li>
+    </ul>
+    <p>詳しくは、reCAPTCHAプラグインのドキュメントをご覧になるか、<a href="https://www.google.com/recaptcha/" target="_blank">Google reCAPTCHA</a>をご覧ください。</p></td>
+</tr>
+<tr>
+  <td><a name="desc_recaptcha_score">reCAPTCHA V3のスコア(recaptcha_score)</a></td>
+  <td>0.5</td>
+  <td>reCAPTCHA V3用のスコアを指定します。有効な値は 0.0 (botでも人間として受け入れられるかもしれない) - 1.0 (人間しか受け入れない) です。</td>
+</tr>
 
 <tr>
-  <td valign="top"><a name="desc_default_permissions_0">イベントのパーミッションのデフォルト(所有者)</a></td>
+  <td valign="top"><a name="desc_default_permissions_0">パーミッションのデフォルト[0](default_permissions[0])</a></td>
   <td valign="top"><em>表示・編集</em></td>
-  <td valign="top">新規イベントの所有者のパーミッションのデフォルト</td></tr>
+  <td valign="top">イベントに関する所有者のパーミッションのデフォルトを指定します。</td></tr>
 <tr>
-  <td valign="top"><a name="desc_default_permissions_1">イベントのパーミッションのデフォルト(グループ)</a></td>
+  <td valign="top"><a name="desc_default_permissions_1">パーミッションのデフォルト[1](default_permissions[1])</a></td>
   <td valign="top"><em>表示</em></td>
-  <td valign="top">新規イベントのグループのパーミッションのデフォルト</td></tr>
+  <td valign="top">イベントに関するグループのパーミッションのデフォルトを指定します。</td></tr>
 <tr>
-  <td valign="top"><a name="desc_default_permissions_2">イベントのパーミッションのデフォルト(メンバー)</a></td>
+  <td valign="top"><a name="desc_default_permissions_2">パーミッションのデフォルト[2](default_permissions[2])</a></td>
   <td valign="top"><em>表示</em></td>
-  <td valign="top">新規イベントのメンバーのパーミッションのデフォルト</td></tr>
+  <td valign="top">イベントに関するメンバーのパーミッションのデフォルトを指定します。</td></tr>
 <tr>
-  <td valign="top"><a name="desc_default_permissions_3">イベントのパーミッションのデフォルト(ゲスト)</a></td>
+  <td valign="top"><a name="desc_default_permissions_3">パーミッションのデフォルト[3](default_permissions[3])</a></td>
   <td valign="top"><em>表示</em></td>
-  <td valign="top">新規イベントのゲストのパーミッションのデフォルト</td></tr>
+  <td valign="top">イベントに関するゲストユーザーのパーミッションのデフォルトを指定します。</td></tr>
 
 <tr>
-  <td valign="top"><a name="desc_autotag_permissions_event_0">自動タグのパーミッションのデフォルト(所有者)</a></td>
+  <td valign="top"><a name="desc_autotag_permissions_event_0">自動タグ[event: ]のパーミッション[0](autotag_permissions_event[0])</a></td>
   <td valign="top"><em>利用する</em></td>
-  <td valign="top">event自動タグの所有者のパーミッションのデフォルト(デフォルトはRootユーザー)</td></tr>
+  <td valign="top">自動タグの利用に関する所有者(デフォルトはRootユーザー)のパーミッションを指定します。</td></tr>
 <tr>
-  <td valign="top"><a name="desc_autotag_permissions_event_1">自動タグのパーミッションのデフォルト(グループ)</a></td>
+  <td valign="top"><a name="desc_autotag_permissions_event_1">自動タグ[event: ]のパーミッション[1](autotag_permissions_event[1])</a></td>
   <td valign="top"><em>利用する</em></td>
-  <td valign="top">event自動タグのグループのパーミッションのデフォルト</td></tr>
+  <td valign="top">自動タグの利用に関するCalendar Adminグループのパーミッションを指定します。</td></tr>
 <tr>
-  <td valign="top"><a name="desc_autotag_permissions_event_2">自動タグのパーミッションのデフォルト(メンバー)</a></td>
+  <td valign="top"><a name="desc_autotag_permissions_event_2">自動タグ[event: ]のパーミッション[2](autotag_permissions_event[2])</a></td>
   <td valign="top"><em>利用する</em></td>
-  <td valign="top">event自動タグのメンバーのパーミッションのデフォルト</td></tr>
+  <td valign="top">自動タグの利用に関するメンバーのパーミッションを指定します。</td></tr>
 <tr>
-  <td valign="top"><a name="desc_autotag_permissions_event_3">自動タグのパーミッションのデフォルト(ゲスト)</a></td>
+  <td valign="top"><a name="desc_autotag_permissions_event_3">自動タグ[event: ]のパーミッション[3](autotag_permissions_event[3])</a></td>
   <td valign="top"><em>利用する</em></td>
-  <td valign="top">event自動タグのゲストのパーミッションのデフォルト</td></tr>
+  <td valign="top">自動タグの利用に関するゲストユーザーのパーミッションを指定します。</td></tr>
 </table>
 
 
@@ -138,7 +155,7 @@
   <td valign="top"><a name="desc_block_enable">有効(block_enable)</a></td>
   <td valign="top">true</td>
   <td valign="top">ブロックを有効化します。</td></tr>
-<tr class="r2">
+<tr>
   <td valign="top"><a name="desc_block_isleft">左ブロックで表示する(block_isleft)</a></td>
   <td valign="top">1</td>
   <td valign="top">左ブロックで表示(1)、あるいは右(0)に表示します。</td></tr>
@@ -146,7 +163,7 @@
   <td valign="top"><a name="desc_block_order">ブロックの順番(block_order)</a></td>
   <td valign="top">50</td>
   <td valign="top">ブロックカラムの並べ替え番号を指定します。</td></tr>
-<tr class="r2">
+<tr>
   <td valign="top"><a name="desc_block_topic_option">話題オプション(block_topic_option)</a></td>
   <td valign="top">'all'</td>
   <td valign="top">'すべて'なら、すべてのページで表示。'ホームページのみ'ならホームページのみで表示。'話題を選択する'なら選択された話題でのみ表示されます。</td></tr>
@@ -154,26 +171,26 @@
   <td valign="top"><a name="desc_block_topic">話題(block_topic)</a></td>
   <td valign="top"></td>
   <td valign="top">話題オプションが '話題を選択する'のときだけ表示されます。</td></tr>
-<tr class="r2">
+<tr>
   <td valign="top"><a name="desc_block_group_id">グループ(block_group_id)</a></td>
   <td valign="top">Calendar Admin</td>
   <td valign="top">パーミッションで使われるグループ</td></tr>
 <tr>
-  <td valign="top"><a name="desc_block_permissions_0">パーミッションのデフォルト(所有者)</a></td>
+  <td valign="top"><a name="desc_block_permissions_0">イベントブロックのパーミッション[0](block_permissions[0])</a></td>
   <td valign="top"><em>表示</em></td>
-  <td valign="top">ダイナミックブロックの所有者のパーミッション(デフォルトはRootユーザー)</td></tr>
+  <td valign="top">ダイナミックブロックの表示に関するブロック管理者(デフォルトはRootユーザー)のパーミッションを設定します。</td></tr>
 <tr>
-  <td valign="top"><a name="desc_block_permissions_1">パーミッションのデフォルト(グループ)</a></td>
+  <td valign="top"><a name="desc_block_permissions_1">イベントブロックのパーミッション[1](block_permissions[1])</a></td>
   <td valign="top"><em>表示</em></td>
-  <td valign="top">ダイナミックブロックの管理グループのパーミッション(グループ(block_group_id)を参照)</td></tr>
+  <td valign="top">ダイナミックブロックの表示に関する、アサインされた管理者グループ(コンフィグオプションblock_group_idを参照)のパーミッションを設定します。</td></tr>
 <tr>
-  <td valign="top"><a name="desc_block_permissions_2">パーミッションのデフォルト(メンバー)</a></td>
+  <td valign="top"><a name="desc_block_permissions_2">イベントブロックのパーミッション[2](block_permissions[2])</a></td>
   <td valign="top"><em>表示</em></td>
-  <td valign="top">ダイナミックブロックのメンバーのパーミッション</td></tr>
+  <td valign="top">ダイナミックブロックの表示に関するメンバーのパーミッションを設定します。</td></tr>
 <tr>
-  <td valign="top"><a name="desc_block_permissions_3">パーミッションのデフォルト(ゲスト)</a></td>
+  <td valign="top"><a name="desc_block_permissions_3">イベントブロックのパーミッション[3](block_permissions[3])</a></td>
   <td valign="top"><em>表示</em></td>
-  <td valign="top">ダイナミックブロックのゲストユーザーのパーミッション</td></tr>
+  <td valign="top">ダイナミックブロックの表示に関するゲストユーザーのパーミッションを設定します。</td></tr>  
 </table>
 
 <h2><a name="others">他の設定</a></h2>
@@ -185,7 +202,7 @@
 
 <h2><a name="autotags">自動タグ</a></h2>
 
-<p>カレンダープラグインは、<code>[event:]</code><a href="https://www.geeklog.net/article.php/autolinks" title="geeklog.net: About Autolinks and Autotags">自動タグ</a>を提供します。このタグを使用すれば、URLを記述しなくてもカレンダーのイベントにリンクを張ることができます。コロンの後にイベントIDを記述してください。イベントにリンクが張られ、イベントのタイトルがリンクテキストとして使用されます。別の方法としては、イベントIDの後に半角スペースに続けて独自のリンクテキストを指定することもできます（閉じカッコの前でなければなりません）。</p>
+<p>カレンダープラグインは、<code>[event:]</code><a href="https://www.geeklog.net/article.php/autolinks" title="geeklog.net: About Autolinks and Autotags">自動タグ</a>を提供します。このタグを使用すれば、URLを記述しなくてもカレンダーのイベントにリンクを張ることができます。コロンの後にイベントIDを記述してください。イベントにリンクが張られ、イベントのタイトルがリンクテキストとして使用されます。別の方法としては、イベントIDの後に半角スペースに続けて独自のリンクテキストを指定することもできます(閉じカッコの前でなければなりません)。</p>
 
 <p>geeklog.netを例に取ると、</p>
 <ul>
@@ -195,7 +212,7 @@
 
 
 <div class="footer">
-    <a href="http://wiki.geeklog.net/">Geeklogドキュメント作成プロジェクト</a>、<a href="http://wiki.geeklog.jp/">Geeklogドキュメント日本語版作成プロジェクト</a><br />
+    <a href="https://wiki.geeklog.net/">Geeklogドキュメント作成プロジェクト</a>、<a href="https://wiki.geeklog.jp/">Geeklogドキュメント日本語版作成プロジェクト</a><br />
     本ページのすべての商標と著作権はそれぞれの所有者に帰属します。Geeklogはコピーレフトです。
 </div>
 

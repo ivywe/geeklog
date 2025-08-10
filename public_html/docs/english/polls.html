@@ -7,7 +7,7 @@
 </head>
 
 <body>
-<p><a href="https://www.geeklog.net/" style="background:transparent"><img src="../images/newlogo.gif" alt="Geeklog" width="243" height="90" /></a></p>
+<p><a href="https://www.geeklog.net/" style="background:transparent"><img src="../images/logo.gif" alt="Geeklog" width="243" height="90" /></a></p>
 <div class="menu"><a href="index.html">Geeklog Documentation</a> - Polls Plugin</div>
 
 <h1>Polls Plugin</h1>
@@ -39,7 +39,7 @@ panel:</p>
     the recent polls even when <code>'pollsloginrequired'</code> is set
     to 0.</td>
 </tr>
-<tr class="r2">
+<tr>
   <td><a name="desc_hidepollsmenu">hidepollsmenu</a></td>
   <td>0</td>
   <td>Whether to hide the "Polls" entry from Geeklog's menu bar (when set to 1)
@@ -50,7 +50,7 @@ panel:</p>
   <td>10</td>
   <td>Maximum number of questions in a poll.</td>
 </tr>
-<tr class="r2">
+<tr>
   <td><a name="desc_maxanswers">maxanswers</a></td>
   <td>10</td>
   <td>Maximum number of options per question.</td>
@@ -61,7 +61,7 @@ panel:</p>
   <td>Sort answers by the number of results ('voteorder') or keep the order
     in which they were entered ('submitorder').</td>
 </tr>
-<tr class="r2">
+<tr>
   <td><a name="desc_pollcookietime">pollcookietime</a></td>
   <td>86400</td>
   <td>Number of seconds to set a poll answer cookie to time out on.</td>
@@ -71,7 +71,7 @@ panel:</p>
   <td>604800</td>
   <td>Number of seconds to set a poll answer IP address to time out on.</td>
 </tr>
-<tr class="r2">
+<tr>
   <td><a name="desc_delete_polls">delete_polls</a></td>
   <td>0</td>
   <td>Defines what to do when a user is deleted that is the owner of a poll.
@@ -96,6 +96,11 @@ panel:</p>
   <td>false</td>
   <td>Whether to include the meta tags of the poll when it is displayed.</td>
 </tr>
+<tr>
+  <td valign="top"><a name="desc_likes_polls">likes_polls</a></td>
+  <td valign="top">1</td>
+  <td valign="top">Disable (0) the Likes System for polls or enable it with Likes and Dislikes (1) or just Likes (2). The Geeklog config option likes_enabled also must be set if you wish to enable the Likes System for polls.</td>
+</tr>
 </table>
 
 <h3><a name="whatsnew">What's New Block</a></h3>
@@ -109,7 +114,7 @@ panel:</p>
   <td valign="top"><a name="desc_newpollsinterval">newpollsinterval</a></td>
   <td valign="top">1209600</td>
   <td valign="top">Polls are "new" if they are this many seconds old.</td></tr>
-<tr class="r2">
+<tr>
   <td valign="top"><a name="desc_hidenewpolls">hidenewpolls</a></td>
   <td valign="top">'hide'</td>
   <td valign="top">Set to 'modified' date or 'created' date to display new polls in the What's New block.</td></tr>
@@ -214,7 +219,7 @@ panel:</p>
   <td valign="top"><a name="desc_block_enable">block_enable</a></td>
   <td valign="top">true</td>
   <td valign="top">Enable block.</td></tr>
-<tr class="r2">
+<tr>
   <td valign="top"><a name="desc_block_isleft">block_isleft</a></td>
   <td valign="top">0</td>
   <td valign="top">Whether to display the block on the left (when set to 1)
