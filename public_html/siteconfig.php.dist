@@ -89,7 +89,7 @@ $_CONF['path_system'] = $_CONF['path'] . 'system/';
 // It is an older legacy encoding standard that supports a limited number of languages.
 // For multi-language sites and those who wish to use emojis then 'UTF-8' should be the setting for the sites default character set.
 // For more information on the different languages, character sets, and database collations for MySQL and PostgreSQL (including a table with what each should be based on your sites language), see the Geeklog install documentation.
-$_CONF['default_charset'] = 'iso-8859-1';
+$_CONF['default_charset'] = 'utf-81';
 
 // For the File Manager
 $_CONF_FCK['imagelibrary'] = '/images/library';
