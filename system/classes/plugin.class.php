@@ -67,11 +67,6 @@ class Plugin
     var $getsubmissionssql = '';
     var $submissionheading = array();
 
-    public $supports_paging = false;
-
-    public $numsubmissions = 0;
-
-    public $admingroup = '';
 
     // PUBLIC METHODS
 

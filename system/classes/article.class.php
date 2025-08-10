@@ -105,8 +105,6 @@ class Article
      * PRIVATE MEMBER VARIABLES: Things that make up a story.
      */
     var $_sid;
-    public $_old_sid = '';
-
     var $_title;
     var $_page_title;
     var $_meta_description;
@@ -356,13 +354,13 @@ class Article
      */
     public function hasContent()
     {
-        if (!empty($this->_title) && (trim($this->_title) != '')) {
+        if (trim($this->_title) != '') {
             return true;
         }
-        if (!empty($this->_introtext) && (trim($this->_introtext) != '')) {
+        if (trim($this->_introtext) != '') {
             return true;
         }
-        if (!empty($this->_bodytext) && (trim($this->_bodytext) != '')) {
+        if (trim($this->_bodytext) != '') {
             return true;
         }
 
