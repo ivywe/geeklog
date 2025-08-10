@@ -8,7 +8,7 @@
 // |                                                                           |
 // | Geeklog search class.                                                     |
 // +---------------------------------------------------------------------------+
-// | Copyright (C) 2000-2018 by the following authors:                         |
+// | Copyright (C) 2000-2011 by the following authors:                         |
 // |                                                                           |
 // | Authors: Tony Bibbs       - tony AT geeklog DOT net                       |
 // |          Dirk Haun        - dirk AT haun-online DOT de                    |
@@ -31,7 +31,7 @@
 // |                                                                           |
 // +---------------------------------------------------------------------------+
 
-if (stripos($_SERVER['PHP_SELF'], basename(__FILE__)) !== false) {
+if (stripos($_SERVER['PHP_SELF'], 'search.class.php') !== false) {
     die('This file can not be used on its own.');
 }
 
@@ -104,11 +104,9 @@ class Search
     private $_wordLength;
 
     /**
-     * Debug mode
-     *
      * @var bool
      */
-    private $debug = false;
+    private $_verbose = false; // verbose logging
 
     /**
      * @var bool
@@ -121,17 +119,13 @@ class Search
      *
      * @author Tony Bibbs, tony AT geeklog DOT net
      */
-    public function __construct(array $config)
+    public function __construct()
     {
         global $_CONF, $_TABLES;
 
-        if (COM_isEnableDeveloperModeLog('search')) {
-            $this->setDebug(true);
-        }
-
         // Set search criteria
         if (isset($_GET['query'])) {
-            $query = Geeklog\Input::get('query'); // use get instead of fGet so results are not completely filtered (we want punctuation)
+            $query = Geeklog\Input::fGet('query');
             $query = urldecode($query);
             $query = GLText::remove4byteUtf8Chars($query);
             $this->_query = GLText::stripTags($query);
@@ -146,9 +140,9 @@ class Search
             $this->_topic = $tid;
         } else {
             if ($_CONF['search_use_topic']) {
-                $current_topic = TOPIC_currentTopic();
-                if (!empty($current_topic)) {
-                    $this->_topic = $current_topic;
+                $last_topic = SESS_getVariable('topic');
+                if ($last_topic != '') {
+                    $this->_topic = $last_topic;
                 }
             }
         }
@@ -245,11 +239,11 @@ class Search
         }
 
         $retval .= COM_startBlock($LANG09[1], 'advancedsearch.html');
-        $searchForm = COM_newTemplate(CTL_core_templatePath($_CONF['path_layout']));
-        $searchForm->set_file('searchform', 'searchform.thtml');
-        $searchForm->set_block('searchform', 'author_form_element');
-        $searchForm->set_block('searchform', 'author_form_element_disabled');
-
+        $searchForm = COM_newTemplate(CTL_core_templatePath($_CONF['path_layout'] . 'search'));
+        $searchForm->set_file(array(
+            'searchform' => 'searchform.thtml',
+            'authors'    => 'searchauthors.thtml',
+        ));
         $searchForm->set_var('search_intro', $LANG09[19]);
         $searchForm->set_var('lang_keywords', $LANG09[2]);
         $searchForm->set_var('lang_keytype', $LANG09[36]);
@@ -296,7 +290,7 @@ class Search
         $options = '';
         $pluginTypes = array(
             'all' => $LANG09[4],
-            'article' => $LANG09[6],
+            'stories' => $LANG09[6],
             'comments' => $LANG09[7]
         );
         $pluginTypes = array_merge($pluginTypes, PLG_getSearchTypes());
@@ -347,12 +341,13 @@ class Search
                     $options .= '>' . htmlspecialchars(COM_getDisplayName('', $A['username'], $A['fullname'])) . '</option>';
                 }
                 $searchForm->set_var('author_option_list', $options);
-                $searchForm->parse('author_form_element', 'author_form_element', true);
+                $searchForm->parse('author_form_element', 'authors', true);
             } else {
-                $searchForm->set_var('author_form_element', 'author_form_element_disabled');
+                $searchForm->set_var('author_form_element', '<input type="hidden" name="author" value="0"' . XHTML . '>');
             }
         } else {
-            $searchForm->set_var('author_form_element', 'author_form_element_disabled');
+            $searchForm->set_var('author_form_element',
+                '<input type="hidden" name="author" value="0"' . XHTML . '>');
         }
 
         // Results per page
@@ -378,13 +373,87 @@ class Search
     }
 
     /**
-     * Set debug mode
+     * Performs search on all stories
      *
-     * @param  bool $switch
+     * @return array of SearchCriteria
      */
-    public function setDebug($switch)
+    private function _searchStories()
     {
-        $this->debug = (bool) $switch;
+        global $_TABLES, $_DB_dbms, $LANG09;
+
+        // Make sure the query is SQL safe
+        $query = trim(DB_escapeString($this->_query));
+
+        $sql = 'SELECT s.sid AS id, s.title AS title, s.introtext AS description, ';
+        $sql .= 'UNIX_TIMESTAMP(s.date) AS date, s.uid AS uid, s.hits AS hits, ';
+        $sql .= 'CONCAT(\'/article.php?story=\',s.sid) AS url ';
+        $sql .= 'FROM ' . $_TABLES['stories'] . ' AS s, ' . $_TABLES['users'] . ' AS u, ' . $_TABLES['topic_assignments'] . ' AS ta ';
+        $sql .= 'WHERE (draft_flag = 0) AND (date <= NOW()) AND (u.uid = s.uid) ';
+        $sql .= 'AND ta.type = \'article\' AND ta.id = sid ';
+        $sql .= COM_getPermSQL('AND') . COM_getTopicSQL('AND', 0, 'ta') . COM_getLangSQL('sid', 'AND') . ' ';
+
+        if (!empty($this->_topic)) {
+            // Retrieve list of inherited topics
+            if ($this->_topic == TOPIC_ALL_OPTION) {
+                // Stories do not have an all option so just return all stories that meet the requirements and permissions
+                //$sql .= "AND (ta.inherit = 1 OR (ta.inherit = 0 AND ta.tid = '".$this->_topic."')) ";
+            } else {
+                $tid_list = TOPIC_getChildList($this->_topic);
+                $sql .= "AND (ta.tid IN({$tid_list}) AND (ta.inherit = 1 OR (ta.inherit = 0 AND ta.tid = '" . $this->_topic . "'))) ";
+            }
+        }
+        if (!empty($this->_author)) {
+            $sql .= 'AND (s.uid = \'' . $this->_author . '\') ';
+        }
+
+        $search_s = new SearchCriteria('stories', $LANG09[65]);
+
+        $columns = array('title' => 'title', 'introtext', 'bodytext');
+        $sql .= $search_s->getDateRangeSQL('AND', 'date', $this->_dateStart, $this->_dateEnd);
+        list($sql, $ftSql) = $search_s->buildSearchSQL($this->_keyType, $query, $columns, $sql);
+
+        $sql .= " GROUP BY s.sid, s.title, s.introtext, date, s.uid, s.hits ";
+
+        $search_s->setSQL($sql);
+        $search_s->setFtSQL($ftSql);
+        $search_s->setRank(5);
+        $search_s->setURLRewrite(true);
+
+        // Search Story Comments
+        $sql = 'SELECT c.cid AS id, c.title AS title, c.comment AS description, ';
+        $sql .= 'UNIX_TIMESTAMP(c.date) AS date, c.uid AS uid, \'0\' AS hits, ';
+        $sql .= 'CONCAT(\'/comment.php?mode=view&amp;cid=\',c.cid) AS url ';
+        $sql .= 'FROM ' . $_TABLES['users'] . ' AS u, ' . $_TABLES['topic_assignments'] . ' AS ta, ' . $_TABLES['comments'] . ' AS c ';
+        $sql .= 'LEFT JOIN ' . $_TABLES['stories'] . ' AS s ON ((s.sid = c.sid) ';
+        $sql .= COM_getPermSQL('AND', 0, 2, 's') . COM_getLangSQL('sid', 'AND', 's') . ') ';
+        $sql .= 'WHERE (u.uid = c.uid) AND (s.draft_flag = 0) AND (s.commentcode >= 0) AND (s.date <= NOW()) ';
+        $sql .= 'AND ta.type = \'article\' AND ta.id = s.sid ' . COM_getTopicSQL('AND', 0, 'ta');
+
+        if (!empty($this->_topic)) {
+            if ($this->_topic == TOPIC_ALL_OPTION) {
+                // Stories do not have an all option so just return all story comments that meet the requirements and permissions
+                //$sql .= "AND (ta.inherit = 1 OR (ta.inherit = 0 AND ta.tid = '".$this->_topic."')) ";
+            } else {
+                $sql .= "AND (ta.tid IN({$tid_list}) AND (ta.inherit = 1 OR (ta.inherit = 0 AND ta.tid = '" . $this->_topic . "'))) ";
+            }
+        }
+        if (!empty($this->_author)) {
+            $sql .= 'AND (c.uid = \'' . $this->_author . '\') ';
+        }
+
+        $search_c = new SearchCriteria('comments', array($LANG09[65], $LANG09[66]));
+
+        $columns = array('title' => 'c.title', 'comment');
+        $sql .= $search_c->getDateRangeSQL('AND', 'c.date', $this->_dateStart, $this->_dateEnd);
+        list($sql, $ftSql) = $search_c->buildSearchSQL($this->_keyType, $query, $columns, $sql);
+
+        $sql .= " GROUP BY c.cid, c.title, c.comment, c.date, c.uid ";
+
+        $search_c->setSQL($sql);
+        $search_c->setFtSQL($ftSql);
+        $search_c->setRank(2);
+
+        return array($search_s, $search_c);
     }
 
     /**
@@ -394,7 +463,6 @@ class Search
      * search API. Backwards compatibility has been incorporated
      * in this function to allow legacy support to plugins using
      * the old API calls defined versions prior to Geeklog 1.5.1
-	 * AS of Geeklog 2.2.2 Search API 2 required (which was introduced in Geeklog 1.5.1)
      *
      * @return string HTML output for search results
      */
@@ -455,13 +523,13 @@ class Search
             $sort_date = empty($this->_dateStart) || empty($this->_dateEnd) || $this->_dateStart != $this->_dateEnd ? true : false;
             $sort_type = $this->_type == 'all' ? true : false;
             $obj->setStyle('inline');
-            $obj->setField('', LF_ROW_NUMBER, $show_num, false, '<b>%d.</b> ');
+            $obj->setField('', LF_ROW_NUMBER, $show_num, false, '<b>%d.</b>');
             $obj->setField($LANG09[16], 'title', true, true, '%s<br' . XHTML . '>');
             $obj->setField('', 'description', true, false, '%s<br' . XHTML . '>');
             $obj->setField('', '_html', true, false, '<span class="searchresult-byline">');
             $obj->setField($LANG09[18], 'uid', $show_user, $sort_uid, $LANG01[104] . ' %s ');
-            $obj->setField($LANG09[17], 'date', true, $sort_date, $LANG01[36] . ' %s - ');
-            $obj->setField($LANG09[5], LF_SOURCE_TITLE, $show_type, $sort_type, '%s'); // Moved dash on date on line above since some plugins may not have user or date associated with their content and do not want dash at start of content
+            $obj->setField($LANG09[17], 'date', true, $sort_date, $LANG01[36] . ' %s');
+            $obj->setField($LANG09[5], LF_SOURCE_TITLE, $show_type, $sort_type, ' - %s');
             $obj->setField($LANG09[50], 'hits', $show_hits, true, ' - %s ' . $LANG09[50]);
             $obj->setField('', '_html', true, false, '</span>');
             $this->_wordLength = 50;
@@ -486,15 +554,21 @@ class Search
             $this->_author, $this->_keyType, $page, 5
         );
 
+        // Add core searches
+        $result_plugins = array_merge($result_plugins, $this->_searchStories());
+
         // Loop through all plugins separating the new API from the old
+        $new_api = 0;
+        $old_api = 0;
         $num_results = 0;
 
         foreach ($result_plugins as $result) {
-            if ($result instanceof SearchCriteria) {
+            if (is_a($result, 'SearchCriteria')) {
                 $debug_info = $result->getName() . ' using APIv2';
 
                 if ($this->_type !== 'all' && $this->_type != $result->getName()) {
-                    if ($this->debug) {
+                    if ($this->_verbose) {
+                        $new_api++;
                         COM_errorLog($debug_info . '. Skipped as type is not ' . $this->_type);
                     }
                     continue;
@@ -524,10 +598,67 @@ class Search
                 $this->_url_rewrite[$result->getName()] = $result->isURLRewrite();
                 $this->_append_query[$result->getName()] = $result->isAppendQuery();
 
-                if ($this->debug) {
+                if ($this->_verbose) {
+                    $new_api++;
                     COM_errorLog($debug_info);
                 }
+            } elseif (is_a($result, 'Plugin') && $result->num_searchresults != 0) {
+                // Some backwards compatibility
+                if ($this->_verbose) {
+                    $old_api++;
+                    $debug_info = $result->plugin_name . ' using APIv1 with backwards compatibility.';
+                    $debug_info .= ' Count: ' . $result->num_searchresults;
+                    $debug_info .= ' Headings: ' . implode(',', $result->searchheading);
+                    COM_errorLog($debug_info);
+                }
+
+                // Find the column heading names that closely match what we are looking for
+                // There may be issues here on different languages, but this _should_ capture most of the data
+                $col_title = $this->_findColumn($result->searchheading, array($LANG09[16], $LANG31[4], 'Question', 'Site Page'));//Title,Subject
+                $col_desc = $this->_findColumn($result->searchheading, array($LANG09[63], 'Answer'));
+                $col_date = $this->_findColumn($result->searchheading, array($LANG09[17]));//'Date','Date Added','Last Updated','Date & Time'
+                $col_user = $this->_findColumn($result->searchheading, array($LANG09[18], 'Submited by'));
+                $col_hits = $this->_findColumn($result->searchheading, array($LANG09[50], $LANG09[23], 'Downloads', 'Clicks'));//'Hits','Views'
+
+                $label = str_replace($LANG09[59], '', $result->searchlabel);
+                $num_results += $result->num_itemssearched;
+
+                // Extract the results
+                for ($i = 0; $i < 5; $i++) {
+                    // If the plugin does not respect the $perpage parameter, then force it here.
+                    $j = ($i + ($page * 5)) - 5;
+                    if ($j >= count($result->searchresults)) {
+                        break;
+                    }
+
+                    $old_row = $result->searchresults[$j];
+                    if ($col_date != -1) {
+                        // Convert the date back to a timestamp
+                        $date = $old_row[$col_date];
+                        $date = substr($date, 0, strpos($date, '@'));
+                        $date = ($date == '' ? $old_row[$col_date] : strtotime($date));
+                    }
+
+                    $api_results = array(
+                        LF_SOURCE_NAME  => $result->plugin_name,
+                        LF_SOURCE_TITLE => $label,
+                        'title'         => $col_title == -1 ? '<i>' . $LANG09[70] . '</i>' : $old_row[$col_title],
+                        'description'   => $col_desc == -1 ? '<i>' . $LANG09[70] . '</i>' : $old_row[$col_desc],
+                        'date'          => $col_date == -1 ? '&nbsp;' : $date,
+                        'uid'           => $col_user == -1 ? '&nbsp;' : $old_row[$col_user],
+                        'hits'          => $col_hits == -1 ? '0' : str_replace(',', '', $old_row[$col_hits]),
+                    );
+                    preg_match('/href="([^"]+)"/i', $api_results['title'], $links);
+                    $api_results['url'] = empty($links) ? '#' : $links[1];
+
+                    $obj->addResult($api_results);
+                }
             }
+        }
+
+        // Find out how many plugins are on the old/new system
+        if ($this->_verbose) {
+            COM_errorLog('Search Plugins using APIv1: ' . $old_api . ' APIv2: ' . $new_api);
         }
 
         // Execute the queries
@@ -541,7 +672,7 @@ class Search
 
         if ($this->_keyType == 'any' OR $this->_keyType == 'all') {
             $words = array_unique(explode(' ', $escQuery));
-            $words = array_filter($words); // filter out empty strings
+            $words = array_filter($words); // filter out empty strings            
             $escQuery = implode(' ', $words);
             if ($this->_keyType == 'any') {
                 $lang_search_op = $LANG09[57];
@@ -568,32 +699,37 @@ class Search
             $retval .= str_replace('%', '%%', COM_createLink($LANG09[61], $url . 'refine'));
             $retval = '<p>' . $retval . '</p>' . LB;
 
-            // Make GET params array
-            $params_arr = array();
-            $params_arr['query'] = urlencode($this->_query);
-            if (!empty($this->_keyType)) {
-                $params_arr['keyType'] = $this->_keyType;
-            }
-            if (!empty($this->_dateStart)) {
-                $params_arr['datestart'] = $this->_dateStart;
-            }
-            if (!empty($this->_dateEnd)) {
-                $params_arr['dateend'] = $this->_dateEnd;
-            }
-            if (!empty($this->_topic)) {
-                $params_arr['topic'] = $this->_topic;
-            }
-            if (!empty($this->_author)) {
-                $params_arr['author'] = $this->_author;
-            }
-            if ($this->_titlesOnly) {
-                $params_arr['title'] = true;
-            }
-            $params_arr['type'] = $this->_type;
-            $params_arr['mode'] = 'search';
+            if (version_compare($_CONF['supported_version_theme'], '2.0.0', '>=')) {
+                // Make GET params array
+                $params_arr = array();
+                $params_arr['query'] = urlencode($this->_query);
+                if (!empty($this->_keyType)) {
+                    $params_arr['keyType'] = $this->_keyType;
+                }
+                if (!empty($this->_dateStart)) {
+                    $params_arr['datestart'] = $this->_dateStart;
+                }
+                if (!empty($this->_dateEnd)) {
+                    $params_arr['dateend'] = $this->_dateEnd;
+                }
+                if (!empty($this->_topic)) {
+                    $params_arr['topic'] = $this->_topic;
+                }
+                if (!empty($this->_author)) {
+                    $params_arr['author'] = $this->_author;
+                }
+                if ($this->_titlesOnly) {
+                    $params_arr['title'] = true;
+                }
+                $params_arr['type'] = $this->_type;
+                $params_arr['mode'] = 'search';
 
-            $retval = $obj->getFormattedOutput2($results, $LANG09[11], $retval, '',
-                $_CONF['search_show_sort'], $_CONF['search_show_limit'], $params_arr);
+                $retval = $obj->getFormattedOutput2($results, $LANG09[11], $retval, '',
+                    $_CONF['search_show_sort'], $_CONF['search_show_limit'], $params_arr);
+            } else {
+                $retval = $obj->getFormattedOutput($results, $LANG09[11], $retval, '',
+                    $_CONF['search_show_sort'], $_CONF['search_show_limit']);
+            }
         }
 
         return $retval;
@@ -621,8 +757,9 @@ class Search
             if (is_numeric($row['uid'])) {
                 if (empty($this->_names[$row['uid']])) {
                     $this->_names[$row['uid']] = htmlspecialchars(COM_getDisplayName($row['uid']));
-                    if ($row['uid'] > 1) {
-                        $this->_names[$row['uid']] = COM_getProfileLink($row['uid'], $this->_names[$row['uid']]);
+                    if ($row['uid'] != 1) {
+                        $this->_names[$row['uid']] = COM_createLink($this->_names[$row['uid']],
+                            $_CONF['site_url'] . '/users.php?mode=profile&amp;uid=' . $row['uid']);
                     }
                 }
                 $row['uid'] = $this->_names[$row['uid']];
@@ -631,36 +768,22 @@ class Search
             $row[LF_SOURCE_TITLE] = COM_createLink($row[LF_SOURCE_TITLE],
                 $this->_searchURL . '&amp;type=' . $row[LF_SOURCE_NAME] . '&amp;mode=search');
 
-			// '#' deals with list factory class settings
             if ($row['url'] != '#') {
-				if ($row['url'] != 'LF_NULL') {
-					$row['url'] = ($row['url'][0] == '/' ? $_CONF['site_url'] : '') . $row['url'];
-					if (isset($this->_url_rewrite[$row[LF_SOURCE_NAME]]) &&
-						$this->_url_rewrite[$row[LF_SOURCE_NAME]]
-					) {
-						$row['url'] = COM_buildUrl($row['url']);
-					}
-				} else {
-					// Returning a '' for the url column in the search sql means it will be created from id using plugin api (plugin_searchformat_foo)
-					$row['url'] = PLG_searchFormat($row[LF_SOURCE_NAME], $row['id'], 'url', $row['id']);
-				}
+                $row['url'] = ($row['url'][0] == '/' ? $_CONF['site_url'] : '') . $row['url'];
+                if (isset($this->_url_rewrite[$row[LF_SOURCE_NAME]]) &&
+                    $this->_url_rewrite[$row[LF_SOURCE_NAME]]
+                ) {
+                    $row['url'] = COM_buildUrl($row['url']);
+                }
+                if (isset($this->_append_query[$row[LF_SOURCE_NAME]]) &&
+                    $this->_append_query[$row[LF_SOURCE_NAME]]
+                ) {
+                    if (!empty($this->_query)) {
+                        $row['url'] .= (strpos($row['url'], '?') ? '&amp;' : '?') . 'query=' . urlencode($this->_query);
+                    }
+                }
+            }
 
-				if (isset($this->_append_query[$row[LF_SOURCE_NAME]]) &&
-					$this->_append_query[$row[LF_SOURCE_NAME]]
-				) {
-					if (!empty($this->_query)) {
-						$query = (strpos($row['url'], '?') ? '&amp;' : '?') . 'query=' . urlencode($this->_query);
-						$hashtagPos = strpos($row['url'], '#');
-						if ($hashtagPos > 0) {
-							$row['url'] = mb_substr($row['url'], 0, $hashtagPos) . $query . mb_substr($row['url'], $hashtagPos);
-						} else {
-							$row['url'] .= $query;
-						}
-					}
-				}
-			}
-
-			$row['title'] = PLG_searchFormat($row[LF_SOURCE_NAME], $row['id'], 'title', $row['title']);
             $row['title'] = $this->_shortenText($this->_query, $row['title'], 8);
             $row['title'] = stripslashes(str_replace('$', '&#36;', $row['title']));
             $row['title'] = COM_createLink($row['title'], $row['url']);
@@ -668,9 +791,7 @@ class Search
             if ($row['description'] == 'LF_NULL') {
                 $row['description'] = '<i>' . $LANG09[70] . '</i>';
             } elseif ($row['description'] != '<i>' . $LANG09[70] . '</i>') {
-				// Replace any autotags and see if plugin wants to do anything to the content
-				$row['description'] = PLG_searchFormat($row[LF_SOURCE_NAME], $row['id'], 'description', PLG_replaceTags($row['description'], '', false, $row[LF_SOURCE_NAME], $row['id']));
-                $row['description'] = stripslashes($this->_shortenText($this->_query, $row['description'], $this->_wordLength));
+                $row['description'] = stripslashes($this->_shortenText($this->_query, PLG_replaceTags($row['description']), $this->_wordLength));
             }
 
             if ($row['date'] != 'LF_NULL') {
@@ -719,6 +840,7 @@ class Search
                 $end = 0;
                 $rt = '<b>...</b> ';
             } else {
+                $str = substr($text, $pos, $pos_space - $pos);
                 $m = (int) (($num_words - 1) / 2);
                 $key = $this->_arraySearch($keyword, $words);
                 if ($key === false) {
@@ -729,9 +851,9 @@ class Search
                 } elseif ($key <= $m) {
                     // Keyword at the start of text
                     $start = 0 - $key;
+                    $end = $num_words - 1;
                     $end = ($key + $m <= $word_count - 1)
-                        ? $key
-                        : $word_count - $m - 1;
+                        ? $key : $word_count - $m - 1;
                     $abs_length = abs($start) + abs($end) + 1;
                     if ($abs_length < $num_words) {
                         $end += ($num_words - $abs_length);
@@ -825,25 +947,31 @@ class Search
         return -1;
     }
 
+    private function _convertsqlCallback($replace, $match)
+    {
+        return preg_replace('/,?(\'[^\']+\'|[^,]+),/i', $replace, $match);
+    }
+
     /**
-     * Converts the MySQL CONCAT function to the Postgres equivalents
+     * Converts the MySQL CONCAT function to the MS SQL / Postgres equivalents
      *
      * @param  string $sql The SQL to convert
-     * @return string      PostgreSQL friendly SQL
+     * @return string      MS SQL or PostgreSQL friendly SQL
      */
     private function _convertSql($sql)
     {
         global $_DB_dbms;
 
         if ($_DB_dbms === 'pgsql') {
-            $callBack = function ($match) {
-                return preg_replace('/,?(\'[^\']+\'|[^,]+),/i', '\\1 || ', $match[1]);
-            };
+            $callback = create_function(
+                '$match',
+                'return $this->_convertsqlCallback(\'\\\\1 || \', $match[1]);'
+            );
 
             if (is_string($sql)) {
-                $sql = preg_replace_callback("/CONCAT\(([^\)]+)\)/i", $callBack, $sql);
+                $sql = preg_replace_callback("/CONCAT\(([^\)]+)\)/i", $callback, $sql);
             } elseif (is_array($sql)) {
-                $sql['pgsql'] = preg_replace_callback("/CONCAT\(([^\)]+)\)/i", $callBack, $sql['pgsql']);
+                $sql['pgsql'] = preg_replace_callback("/CONCAT\(([^\)]+)\)/i", $callback, $sql['pgsql']);
             }
         }
 

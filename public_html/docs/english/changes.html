@@ -7,7 +7,7 @@
 </head>
 
 <body>
-<p><a href="https://www.geeklog.net/" style="background:transparent"><img src="../images/logo.gif" alt="Geeklog"
+<p><a href="https://www.geeklog.net/" style="background:transparent"><img src="../images/newlogo.gif" alt="Geeklog"
                                                                           width="243" height="90"/></a></p>
 <div class="menu"><a href="index.html">Geeklog Documentation</a> - Changes</div>
 
@@ -18,88 +18,6 @@
     <a href="../history">ChangeLog</a>. The file <span class="tt">docs/changed-files</span> has a
     list of files that have been changed since the last release.</p>
 
-<h2><a name="changes222">Geeklog v2.2.2</a></h2>
-
-<p>Geeklog v2.2.2 includes a number of new features and many bug fixes.</p>
-
-<h3>Important New Features, Improvements and Fixes</h3>
-
-<ul>
-    <li>PHP v8.1 support</li>
-	<li>reCAPTCHA V3 support</li>
-    <li>Added IP addresses anonymization feature for database records</li>
-	<li>Improved SEO practices when dealing with headings</li>
-	<li>HTMl and Plan Text templates for all emails sent by Geeklog Core and plugins included with install</li>
-	<li>Added Persian language (thanks parsfounder!)</li>
-    <li>Dropped support for some languages.  Currently supported languages are: Chinese Traditional, Chinese Simplified,
-        English, French Canada, French France, German, Hebrew, Japanese, Persian, Russian, Spanish.
-    </li>
-	<li>Added Likes Control to Static Pages and Polls</li>
-	<li>Added Top 10 Likes and Dislikes to User Profile</li>
-	<li>Added Likes Block that shows most likes and disliked items within a certain time period</li>
-	<li>XML Sitemap Plugin improvements including major speed increases when updating the sitemap file and support for IndexNow</li>
-</ul>
-
-<p>Over 32 major bugs have also been fixed.</p>
-
-
-<h2><a name="changes221sr1">Geeklog v2.2.1sr1</a></h2>
-
-<p>Geeklog v2.2.1sr1 is a security update with a few fixes and improvements as well.</p>
-
-<h3>Important Fixes and New Features and Improvements</h3>
-
-<ul>
-    <li>[Security] [NA] XSS issue with the Plugin Admin interface (reported by Netsparker.com)</li>
-    <li>[Security] [NA] Issue with the comment library (reported by Netsparker.com)</li>
-    <li>[Feature] [#1016] Staticpages can now be set individually if they will appear in the search results or not</li>
-    <li>[Bug] [#1043] Fixed hardcoded table names in upgrade for Geeklog v2.2.1</li>
-    <li>[Bug] [#1043] Fixed issue where the install would fail in some cases because it did not know where the system directory was</li>
-    <li>[Bug] [#1046] Fixed Users can only be set to certain statuses by Admins</li>
-    <li>[Bug] [#1048] Fixed related Articles are Missing From the Article Page</li>
-    <li>[Bug] [#1049] Fixed Print Pages for Articles and Staticpages javascript crashing issue</li>
-    <li>[Bug] [#1058] Fixed URL Routing for Articles that could cause errors in some cases. Also disabled multiview by default for Apache servers in the htaccess file</li>
-</ul>
-
-<h2><a name="changes221">Geeklog v2.2.1</a></h2>
-
-<p>Geeklog v2.2.1 includes a number of new features and many bug fixes.</p>
-
-<p>The Geeklog minimum requirements have also changed. Geeklog now supports PHP v7.3. The minimum requirements are:</p>
-
-<ul>
-    <li>PHP v5.6.4 or higher</li>
-    <li>MySQL v4.1.2 or higher (MySQL 5 recommended)</li>
-    <li>PostgreSQL v9.1.7 or later</li>
-</ul>
-
-<h3>New Features and Improvements</h3>
-
-<ul>
-    <li>Uses PHP built in Session Handling.</li>
-    <li>A new built in configurable Likes and Dislikes system for articles and comments. Plugins can also support this feature.</li>
-    <li>A Cookie Consent feature.</li>
-    <li>Replaced the deprecated Filemanager with Rich Filemanager. This also supports drag and drop.</li>
-    <li>reCaptcha API added which allows any plugin to support it.</li>
-    <li>Geeklog log files can now be limited to a certain size (must be run as a scheduled task).</li>
-    <li>Structured Data directly integrated into Geeklog (with plugin support). Includes initial support for Breadcrumbs, Articles, and Static Pages.</li>
-    <li>For users without a photo you can now automatically generate user image/icon from Username using PHP Dynamically</li>
-    <li>FCKEditor removed since support dropped.</li>
-    <li>Update CKEditor to v4.13.1</li>
-    <li>Update to User Groups editor to better show groups that are inherited and ones that would create a user group security loop.</li>
-    <li>Can now convert any remote account to local account.</li>
-    <li>All 3rd party libraries have been updated to their latest version that support Geeklog's minimum requirements. This includes jQuery, RichFileManager, UiKit (2 and 3), CKEditor, Mobile Detect, etc...</li>
-    <li>Internationalized Geeklog version checker (currently, English and Japanese are supported).</li>
-</ul>
-
-<h3>Bug Fixes</h3>
-
-<p>Over 20 major bugs have also been fixed. For Geeklog upgrades, some of these bugs require extra changes to the database (more information is included before performing the upgrade with the Geeklog Install). This includes the list below:</p>
-
-<ul>
-    <li>Incorrect user security group assignments for groups "Root" and "All Users". These will be fixed along with the security group assignments for the "Admin" (2) user.</li>
-    <li>Possible duplicate Usernames and Usernames with trailing spaces. Duplicates will be renamed but local account users may need to use the "Forget Your Password" to retrieve their new username.</li>
-</ul>
 
 <h2><a name="changes220">Geeklog 2.2.0</a></h2>
 

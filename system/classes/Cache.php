@@ -2,6 +2,9 @@
 
 namespace Geeklog;
 
+use Geeklog\Cache\APCu;
+use Geeklog\Cache\FileSystem;
+
 /**
  * Class Cache
  *
@@ -26,13 +29,14 @@ abstract class Cache
 
     /**
      * Initialize Cache class
-     *
-     * @param CacheInterface $driver
      */
-    public static function init(CacheInterface $driver)
+    public static function init()
     {
+        global $_CONF;
+
         if (!self::$isInitialized) {
-            self::$instance = $driver;
+            self::$instance = new FileSystem($_CONF['path'] . 'data/cache/');
+//            self::$instance = new APCu();
             self::$isInitialized = true;
         }
     }
@@ -95,7 +99,7 @@ abstract class Cache
      */
     public static function set($key, $data, $ttl = 0)
     {
-        return self::$isEnabled && self::$instance->set($key, $data, $ttl);
+        return self::$isEnabled ? self::$instance->set($key, $data, $ttl) : false;
     }
 
     /**
@@ -108,7 +112,7 @@ abstract class Cache
      */
     public static function add($key, $data, $ttl = 0)
     {
-        return self::$isEnabled && self::$instance->add($key, $data, $ttl);
+        return self::$isEnabled ? self::$instance->add($key, $data, $ttl) : false;
     }
 
     /**
@@ -119,7 +123,7 @@ abstract class Cache
      */
     public static function delete($key)
     {
-        return self::$isEnabled && self::$instance->delete($key);
+        return self::$isEnabled ? self::$instance->delete($key) : false;
     }
 
     /**
@@ -130,17 +134,6 @@ abstract class Cache
      */
     public static function exists($key)
     {
-        return self::$isEnabled && self::$instance->exists($key);
-    }
-
-    /**
-     * Return the timestamp of cached item
-     *
-     * @param  string $key
-     * @return int|false    the timestamp when the item exists, false otherwise
-     */
-    public static function getAge($key)
-    {
-        return self::$isEnabled ? self::$instance->getAge($key) : false;
+        return self::$isEnabled ? self::$instance->exists($key) : false;
     }
 }

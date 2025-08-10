@@ -2,19 +2,19 @@
 
 /* Reminder: always indent with 4 spaces (no tabs). */
 // +---------------------------------------------------------------------------+
-// | Geeklog 2.2                                                               |
+// | Geeklog 2.1                                                               |
 // +---------------------------------------------------------------------------+
 // | success.php                                                               |
 // |                                                                           |
 // | Page that is displayed upon a successful Geeklog installation or upgrade  |
 // +---------------------------------------------------------------------------+
-// | Copyright (C) 2000-2022 by the following authors:                         |
+// | Copyright (C) 2000-2016 by the following authors:                         |
 // |                                                                           |
 // | Authors: Tony Bibbs        - tony AT tonybibbs DOT com                    |
 // |          Mark Limburg      - mlimburg AT users DOT sourceforge DOT net    |
 // |          Jason Whittenburg - jwhitten AT securitygeeks DOT com            |
 // |          Dirk Haun         - dirk AT haun-online DOT de                   |
-// |          Randy Kolenko     - randy AT nextide DOT ca                      |
+// |          Randy Kolenko     - randy AT nextide DOT ca
 // |          Matt West         - matt AT mattdanger DOT net                   |
 // +---------------------------------------------------------------------------+
 // |                                                                           |
@@ -33,12 +33,6 @@
 // | Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.           |
 // |                                                                           |
 // +---------------------------------------------------------------------------+
-
-// Need to set in case site is disabled as we want the User to know of the success of the Installer
-define('GL_INSTALL_ACTIVE', true);
-
-use Geeklog\Input;
-use Geeklog\LocaleData;
 
 require_once '../../lib-common.php';
 
@@ -68,12 +62,12 @@ function SUCCESS_getInstallPath()
 /**
  * Delete all files and directories under the $baseDir
  *
- * @param  string  $baseDir
+ * @param  string $baseDir
  * @return array of files and directories that the script couldn't delete
  */
 function SUCCESS_deleteAll($baseDir)
 {
-    static $failures = [];
+    static $failures = array();
 
     foreach (scandir($baseDir) as $item) {
         if (($item !== '.') && ($item !== '..')) {
@@ -99,43 +93,33 @@ function SUCCESS_deleteAll($baseDir)
 // Main
 global $_TABLES, $LANG_SUCCESS, $MESSAGE;
 
-// Clear all speed limits for login to prevent login issues after install/upgrade/migrate (bug #995)
-COM_clearSpeedlimit(0, 'login');
-
-$type = Input::fGet('type', 'install');
-$submit = Input::post('submit', '');
-$language = Input::fGet('language', 'english');
+$type = \Geeklog\Input::fGet('type', 'install');
+$submit = \Geeklog\Input::post('submit', '');
+$language = \Geeklog\Input::fGet('language', 'english');
 $language = preg_replace('/[^a-z0-9\-_]/', '', $language);
-$languagePath = __DIR__ . '/language/' . $language . '.php';
+$languagePath = dirname(__FILE__) . '/language/' . $language . '.php';
 
 if (is_readable($languagePath)) {
-    require_once __DIR__ . '/language/' . $language . '.php';
-
-    // Update $_CONF['language'] (issue #991, #1129)
-    if ($type === 'install') {
-        $config = config::get_instance();
-        $config->set('language', $language, 'Core');
-    }
+    require_once dirname(__FILE__) . '/language/' . $language . '.php';
 } else {
-    require_once __DIR__ . '/language/english.php';
+    require_once dirname(__FILE__) . '/language/english.php';
 }
 
 // enable detailed error reporting
 $_CONF['rootdebug'] = true;
 
-// Prevent the template class from creating a cache file (now done in lib-common as we had to disable cache_resource as well)
-// $_CONF['cache_templates'] = false;
+// Prevent the template class from creating a cache file
+$_CONF['cache_templates'] = false;
 
 switch ($submit) {
-    case $LANG_SUCCESS[24]: // Delete all the fies and directories
-        $failures = SUCCESS_deleteAll(__DIR__);
+    case $LANG_SUCCESS[24]:  // Delete all the fies and directories
+        $failures = SUCCESS_deleteAll(dirname(__FILE__));
         $redirect = $_CONF['site_url'] . '/index.php?msg='
             . ((count($failures) === 0) ? 150 : 151);
         header('Location: ' . $redirect);
-        die(0);
         break;
 
-    case $LANG_SUCCESS[25]: // Don't delete any files or directories
+    case $LANG_SUCCESS[25]: // Don't delete any files and directories
         header('Location: ' . $_CONF['site_url'] . '/index.php?msg=152');
         break;
 
@@ -144,41 +128,23 @@ switch ($submit) {
         break;
 }
 
-// Clear old cache
-CTL_clearCache();
-
-$T = COM_newTemplate(CTL_core_templatePath(__DIR__ . '/layout'));
+$T = COM_newTemplate(CTL_core_templatePath(dirname(__FILE__) . '/layout'));
 $T->set_file('success', 'success.thtml');
 
-$msg = '';
 if ($type === 'install') {
     $message = $LANG_SUCCESS[20];
 } elseif ($type === 'upgrade') {
     $message = $LANG_SUCCESS[21];
-
-    if (isset($_GET['msg'])) {
-        $msg = $LANG_SUCCESS[(int) $_GET['msg']];
-    }
 } else {
     $message = $LANG_SUCCESS[22];
 }
 
-// Check if the language the user is using is supported, and show a warning if necessary
-if (!LocaleData::isLanguageSupported($language)) {
-    if (!empty($msg)) {
-        $msg .= '<br>';
-    }
-
-    $msg .= sprintf($LANG_SUCCESS[29], $language);
-}
-
-$T->set_var([
+$T->set_var(array(
     'conf_path'           => $_CONF['path'],
     'conf_path_html'      => $_CONF['path_html'],
     'conf_site_url'       => $_CONF['site_url'],
     'is_install'          => ($type === 'install'),
     'lang_message'        => $message,
-    'msg'                 => $msg,
     'lang_success_1'      => $LANG_SUCCESS[1],
     'lang_success_2'      => $LANG_SUCCESS[2],
     'lang_success_3'      => $LANG_SUCCESS[3],
@@ -204,21 +170,20 @@ $T->set_var([
     'lang_success_23'     => $LANG_SUCCESS[23],
     'lang_success_24'     => $LANG_SUCCESS[24],
     'lang_success_25'     => $LANG_SUCCESS[25],
-    'lang_success_26'     => $LANG_SUCCESS[26],
     'lang_confirm_delete' => $MESSAGE[76],
     'install_path'        => $_CONF['path_html'] . SUCCESS_getInstallPath(),
     'older_geeklog'       => (DB_count($_TABLES['users'], 'username', 'NewAdmin') > 0),
     'type'                => $type,
     'version'             => VERSION,
-]);
+));
 
 $T->parse('output', 'success');
 $content = $T->finish($T->get_var('output'));
 $doc = COM_createHTMLDocument(
     $content,
-    [
+    array(
         'what'      => 'menu',
         'pagetitle' => $LANG_SUCCESS[0],
-    ]
+    )
 );
 COM_output($doc);

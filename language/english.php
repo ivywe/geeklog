@@ -11,7 +11,7 @@
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
-# as published by the Free Software Foundation; either version 2LANG
+# as published by the Free Software Foundation; either version 2
 # of the License, or (at your option) any later version.
 #
 # This program is distributed in the hope that it will be useful,
@@ -48,8 +48,8 @@ $LANG01 = array(
     2 => 'read more',
     3 => 'comments',
     4 => 'Edit',
-    5 => 'Contributed by: %s on %s',
-    6 => 'Last modified on %s',
+    5 => '',
+    6 => '',
     7 => '',
     8 => '',
     9 => 'Admin Functions:',
@@ -161,7 +161,7 @@ $LANG01 = array(
     115 => 'No new trackback comments',
     116 => 'Trackback',
     117 => 'Directory',
-    118 => 'Multi-page Article Navigation:',
+    118 => 'Please continue reading on the next page:',
     119 => "Lost your <a href=\"{$_CONF['site_url']}/users.php?mode=getpassword\" rel=\"nofollow\">password</a>?",
     120 => 'Permanent link to this comment',
     121 => 'Comments (%d)',
@@ -187,9 +187,6 @@ $LANG01 = array(
     141 => 'An Error Occurred',
     142 => 'Unfortunately, an error has occurred rendering this page. Please try again later.',
     143 => 'Comment (%d)',
-    144 => 'Parse Error.  An error occurred while parsing PHP code.',
-    'loginform' => "<a href=\"{$_CONF['site_url']}/users.php\">Login Here</a>",
-    'remoteloginoptions' => "Remote Login Options",
     'facebook' => 'Login with Facebook',
     'twitter' => 'Login with Twitter',
     'linkedin' => 'Login with LinkedIn',
@@ -200,14 +197,7 @@ $LANG01 = array(
     'ctl' => 'Clear Cache',
     'ok' => 'OK',
     'filemanager' => 'File Manager',
-    'error_invalid_password' => 'Error, invalid password for username',
-    'error_filemanager_disabled' => 'Filemanager is disabled',
-    'terms_of_use' => 'Terms of Use',
-    'terms_of_service' => 'Terms of Service',
-    'privacy_policy' => 'Privacy Policy',
-    'about_cookies' => 'About Cookies',
-    'parse_php_error' => 'There was an error parsing your PHP code: %s',
-	'error_title' => 'An Error Occurred'
+    'error_invalid_password' => 'Error, invalid password for username'
 );
 
 ###############################################################################
@@ -219,7 +209,7 @@ $LANG03 = array(
     3 => 'Logout',
     4 => 'Create Account',
     5 => 'Username',
-    6 => 'This site requires you to be logged in to post a comment. If you have an account already (or need to create one), please <a href="%s">login here</a>.',
+    6 => 'This site requires you to be logged in to post a comment, please log in.  If you do not have an account you can use the form below to create one.',
     7 => 'Your last comment was ',
     8 => " seconds ago.  This site requires at least {$_CONF['commentspeedlimit']} seconds between comments",
     9 => 'Comment',
@@ -237,11 +227,10 @@ $LANG03 = array(
     21 => 'Read other people\'s messages before posting your own to avoid simply duplicating what has already been said.',
     22 => 'Use a clear subject that describes what your message is about.',
     23 => 'Your email address will NOT be made public.',
-    'instr_line6' => 'When logged in as a user your comments will be linked to your account and you can specify if you would like notifications of any replies.',
     24 => 'Anonymous User',
     25 => 'Are you sure you want to report this post to the site admin?',
     26 => '%s reported the following abusive comment post:',
-    27 => 'Abuse Report',
+    27 => 'Abuse report',
     28 => 'Preview Changes',
     29 => 'Submit Changes',
     30 => 'Edited on',
@@ -253,8 +242,8 @@ $LANG03 = array(
     36 => 'Notify me of new replies',
     37 => 'New Comment Reply',
     38 => "A reply has been made to your comment '%s'.",
-    39 => 'You may view the comment thread at the following address',
-    40 => 'If you wish to receive no further notifications of replies, visit the following link',
+    39 => 'You may view the comment thread at the following address:',
+    40 => 'If you wish to receive no further notifications of replies, visit the following link:',
     41 => 'Hello %s,',
     42 => 'Unsubscribe',
     43 => 'Unsubscribe from reply notifications',
@@ -268,14 +257,7 @@ $LANG03 = array(
     105 => 'IP Address',
     106 => 'Perform bulk action on comments and comment submissions including approval and deleting. You can also bulk ban users and IP addresses. <span style="color: red;">IP addresses in red</span> are the ones banned by the Spam-X plugin (banned from submissions only) and/or Ban plugin (banned from visiting site).  <span style="color: red;">User names in red</span> are users that have been banned.',
     'record_edit' => 'Record user and time of edit?',
-    'ban_plugin_ban_ip' => 'Ban this IP address with the Ban plugin',
-    'num_comments' => '%s Comment(s)',
-    'anon_user_name' => '%s (Anonymous User)',
-    'comments_closed_msg' => 'Comments are closed and no new posts are allowed.',
-    'read_comment' => 'Read the full comment at',
-    'comment_for' => 'The above comment is for the following item',
-	'comment_page_title' => 'Comments for %s',
-	'comments' => 'Comments'
+    'ban_plugin_ban_ip' => 'Ban this IP address with the Ban plugin'
 );
 
 ###############################################################################
@@ -295,17 +277,16 @@ $LANG04 = array(
     11 => 'No User Comments',
     12 => 'User Preferences for',
     13 => 'Email Nightly Digest',
-    14 => 'Since this password was sent by email, it is recommended that you change it immediately. To change your password, log in and then click My Account from the User Functions menu.',
+    14 => 'This password is generated by a randomizer. It is recommended that you change this password immediately. To change your password, log in and then click My Account from the User Functions menu.',
     15 => "Your {$_CONF['site_name']} account has been created successfully. To be able to use it, you must login using the information below. Please save this mail for further reference.",
-    'email_convert_remote' => "Your {$_CONF['site_name']} remote account has been converted to a local account. To continue to use your account, you must login using the information below. Please save this mail for further reference.",
     16 => 'Your Account Information',
     17 => 'Account does not exist',
-    18 => 'The email address provided does not appear to be a valid email address.',
-    19 => 'The username provided already exists. Please choose another one.',
-    20 => 'The email address is either already in use or it\'s domain has been banned.<br' . XHTML . '><br' . XHTML . '>If you have an account already, please <a href="/users.php">login here</a>.',
+    18 => 'The email address provided does not appear to be a valid email address',
+    19 => 'The username or email address provided already exists',
+    20 => 'The email address provided does not appear to be a valid email address',
     21 => 'Error',
     22 => "Register with {$_CONF['site_name']}!",
-    23 => "Creating a user account will give you all the benefits of {$_CONF['site_name']} membership and it will allow you to post comments and submit other items as yourself. If you don't have an account, you will only be able to post anonymously where enabled. Please note that your email address will <b><i>never</i></b> be publicly displayed on this site.",
+    23 => "Creating a user account will give you all the benefits of {$_CONF['site_name']} membership and it will allow you to post comments and submit items as yourself. If you don't have an account, you will only be able to post anonymously. Please note that your email address will <b><i>never</i></b> be publicly displayed on this site.",
     24 => 'Your password will be sent to the email address you enter.',
     25 => 'Did You Forget Your Password?',
     26 => 'Enter <em>either</em> your username <em>or</em> the email address you used to register and click Email Password. Instructions on how to set a new password will be mailed to the email address on record.',
@@ -319,29 +300,29 @@ $LANG04 = array(
     34 => 'This is your real name',
     35 => 'Enter password to change it',
     36 => 'Begins with http://',
-    37 => 'Applied to your comments and other posts which support signatures',
+    37 => 'Applied to your comments',
     38 => 'It\'s all about you! Everyone can read this',
     39 => 'Your public PGP key to share',
-//    40 => 'Disable Topic Icons',
-//    41 => 'Willing to Moderate',
+    40 => 'No Topic Icons',
+    41 => 'Willing to Moderate',
     42 => 'Date Format',
     43 => 'Maximum Articles',
-//    44 => 'Required Core System Blocks Only',
-//    45 => 'Display Preferences for',
-//    46 => 'Excluded Items for',
-//    47 => 'News box Configuration for',
+    44 => 'No boxes',
+    45 => 'Display Preferences for',
+    46 => 'Excluded Items for',
+    47 => 'News box Configuration for',
     48 => 'Topics',
-//    49 => 'Topics with icons will not display on Topic and Article pages',
-//    50 => 'Uncheck this if you aren\'t interested',
-//    51 => 'This will only display Blocks that are deemed absolutely necessary to use the website',
+    49 => 'No icons in articles',
+    50 => 'Uncheck this if you aren\'t interested',
+    51 => 'Just the news articles',
     52 => 'The default is',
     53 => 'Receive the days articles every night',
-//    54 => 'Check the boxes for the topics and authors you don\'t want to see. Please note that filtering a parent topic will also filter all child topics.',
-//    55 => 'If all Blocks are unchecked, then all Blocks will be displayed. If you check 1 or more Blocks, then these are the only Blocks that will be displayed along with any Dynamic Plugin Blocks, and required Core System Blocks. Bold Blocks are Core System Blocks that you can enable or disable. <em>Please note that if the "Required Core System Blocks Only" setting is checked, then the first Blocks filter setting is ignored.</em>',
+    54 => 'Check the boxes for the topics and authors you don\'t want to see.',
+    55 => 'If you leave these all unchecked, it means you want the default selection of boxes. If you start selecting boxes, remember to set all of them that you want because the default selection will be ignored. Default entries are displayed in bold.',
     56 => 'Authors',
     57 => 'Display Mode',
     58 => 'Sort Order',
-    59 => 'Comments per Page',
+    59 => 'Comment Limit',
     60 => 'How do you like your comments displayed?',
     61 => 'Newest or oldest first?',
     62 => 'The default is 100',
@@ -352,7 +333,6 @@ $LANG04 = array(
     67 => 'Member Since',
     68 => 'Remember Me For',
     69 => 'How long should we remember you after logging in?',
-    'cookietimeout_tooltip' => 'This site will remember you are logged in from the device you are currently using regardless of if your account has been logged out automatically due to no activity. Accounts are logged out after being inactive for %s seconds (this is called the "User Session Timeout"). When "Remember Me For" is set for your account it will include the time you select here PLUS the "User Session timeout".',
     70 => "Customize the layout and content of {$_CONF['site_name']}!",
     71 => "One of the great features of {$_CONF['site_name']} is you can customize the content you get and you can change the overall layout of this site.  In order to take advantage of these great features you must first <a href=\"{$_CONF['site_url']}/users.php?mode=new\" rel=\"nofollow\">register</a> with {$_CONF['site_name']}.  Are you already a member?  Then use the login form to the left to log in!",
     72 => 'Theme',
@@ -371,9 +351,8 @@ $LANG04 = array(
     85 => 'Total number of comments:',
     86 => 'Find all postings by',
     87 => 'Your login name',
-    88 => "Someone (possibly you) has requested a new password for your account \"%s\" on {$_CONF['site_name']}, {$_CONF['site_url']}.",
-	'user_password_action_msg' => 'If you really want this action to be taken, please click on the following link:',
-    89 => "If you do not want this action to be taken, simply ignore this message and the request will be disregarded (your password will remain unchanged).",
+    88 => "Someone (possibly you) has requested a new password for your account \"%s\" on {$_CONF['site_name']}, <{$_CONF['site_url']}>.\n\nIf you really want this action to be taken, please click on the following link:\n\n",
+    89 => "If you do not want this action to be taken, simply ignore this message and the request will be disregarded (your password will remain unchanged).\n\n",
     90 => 'You can enter a new password for your account below. Please note that your old password is still valid until you submit this form.',
     91 => 'Set New Password',
     92 => 'Enter New Password',
@@ -401,8 +380,8 @@ $LANG04 = array(
     115 => 'Your account has been disabled, you may not login. Please contact an Administrator.',
     116 => 'Account Awaiting Activation',
     117 => 'Your account is currently awaiting activation by an administrator. You will not be able to login until your account has been approved.',
-    118 => '',
-    119 => '',
+    118 => "Your {$_CONF['site_name']} account has now been activated by an administrator. You may now login to the site at the url below using your username (<username>) and password as previously emailed to you.",
+    119 => 'If you have forgotten your password, you may request a new one at this url:',
     120 => 'Account Activated',
     121 => 'Service',
     122 => 'Sorry, new user registration is disabled',
@@ -414,30 +393,31 @@ $LANG04 = array(
     128 => 'Your Name',
     129 => 'Password &amp; Email',
     130 => 'About You',
-    131 => 'Daily Digest Settings',
+    131 => 'Daily Digest Options',
     132 => 'Daily Digest Feature',
     133 => 'Comment Display',
     134 => 'Comment Options',
-    135 => '<li>Default mode for how comments will be displayed</li><li>Default order to display comments</li><li>Set maximum number of comments to show per page - default is 100</li>',
-//    136 => 'Topics and Authors Filter',
-//    137 => 'Filter Article Content',
+    135 => '<li>Default mode for how comments will be displayed</li><li>Default order to display comments</li><li>Set maximum number of comments to show - default is 100</li>',
+    136 => 'Exclude Topics and Authors',
+    137 => 'Filter Article Content',
     138 => 'Misc Settings',
     139 => 'Layout and Language',
-    140 => '<li>Set the maximum number of articles to show per page</li><li>Set your theme, timezone and preferred date format</li>',
+    140 => '<li>No Topic Icons if checked will not display the article topic icons</li><li>No boxes if checked will only show the Admin Menu, User Menu and Topics</li><li>Set the maximum number of articles to show per page</li><li>Set your theme, timezone and preferred date format</li>',
     141 => 'Privacy Settings',
     142 => 'The default setting is to allow users &amp; admins to email fellow site members and show your status as online. Un-check these options to protect your privacy.',
-//    143 => 'Filter Block Content',
-//    144 => 'Blocks Filter',
+    143 => 'Filter Block Content',
+    144 => 'Show &amp; hide boxes',
     145 => 'Your Public Profile',
     146 => 'Password and email',
     147 => 'Password fields for non-remote accounts only. Edit your account password, email and autologin feature. You will need to enter the same password or email address twice as a confirmation.',
     148 => 'User Information',
-    149 => 'Modify your user information that will be shown to other users.<ul><li>The signature will be added to any comments or other posts you have made (that supports signatures). You can use Autotags.</li><li>The BIO is a brief summary of yourself to share. You can use Autotags.</li><li>Share your PGP Key</li></ul>',
+    149 => 'Modify your user information that will be shown to other users.<ul><li>The signature will be added to any comments or forum posts you made</li><li>The BIO is a brief summary of yourself to share</li><li>Share your PGP Key</li></ul>',
     150 => '',
-//    151 => 'Blocks',
+    151 => 'Blocks',
     156 => 'Delete Account',
     157 => 'Delete Option',
     158 => 'Time Zone',
+    159 => 'This email was generated automatically. Please do not reply to this email.',
     160 => '(max. %d x %d pixels, %d bytes; %s)',
     161 => 'will be scaled down',
     162 => 'will not be scaled',
@@ -445,15 +425,12 @@ $LANG04 = array(
     164 => 'You have exceeded the number of allowed attempts for re-authentication. The operation has been aborted and your recent changes were lost, sorry.',
     165 => 'Use Advanced Editor',
     166 => 'Re-synch Remote Account',
-    167 => 'Login or Register via Remote Account',
+    167 => 'Remote login',
     168 => 'You may also login with one of the remote authentication services below.',
-    169 => 'User has updated his/her profile.',
+    169 => 'User has updated his/her profile',
     170 => "Admin at {$_CONF['site_name']} changed the password of your account as follows.  Please save this mail for further reference.",
-    171 => 'Post mode for the "Signature" and "Bio" below',
     'user_login' => 'User Login',
     'user_login_message' => 'Please login below. You must enter both a username and password.',
-    'user_remote_login_desc_long' => 'Click on one of the button(s) below to login and/or register via an account you have on another supported remote service. Please note, you must have an account on the remote service. If you are creating a new account on this website, then the remote service may ask you to give this website permissions to access information like your name, email address, and profile photo.',
-	'remote_register_instructions' => "<strong>Please note:</strong> To register and create an account via Remote Login, please visit the <a href=\"{$_CONF['site_url']}/users.php\" rel=\"nofollow\">User Login</a>.",
     'user_logged_in_message' => "You are already logged in. Would you like to <a href=\"{$_CONF['site_url']}/users.php?mode=logout\" rel=\"nofollow\">logout</a>?",
     'user_max_login_attempts' => 'Max Login Attempts and Speed Limit Reached',
     'tfa_two_factor_auth' => 'Two Factor Authentication',
@@ -472,22 +449,20 @@ $LANG04 = array(
     'tfa_download' => 'Download Backup Codes',
     'tfa_new_backup_code' => 'Generate a new set of backup codes',
     'tfa_generate_confirm' => 'Go ahead?',
-    'lang_tfa_user_edit_desc' => 'You are only allowed to disable Two Factor Authentication (2FA) from this form if needed (like the user does not have their backup codes). It should not be enabled by Admins as the user themselves are required to enable and setup 2FA from their Account, including the Google Authenticator App for their phone and coping the backup codes.',
+    'lang_tfa_user_edit_desc' => 'You are only allowed to disable Two Factor Authentication (2FA) from this form if needed (like the user does not have their backup codes). It should not be enabled by Admins as the user themselves are required to enable and setup 2FA from their Account, including the Google Authenticator App for their phone and coping the backup codes.',    
     'desc_new_pwd_status' => 'You are required to enter a new password for your account. You can enter a new password for your account below. <em>Please note you will not be able to do anything with your account until your password is updated.</em>',
     'new_email' => 'New Email',
     'set_new_email' => 'Set New Email',
     'confirm_new_email' => 'Confirm new email',
     'enter_new_email' => 'Enter New Email',
     'desc_new_email_status' => 'You are required to enter a new email address for your account. You can enter a new email for your account below. <em>Please note you will not be able to do anything with your account until your email is updated and verified.</em>',
-    'email_msg_email_status_1' => "You have updated your email address for your account \"%s\" on {$_CONF['site_name']}, {$_CONF['site_url']}.",
-	'email_msg_verify' => "Please click on the following link to verify this email address:",
-    'email_msg_email_status_2' => "If you do not verify this email address and you log into your account you will be required to enter a new email address and go through this email verification process again.",
+    'email_msg_email_status_1' => "You have updated your email address for your account \"%s\" on {$_CONF['site_name']}, <{$_CONF['site_url']}>.\n\nPlease click on the following link to verify this email address:\n\n",
+    'email_msg_email_status_2' => "If you do not verify this email address and you log into your account you will be required to enter a new email address and go through this email verification process again.\n\n",
     'email_verify' => 'New Email to be Verified',
     'email_verify_delete' => 'Delete email to be verified',
     'email_verify_msg' => "You have previously updated your email address for your account but it still needs to be verified. Please check your email account for an email from {$_CONF['site_name']} that contains a verification link. Once you click on that link your new email address will be verified and your account will be updated to use it.<br" . XHTML . "><br" . XHTML . ">If you wish you may update the new email to be verified with the email fields above or you can delete it.",
     'remove_account_msg' => 'To remove your account from our database, enter your current password into the above "Current Password", check the checkbox next to "Delete Option" below and click on "Save" . Please note that any articles and comments you posted under this account will <strong>not</strong> be deleted but show up as being posted by "Anonymous".',
-    'remove_remote_account_msg' => 'To remove your remote account from our database, check the checkbox next to "Delete Option" below and click on "Save" . Please note that any articles and comments you posted under this account will <strong>not</strong> be deleted but show up as being posted by "Anonymous".',
-    'theme_info' => '%1$s %2$s (requires Geeklog %3$s)'
+    'remove_remote_account_msg' => 'To remove your remote account from our database, check the checkbox next to "Delete Option" below and click on "Save" . Please note that any articles and comments you posted under this account will <strong>not</strong> be deleted but show up as being posted by "Anonymous".'    
 );
 
 ###############################################################################
@@ -514,8 +489,7 @@ $LANG05 = array(
     5 => 'Next',
     6 => 'Previous',
     7 => 'First',
-    8 => 'Last',
-    9 => 'Page navigation'
+    8 => 'Last'
 );
 
 ###############################################################################
@@ -544,13 +518,13 @@ $LANG08 = array(
     20 => 'From Name',
     21 => 'From Email Address',
     22 => 'All fields are required',
-    23 => "This email was sent to you by %s (%s) because they thought you might be interested in this article from {$_CONF['site_name']} at {$_CONF['site_url']}. Please note that the email address involved in this messages are not saved.",
+    23 => "This email was sent to you by %s at %s because they thought you might be interested in this article from {$_CONF['site_url']}.  This is not SPAM and the email addresses involved in this transaction were not saved to a list or stored for later use.",
     24 => 'Comment on this article at',
     25 => 'You must be logged in to user this feature.  By having you log in, it helps us prevent misuse of the system',
     26 => 'This form will allow you to send an email to the selected user.  All fields are required.',
     27 => 'Short message',
     28 => '%s wrote: ',
-    29 => "This is the daily digest from {$_CONF['site_name']} for %s. Listed below are the latest published articles since the last time this email was sent.",
+    29 => "This is the daily digest from {$_CONF['site_name']} for ",
     30 => ' Daily Newsletter for ',
     31 => 'Title',
     32 => 'Date',
@@ -559,15 +533,13 @@ $LANG08 = array(
     35 => 'Sorry, this user prefers not to receive any emails.',
     36 => 'Copy:',
     37 => 'Send me a copy of this email',
-    38 => "This is a copy of the email that you sent to %s from: {$_CONF['site_url']}",
+    38 => "This is a copy of the email that you sent to %s from <{$_CONF['site_url']}>:",
     39 => 'Your last message was ',
     40 => " seconds ago.  This site requires at least {$_CONF['speedlimit']} seconds between sending messages",
     41 => "This user doesn't exist.",
     42 => "This users email address doesn't exist. This most likely means is is an OAuth user account.",
     43 => 'This users email address is invalid.',
-    44 => 'This users status is set to something other than Active or New Password therefore the email address is assumed bad.',
-    45 => "This is a message sent from {$_CONF['site_name']} by %s. Any replies will need to be sent to the email address: %s",
-	46 => "To unsubscribe from the Daily Digest, login to {$_CONF['site_name']} at {$_CONF['site_url']}. Then visit the user settings page at {$_CONF['site_url']}/usersettings.php and view the Content Tab. You can then unsubscribe to the Daily Digest by deselecting all topics and saving your profile."
+    44 => 'This users status is set to something other than Active or New Password therefore the email address is assumed bad.'
 );
 
 ###############################################################################
@@ -657,8 +629,8 @@ $LANG10 = array(
     1 => 'Site Statistics',
     2 => 'Total Hits to the system',
     3 => 'Articles (Comments) in the system',
-    4 => 'Site Statistic',
-    5 => "Overall Site Statistics for {$_CONF['site_name']}",
+    4 => '',
+    5 => '',
     6 => '',
     7 => 'Top Ten Viewed Articles',
     8 => 'Article Title',
@@ -684,10 +656,7 @@ $LANG10 = array(
     28 => '',
     29 => '',
     30 => 'Hits',
-    31 => '',
-    32 => 'Top Ten Liked Articles',
-    33 => 'No liked articles found.',
-
+    31 => ''
 );
 
 ###############################################################################
@@ -764,83 +733,6 @@ $LANG12 = array(
 );
 
 ###############################################################################
-# likes.php - likes and dislikes
-
-$LANG_LIKES = array(
-    'like'              => 'Like',
-    'unlike'            => 'Unlike',
-    'dislike'           => 'Dislike',
-    'undislike'         => 'Undislike',
-    'likes'             => 'Likes',
-    'unlikes'           => 'Unlikes',
-    'dislikes'          => 'Dislikes',
-    'undislikes'        => 'Undislikes',
-    'i_like_this'       => 'I like this',
-    'i_dislike_this'    => 'I dislike this',
-    'thanks_for_action' => 'Thanks for voting!',
-    'likes_speedlimit'  => "You last used the Likes system on an item %s seconds ago. This site requires at least %s seconds between using the Likes system",
-    'likes_ip_error'    => 'Your IP address has already performed this Likes action.',
-    'likes_uid_error'   => 'Your User account has already performed this Likes action.',
-    'own_item_error'    => 'Either you own the item or do not have permission to Like/Dislike it.', 
-	'liked_by' 			=> 'Liked by:',
-	'disliked_by' 		=> 'Disliked by:',
-    'num_anon_users' => '<br' . XHTML . '>%s Anonymous Users',
-    'one_anon_users' => '<br' . XHTML . '>1 Anonymous User',
-    'num_more_users' => '<br' . XHTML . '>+%s more Users',
-    'username_in_likes_list' 	=> '<br' . XHTML . '>%s',
-	'autotag_desc_likes_block' 	=> "[likes_block:aid action:aid wrapper:wid class:likes-autotag type: subtype: time:604800 max:10 cache:3600 line:1 length:20]
-	- Displays the Likes block. No attributes are required. If attribute not specified then default in configuration used. 
-	- action = 1 (likes only), 2 (dislikes only), or 3 (both) 
-	- wrapper = 0 (no wrapper), 1 (block wrapper with title), div wrapper with css class), or both
-	- class = Specifies the css class used by the div wrapper if enabled else default likes-autotag will be used 
-	- type = Either empty (for all types) or include 1 supported like type. For example 'article' or 'comment'
-	- subtype = Specify a sub type of type if needed
-	- time = Display items that are this many seconds old. 0 will display all items
-	- max = Maximum number of items to display
-	- cache = Cached for no longer than this many seconds. If 0 caching is disabled
-	- line = Display likes icons on new line
-	- length = Trim item title length to this many characters",
-	// Likes Block Tooltips
-    'num_likes_in_time_limit'		=> 'The last number of Likes this item received within the time specified.',
-	'num_dislikes_in_time_limit'   	=> 'The last number of Dislikes this item received within the time specified.',
-	'num_likes_total'   			=> 'The total number of Likes this item has received.',
-	'num_dislikes_total'   			=> 'The total number of Dislikes this item has received.',
-	// Likes Block time msg
-	'likes_time_span'   			=> 'Most Likes in the last %t %s',
-	'dislikes_time_span'   			=> 'Most Dislikes in the last %t %s',
-	'all_time_span'					=> 'Most engaging in the last %t %s',
-	// Likes Block Title
-	'whats_liked'   				=> 'Whats Liked',
-	'whats_recently_liked' 			=> 'Whats Recently Liked',
-	'whats_disliked'   				=> 'Whats Disliked',
-	'whats_recently_disliked' 		=> 'Whats Recently Disliked',
-	'whats_popular' 				=> 'Whats Popular',
-	'whats_recently_popular' 		=> 'Whats Recently Popular',
-	// Likes Block Title for type
-	'whats_liked_type'   			=> 'Liked %s',
-	'whats_recently_liked_type'		=> 'Recently Liked %s',
-	'whats_disliked_type'			=> 'Disliked %s',
-	'whats_recently_disliked_type'	=> 'Recently Disliked %s',
-	'whats_popular_type' 			=> 'Popular %s',
-	'whats_recently_popular_type'	=> 'Recently Popular %s',	
-	// Likes Block - No Items
-	'no_liked_items_in_time_limit'  => 'There have been no Likes during the time specified.',
-	'no_disliked_items_in_time_limit'  => 'There have been no Dislikes during the time specified.',
-	'no_action_items_in_time_limit' => 'There have been no Likes or Dislikes during the time specified.',
-	'no_liked_items'   				=> 'There are no Liked items.',
-	'no_disliked_items'   			=> 'There are no Disliked items.',
-	'no_action_items'   			=> 'There are no Liked or Disliked items.',
-	'last_num_likes_by'				=> 'Last %s Likes and Dislikes by %s', 
-	'msg_no_likes'					=> 'No likes or dislikes found by user.', 
-	'total_num_likes'				=> 'Total number of likes and dislikes:',
-	'title_liked'					=> '%s Liked on ',
-	'title_disliked'				=> '%s Disliked on ',
-	// Likes Block Core Supported Plurals
-	'articles'   					=> 'Articles',
-	'comments'   					=> 'Comments'
-);
-
-###############################################################################
 # ADMIN PHRASES - These are file phrases used in admin scripts
 ###############################################################################
 
@@ -903,18 +795,20 @@ $LANG_ENVCHECK = array(
     'database_pgsql_req_version' => 'Geeklog requires Postgresql version 9.1.7 or newer.',
     'database_dms'              => 'Database Management System',
     'database_dms_notes'        => 'Failed to determine Database Management System. Geeklog requires either MySQL or Postgresql',
-    'php_req_version'           => 'Geeklog requires PHP version 5.6.4 or newer.',
+    'php_req_version'           => 'Geeklog requires PHP version 5.3.3 or newer.',
     'php_settings'              => 'PHP Settings',
     'php_version'               => 'PHP Version',
     'php_warning'               => 'If any of the items below are marked in <span class="no">red</span>, you may encounter problems with your Geeklog site.  Check with your hosting provider for information on changing any of these PHP settings.',
     'post_max_size'             => 'Geeklog allows you to upload plugins, images, and files. You should allow at least 8M for the maximum post size.',
     'recheck'                   => 'Recheck Environment',
     'recommended'               => 'Recommended',
+    'register_globals'          => 'If PHP\'s <strong>register_globals</strong> is enabled, it can create security issues.',
+    'safe_mode'                 => 'If PHP\'s <strong>safe_mode</strong> is enabled, some functions of Geeklog may not work correctly. Specifically the Media Gallery plugin.',
     'setting'                   => 'Setting',
     'unable_mkdir'              => 'Unable to create directory',
     'upload_max_filesize'       => 'Geeklog allows you to upload plugins, images, and files. You should allow at least 8M for the upload size.',
     'not_checked'               => 'Skipped',
-    'bypass_note'               => 'Since open_basedir restrictions was detected, the check for graphic libraries were skipped.',
+    'bypass_note'               => 'Since either Safe Mode or open_basedir restrictions were detected, the check for graphic libraries were skipped.',
     'not_used_note'             => 'No graphic libraries are set to be used by Geeklog.',
     'location'                  => 'Location',
     'status'                    => 'Status',
@@ -931,8 +825,7 @@ $LANG_ENVCHECK = array(
     'showhide_phpinfo'          => 'Show/Hide Full PHP Info',
     'view_online'               => 'Click here %s to view online',
     'no_new_items'              => 'No New Items',
-    'max_execution_time'        => 'Geeklog recommends the PHP default value of 30 seconds as a minimum, but plugin uploads and other operations may take longer than this depending upon your hosting environment.  You may be able to increase this by modifying the value of <b>max_execution_time</b> in your php.ini file.',
-    'phpinfo_disabled'          => 'In order to view the current php settings, you will have to contact your host and enable access to the phpinfo() function.'
+    'max_execution_time'        => 'Geeklog recommends the PHP default value of 30 seconds as a minimum, but plugin uploads and other operations may take longer than this depending upon your hosting environment.  If safe_mode (above) is Off, you may be able to increase this by modifying the value of <b>max_execution_time</b> in your php.ini file.'
 );
 
 ###############################################################################
@@ -946,8 +839,7 @@ $LANG20 = array(
     5 => 'Password:',
     6 => 'All access to administrative portions of this web site are logged and reviewed.<br' . XHTML . '>This page is for the use of authorized personnel only.',
     7 => 'login',
-    8 => 'Login',
-    9 => 'This page is for the use of authorized personnel only. Please note all access to administrative portions of this web site are logged and reviewed.'
+    8 => 'Login'
 );
 
 ###############################################################################
@@ -978,7 +870,7 @@ $LANG21 = array(
     22 => 'Dynamic Blocks',
     23 => 'Block Order',
     24 => 'Dynamic',
-    25 => 'To modify or delete a regular block, click on that block\'s edit icon below.  To create a new regular block, click on "Create New" above. To move a regular block, click on the arrows or [R] and [L] boxes. To edit dynamic blocks check the plugin configuration that the block is related to. Edit and Read access to blocks depends not only on the block access itself, but the minimum topic access the block is assigned to. (if any)',
+    25 => 'To modify or delete a regular block, click on that block\'s edit icon below.  To create a new regular block, click on "Create New" above. To move a regular block, click on the arrows or [R] and [L] boxes. To edit dynamic blocks check the plugin configuration that the block is related to.',
     26 => 'Layout Block',
     27 => 'PHP Block',
     28 => 'PHP Block Options',
@@ -1076,7 +968,7 @@ $LANG24 = array(
     20 => 'Ping',
     21 => 'Send Ping',
     22 => 'Article List',
-    23 => 'To modify or delete an article, click on that article\'s edit icon below. To view an article, click on the title of the article you wish to view. To create a new article, click on "Create New" above.<br><br>Edit and Read access to articles depends not only on the article access itself, but the minimum topic access the article is assigned to.<br><br>"Edit Access Only" displays articles (and topics in the dropdown for searching) that you have edit access to. If an article is listed when this is checked that is read only, this means that you have edit access for the article but one of the topics that the article is assigned to, you do not.',
+    23 => 'To modify or delete an article, click on that article\'s edit icon below. To view an article, click on the title of the article you wish to view. To create a new article, click on "Create New" above.',
     24 => 'The ID you chose for this article is already in use. Please use another ID.',
     25 => 'Error when saving article',
     26 => 'Article Preview',
@@ -1169,7 +1061,7 @@ $LANG27 = array(
     6 => 'Deleting a topic deletes all articles, submissions and blocks associated with it (as long as they are only associated with that deleted topic).',
     7 => 'Please fill in the Topic ID and Topic Name fields',
     8 => 'Topic Manager',
-    9 => 'To modify or delete a topic, click on that topic\'s edit icon below. To create a new topic, click on "Create New" above. The asterisk(*) denotes the default topic. Remember topic Edit and Read access will also affect items (like blocks, articles, etc...) assigned to it.',
+    9 => 'To modify or delete a topic, click on that topic\'s edit icon below. To create a new topic, click on "Create New" above. The asterisk(*) denotes the default topic.',
     10 => 'Sort Order',
     11 => 'Articles/Page',
     12 => 'Access Denied',
@@ -1201,10 +1093,7 @@ $LANG27 = array(
     38 => 'All',
     39 => 'Homepage Only',
     40 => 'Assign one or more topics. ',
-    41 => 'If "All" is selected then the item will appear for all topics. If "Homepage Only" is selected then item will appear just on the homepage. ',
-    'topic_control_select_topics' => 'Else you must select at least one topic to assign the item to. ',
-    'topic_control_select_topics_disabled' => 'Else you must select at least one topic you have edit access for, to assign the item to (text is darker). ',
-    'topic_control_no_topics' => 'Unfortunately you do not have edit access to any topics so none can be selected. ',
+    41 => 'If "All" is selected then the item will appear for all topics. If "Homepage Only" is selected then item will appear just on the homepage. Else you must select at least one topic to assign the item to. ',
     42 => 'Inherit contains the list of assigned topics. If the topic is selected then the item will be inherited by the parent topic. ',
     43 => 'Default contains the list of assigned topics. This is the default topic that will be used when displaying the item if the actual topic the user is in is not found. ',
     44 => 'Inherit',
@@ -1228,11 +1117,7 @@ $LANG27 = array(
     'topics:' => 'Topics:',
     'filed_under:' => 'Filed under:',
     'topic_title' => 'Topic Title',
-    'topic_title_desc' => 'Used as the page title for the topic. If empty the topic name will be used.',
-    'move_topic_up' => 'Move topic up the sort order',
-    'move_topic_down' => 'Move topic down in the sort order',
-    'topics_edit_access_select' => 'You can only select topics you have Edit access to you (text is darker).',
-    'topics_edit_access_listed' => 'Only topics with Edit access are listed.'
+    'topic_title_desc' => 'Used as the page title for the topic. If empty the topic name will be used.'
 );
 
 ###############################################################################
@@ -1285,16 +1170,6 @@ $LANG28 = array(
     44 => 'Awaiting Authorization',
     45 => 'Active',
     46 => 'User Status',
-    'user_status_desc' => 'An explanation of all possible user statuses: <ul>
-        <li><strong>Awaiting Activation</strong> - New account awaiting user to login. Email has been sent but not verified. This is only set for a new account and is an automated status (Admins cannot set accounts to this status manually)</li>
-        <li><strong>Awaiting Authorization</strong> - New account awaiting moderator approval in the User Submission Queue. When User Submission approved, user will be sent email with password. This is only set for a new account and is an automated status (Admins cannot set accounts to this status manually)</li>
-        <li><strong>Active</strong> - This is an Active account.</li>
-        <li><strong>Banned</strong> -  This Account is banned/disabled. Username is crossed out on the site for any content they have submitted, User cannot login, emails to account is disabled, and profile cannot be viewed by any user except Admins.</li>
-        <li><strong>Locked</strong> - This Account is locked. User cannot login, emails to account is disabled, but profile can still be viewed by all.</li>
-        <li><strong>New Email Required</strong> - Emails to account is disabled. When user logs in again they must submit new email address and verify before access to rest of the website (under this user account). Status stays the same until email is verified. If "Require User Email" config option true then any users who login (includes remote accounts) that do not have an email address will automatically switch to this status.</li>
-        <li><strong>New Password Required</strong> -  When the user logs in they must submit a new password before access to rest of website (under this user account). This is only for regular accounts and not remote accounts.</li>
-        </ul>
-    ',
     47 => 'Edit',
     48 => 'Show Admin Groups',
     49 => 'Admin Group',
@@ -1304,7 +1179,7 @@ $LANG28 = array(
     53 => 'registered',
     54 => 'Batch Admin',
     55 => "This only works if you have enabled the 'Record Last Login' option in the Configuration admin panel.",
-    56 => 'Please choose the type of user you want to delete and press "Update List". Then, uncheck those from the list you do not want to delete and press "Delete". Please note that you will only delete those that are currently visible in case the list spans over several pages. The Contributed column also cannot be sorted and only lists the total number of items contributed for Articles, Comments and by any plugin items that support this feature.',
+    56 => 'Please choose the type of user you want to delete and press "Update List". Then, uncheck those from the list you do not want to delete and press "Delete". Please note that you will only delete those that are currently visible in case the list spans over several pages.',
     57 => 'Phantom users',
     58 => 'Short-Time Users',
     59 => 'Old Users',
@@ -1329,11 +1204,11 @@ $LANG28 = array(
     78 => 'Send Reminder',
     79 => 'No User selected for reminders',
     80 => 'Successfully sent Reminders',
-    81 => 'Reminder to access your user account on %s',
-    82 => "Your account on {$_CONF['site_name']} has not been accessed since %s and will be disabled if not used soon.",
+    81 => 'Reminder to verify account for %s',
+    82 => "Your account on {$_CONF['site_name']} has not been accessed since %s and will be disabled if not accessed in the next 30 days.",
     83 => "Your account on {$_CONF['site_name']} has not been used since it was created and will be deleted soon if not accessed.",
-    84 => "Your login name is: %s for our site: {$_CONF['site_url']}",
-    85 => 'If you have forgotten the password use the following link: ',
+    84 => "Your login name is: %s  for our site: {$_CONF['site_url']}",
+    85 => 'If you have forgotten the password use the following link: %s',
     86 => 'Include',
     87 => 'Reminders',
     88 => 'Default Group',
@@ -1341,11 +1216,6 @@ $LANG28 = array(
     90 => 'Apply "Default Group" change to existing user accounts',
     91 => 'Send password to user',
     92 => 'Only for new users or when changing password for existing user.',
-    'convert_remote' => 'Check here to convert from remote to a local account',
-    'convert_remote_desc' => 'When a remote account is converted to a local account, a password will be automatically generated. If the account does not have a confirmed email address, the account will be locked after it is converted since the user will have no way of retrieving the password. Once converted and if the account is active and has an email address the user will be emailed the password or they can request the password by using the forget password link from the Login page. For user accounts that do not have an active status and valid email you will have to manually notify the user of the account change and how to login.',
-    'contributed' => 'Contributed',
-    'na' => 'NA',
-    'nothing' => 'Nothing',
     'autotag_desc_user' => '[user: name alternate title] - Displays a link to a User using the Username as the title. An alternate title may be specified but is not required.',
     'USER_ACCOUNT_LOCKED' => 'Locked',
     'USER_ACCOUNT_NEW_EMAIL' => 'New Email Required',
@@ -1387,7 +1257,7 @@ $LANG29 = array(
     'plugins' => 'Plugins',
     'tools' => 'Tools',
     'users' => 'Users',
-    'submissions_desc' => "To modify or delete a user submission, click on that item's edit icon below. To approve and delete multiple submissions use the radio options in the lists and then click submit. Items in most cases are ordered newest to oldest.",
+    'submissions_desc' => "To modify or delete a user submssion, click on that item's edit icon below. To approve and delete multiple submissions use the radio options in the lists and then click submit. Items in most cases are ordered newest to oldest.",
     'max_invalid_login' => 'Max Invalid Logins Reached for User',
     'max_invalid_login_msg' => "This user has reached the maximum number of invalid login attempts ({$_CONF['invalidloginattempts']}) within the specified time limit ({$_CONF['invalidloginmaxtime']} seconds). The last IP to make an invalid login attempt is %s. Either the real user has forgotten the password for their account, or someone else is attempting to guess the password for this user account."
 );
@@ -1396,7 +1266,7 @@ $LANG29 = array(
 # admin/mail.php
 
 $LANG31 = array(
-    1 => "Mail Users",
+    1 => "{$_CONF['site_name']} Mail Utility",
     2 => 'From Name',
     3 => 'From Email Address',
     4 => 'Subject',
@@ -1414,43 +1284,35 @@ $LANG31 = array(
     16 => 'Successfully sent messages to: ',
     17 => "<a href=\"{$_CONF['site_admin_url']}/mail.php\">Send another message</a>",
     18 => 'To',
-    19 => 'If you wish to send a message to all site members, select the Logged-in Users group from the drop down. Please note that some email hosts may limit the number of emails you can send in a certain time period.',
-	20 => "<p><successcount> messages was sent successfully and <failcount> messages failed to send.</p><p>The details of the message attempts are below:</p>",
+    19 => 'NOTE: if you wish to send a message to all site members, select the Logged-in Users group from the drop down.',
+    20 => "Successfully sent <successcount> messages and unsuccessfully sent <failcount> messages.  If you need them, the details of each message attempts is below.  Otherwise you can <a href=\"{$_CONF['site_admin_url']}/mail.php\">Send another message</a> or you can <a href=\"{$_CONF['site_admin_url']}/moderation.php\">go back to the administration page</a>.",
     21 => 'Failures',
     22 => 'Successes',
     23 => 'No failures',
     24 => 'No successes',
     25 => '-- Select Group --',
     26 => 'Please fill in all the fields on the form and select a group of users from the drop down.',
-    27 => 'The following template variables are available in <strong>Subject</strong> and <strong>Message</strong>: {uid}, {username}, {fullname}, {email}, {homepage}, {theme}, {language}, {location}, {lastgranted}, {lastlogin}, {site_url}, {site_name}, {site_slogan}, {owner_name}, {copyrightyear}, {site_mail}, {noreply_mail}',
-	'email_divider' => '------------------------------------------------------------',
-	'email_divider_html' => '<hr>',
-	'sig_divider' => '---',
-	'sig_divider_html' => '---<br' . XHTML . '>',	
-    'email_footer_msg_noreply' => 'The address used to send this email is not monitored. Please do not reply to this email.',
-	'email_footer_msg_content' => 'If content from the website is displayed in this email, there may be layout changes which result in formatting issues.',	
-	'ip_address_email' => 'IP address that initiated email:'
+    27 => 'The following template variables are available in <strong>Subject</strong> and <strong>Message</strong>: {uid}, {username}, {fullname}, {email}, {homepage}, {theme}, {language}, {location}, {lastgranted}, {lastlogin}, {site_url}, {site_name}, {site_slogan}, {owner_name}, {copyrightyear}, {site_mail}, {noreply_mail}'
 );
 
 ###############################################################################
 # admin/plugins.php
 
 $LANG32 = array(
-    1 => 'Installing plugins could possibly cause damage to your Geeklog installation and, possibly, to your system.  It is important that you only install plugins downloaded from the <a href="https://www.geeklog.net">Geeklog Homepage</a> as we thoroughly test all plugins submitted to our site on a variety of operating systems.  It is important that you understand that the plugin installation process will require the execution of a few filesystem commands which could lead to security problems particularly if you use plugins from third party sites.  Even with this warning you are getting, we do not guarantee the success of any installation nor are we liable for damage caused by installing a Geeklog plugin.  In other words, install at your own risk.  For the wary, directions on how to manually install a plugin is included with each plugin package.',
+    1 => 'Installing plugins could possibly cause damage to your Geeklog installation and, possibly, to your system.  It is important that you only install plugins downloaded from the <a href="https://www.geeklog.net">Geeklog Homepage</a> as we thoroughly test all plugins submitted to our site on a variety of operating systems.  It is important that you understand that the plugin installation process will require the execution of a few filesystem commands which could lead to security problems particularly if you use plugins from third party sites.  Even with this warning you are getting, we do not gaurantee the success of any installation nor are we liable for damage caused by installing a Geeklog plugin.  In other words, install at your own risk.  For the wary, directions on how to manually install a plugin is included with each plugin package.',
     2 => 'Plugin Installation Disclaimer',
     3 => 'Plugin Installation Form',
     4 => 'Plugin File',
     5 => 'Plugin List',
     6 => 'Warning: Plugin Already Installed!',
-    7 => 'The plugin you are trying to install already exists.  Please uninstall the plugin before re-installing it',
+    7 => 'The plugin you are trying to install already exists.  Please delete the plugin before re-installing it',
     8 => 'Plugin Compatibility Check Failed',
     9 => 'This plugin requires a newer version of Geeklog. Please upgrade your copy of <a href="https://www.geeklog.net">Geeklog</a>.',
     10 => '<br' . XHTML . '><b>There are no plugins currently installed.</b><br' . XHTML . '><br' . XHTML . '>',
-	11 => 'Click on the info icon below in the <b>Installed Plugins</b> list to show the plugin details including the authors\'s website. In the list, the plugin load order can be changed along with enabling or disabling it. The plugin can also be uninstalled which will remove all of its data from the database. If new files have been updated for the plugin but it yet has to be updated in the database, then this will be shown under the Plugin Version column along with the option to update it. Both the current installed version and the version returned from the plugin\'s code are shown.<br><br>In the <b>Uninstalled Plugins</b> list you can install plugins that have been uploaded (if you have install permissions) and delete the files of uninstalled plugins (if you have upload permissions). Please note that deleting the files of a plugin will delete directories and files it has under its default plugin folders found in the Plugins, Public HTML, and the Admin directories only. Any files that the plugin has outside these default directories will not be deleted (and will have to be done manually).',
+    11 => 'To modify or delete a plugin, click on that plugin\'s edit icon below. This will show the plugin details including the authors\'s website. Both the installed version and the version returned from the plugin\'s code are shown. This will aid you to know if the plugin needs to be upgraded. To install or upgrade a plugin please consult its documentation.',
     12 => 'no plugin name provided to plugineditor()',
     13 => 'Plugin Information Center',
-    14 => 'Uninstalled Plugins',
-	'installed_plugins' => 'Installed Plugins',
+    14 => 'Uninstalled Plugins', // Resynch
     15 => 'Admin Home',
     16 => 'Plugin Name',
     17 => 'Plugin Version',
@@ -1461,13 +1323,13 @@ $LANG32 = array(
     22 => 'Install',
     23 => 'Save',
     24 => 'Cancel',
-    25 => 'Uninstall',
+    25 => 'Delete',
     26 => 'Plugin Name',
     27 => 'Plugin Homepage',
     28 => 'Installed Version',
     29 => 'Geeklog Version',
-    30 => 'Uninstall Plugin?',
-    31 => 'Are you sure you want to uninstall this plugin?  By doing so you will remove all the data and data structures that this plugin uses.  If you are sure, click uninstall again on the form below.',
+    30 => 'Delete Plugin?',
+    31 => 'Are you sure you want to delete this plugin?  By doing so you will remove all the data and data structures that this plugin uses.  If you are sure, click delete again on the form below.',
     32 => '<p><b>Error Autotag not correct format</b></p>',
     33 => 'Code Version',
     34 => 'Update',
@@ -1482,8 +1344,8 @@ $LANG32 = array(
     43 => 'Load Order',
     44 => 'Move plugin up the load order',
     45 => 'Move plugin down the load order',
-    46 => 'Click to Uninstall this Plugin',
-    47 => 'Really Uninstall %s Plugin?',
+    46 => 'Click to Delete this Plugin',
+    47 => 'Really Delete %s Plugin?',
     48 => 'Click to Enable this Plugin',
     49 => 'Click to Disable this Plugin',
     50 => 'Dependencies',
@@ -1506,10 +1368,6 @@ $LANG32 = array(
     67 => 'The directory "%s" is not writable.',
     68 => 'You do not have the required permissions to install plugins.',
     69 => 'You do not have the required permissions to upload plugins.',
-	'delete' => 'Delete',
-	'delete_plugin' => 'Delete Plugin and all of its files?',
-    'click_to_delete_msg' => 'Click to Delete this Plugin files',
-    'really_delete_msg' => 'Really Delete %s Plugin files?',
 
     // to match the PHP error constants,
     // http://www.php.net/manual/en/features.file-upload.errors.php
@@ -1579,8 +1437,7 @@ $LANG33 = array(
     52 => 'Error: existing Filename',
     53 => 'All Frontpage Articles',
     54 => 'Please select the type of feed to create.',
-    55 => 'Articles',
-    'num_articles' => '%s Article(s)'
+    55 => 'Articles'
 );
 
 ###############################################################################
@@ -1595,8 +1452,6 @@ $LANG_LANG = array(
     'language'              => 'Language',
     'name'                  => 'Variable Element',
     'var_name'              => 'Variable Name',
-    'name_tip'              => 'Required just for language arrays.',
-    'var_name_tip'          => 'Can be a regular variable or array. Do not include the dollar sign at the beginning of the variable/array name.',
     'value'                 => 'New Value'
 );
 
@@ -1664,7 +1519,7 @@ $MESSAGE = array(
     28 => 'The plugin has been successfully saved',
     29 => 'Sorry, you do not have access to this administration page.  Please note that all attempts to access unauthorized features are logged.',
     30 => 'Access Denied',
-    31 => "Sorry, This feature is not supported by the {$_DB_dbms} database server this website is using.  Please note that all attempts to access unsupported features are logged.",
+    31 => '',
     32 => '',
     33 => '',
     34 => '',
@@ -1678,7 +1533,7 @@ $MESSAGE = array(
     42 => '',
     43 => 'Account does not exist.',
     44 => 'The plugin was successfully installed!',
-    45 => 'The plugin was successfully uninstalled.',
+    45 => 'The plugin was successfully deleted.',
     46 => 'Your username or email address was not found, please try again.',
     47 => 'Sorry you cannot currently request the password for your account. For more information please contact the Admin.',
     48 => "Thank you for applying for a membership with {$_CONF['site_name']}. Our team will review your application. If approved, your password will be emailed to you at the email address you just entered.",
@@ -1761,17 +1616,13 @@ $MESSAGE = array(
     151 => 'Failed to delete some files and directories used during the installation.  Please remove them manually.',
     152 => 'All the files and directories used during the installation are left as they are.  It is dangerous to keep them on the server, so please don\'t forget to remove them manually.',
     153 => 'You last emailed an article %1$d seconds ago.  This site requires at least %2$d seconds between emailing articles.',
-	160 => 'The plugin files was successfully deleted.',
-    161 => 'The archive includes a file whose name includes an unsafe character.',
     400 => 'Not all required fields have been passed validation', // Error codes in the 400 range reserved for CUSTOM membership
     401 => 'Please enter Fullname',
     500 => 'The Template Cache has been successfully cleared.',
     501 => 'A verification message has been sent to your email address. Please click on the link in the email to confirm your email address and update your account. If you log into your account again before you verify your email address you will be asked again for a email address.<br' . XHTML . '><br' . XHTML . '>Please note you have now been successfully logged out so you can complete this verification.',
     502 => 'Your request for a new email has expired. Please try again below.',
     503 => 'Your email has been successfully verified.',
-    504 => 'Passwords must have a minimum of 8 characters and contain at least 1 number and 1 letter. Passwords are case sensitive.',
-    505 => "<em>Current set Site Default theme \"{$_CONF['theme_site_default']}\" is not valid.</em> Using Geeklog Default theme \"{$_CONF['theme']}\" for now. <br" . XHTML . "><br" . XHTML . ">This version of Geeklog you are running (v" . VERSION . ") supports Themes with Geeklog v{$_CONF['min_theme_gl_version']} support.<br" . XHTML . "><br" . XHTML . ">Please update by reselecting a valid theme for the sites Config Theme setting in the Geeklog Configuration and resave.",
-    506 => "<em>Current set Site Default theme \"{$_CONF['theme_site_default']}\" is not valid.</em> Using Geeklog theme \"{$_CONF['theme']}\" for now.<br" . XHTML . "><br" . XHTML . ">This version of Geeklog you are running (v" . VERSION . ") supports Themes with Geeklog v{$_CONF['min_theme_gl_version']} support.<br" . XHTML . "><br" . XHTML . ">Please update by reselecting a valid theme for the sites Config Theme setting in the Geeklog Configuration and resave."
+    504 => 'Passwords must have a minimum of 8 characters and contain at least 1 number and 1 letter. Passwords are case sensitive.'
 );
 
 ###############################################################################
@@ -1801,7 +1652,7 @@ $LANG_ACCESS = array(
     'yes' => 'Yes',
     'no' => 'No',
     'corerightsdescr' => "This group is a core {$_CONF['site_name']} Group.  Therefore the rights for this group cannot be edited.  Below is a read-only list of the rights this group has access to.",
-    'groupmsg' => 'Security Groups on this site are hierarchical. By adding this group to any of the groups below you will be giving this group the same rights that those groups have. It also means that users which belong directly to this Group will be inherited by the groups it belongs to.<br' . XHTML . '><br' . XHTML . '>Where possible it is encouraged you use the groups below to give rights to a group. If you need this group to have custom rights then you can select the rights to various site features in the section below called \'Rights\'. To add this group to any of the ones below simply check the box next to the group(s) that you want.<br' . XHTML . '><br' . XHTML . '>Groups that are checked but disabled are inherited groups from other groups that belongs directly to this group. Groups that are disabled and not checked are groups that cannot be added since it would create a security group loop.',
+    'groupmsg' => 'Security Groups on this site are hierarchical.  By adding this group to any of the groups below you will be giving this group the same rights that those groups have.  Where possible it is encouraged you use the groups below to give rights to a group.  If you need this group to have custom rights then you can select the rights to various site features in the section below called \'Rights\'.  To add this group to any of the ones below simply check the box next to the group(s) that you want. Groups that are checked but disabled are inherited groups from other groups that belongs directly to this group.',
     'coregroupmsg' => "This group is a core {$_CONF['site_name']} Group.  Therefore the groups that this group belongs to cannot be edited.  Below is a read-only list of the groups this group belongs to.",
     'rightsdescr' => 'A group\'s access to a certain right below can be given directly to the group OR to a different group that this group is a part of.  The ones you see below with a disabled checkbox (that is checked) are the rights that have been given to this group because it belongs to another group with that right.  The rights with checkboxes below are rights that can be given directly to this group.',
     'lock' => 'Lock',
@@ -1812,7 +1663,7 @@ $LANG_ACCESS = array(
     'edit' => 'Edit',
     'none' => 'None',
     'accessdenied' => 'Access Denied',
-    'storydenialmsg' => "You do not have access to view this article.  This could be because you aren't a member of {$_CONF['site_name']}.  Please <a href=\"{$_CONF['site_url']}/users.php?mode=new\" rel=\"nofollow\">become a member</a> to receive access.",
+    'storydenialmsg' => "You do not have access to view this article.  This could be because you aren't a member of {$_CONF['site_name']}.  Please <a href=\"{$_CONF['site_url']}/users.php?mode=new\" rel=\"nofollow\">become a member</a> of {$_CONF['site_name']} to receive full membership access!",
     'nogroupsforcoregroup' => 'This group doesn\'t belong to any of the other groups',
     'grouphasnorights' => 'This group doesn\'t have access to any of the administrative features of this site',
     'newgroup' => 'New Group',
@@ -1851,11 +1702,9 @@ $LANG_ACCESS = array(
 $LANG_DB_BACKUP = array(
     'database_admin'      => 'Database Administration',
     'last_ten_backups'    => 'Database Backups',
-	'site_db_backup'      => "{$_CONF['site_name']} Database Backup",
     'create_backup'       => 'Backup Database',
     'do_backup'           => 'Do Backup',
-    'backup_successful'   => 'Database backup was successful.',
-	'backup_error'   	  => 'Error performing database backup.',
+    'backup_successful'   => 'Database back up was successful.',
     'db_explanation'      => 'To create a new backup of your site\'s database, select the "Backup Database" option above. To download a backup, click on the filename from the list below.',
     'backup_instructions' => 'To create a new backup of your site database, select the "Do Backup" button below. This will backup all current Geeklog tables. You can download a copy of the backup from the main Database Administration Screen.',
     'zero_size'           => 'Backup Failed: Filesize was 0 bytes',
@@ -1907,21 +1756,6 @@ $LANG_DB_BACKUP = array(
     'use_gzip'            => 'Use GZip if available',
     'configure'           => 'Configure',
     'config_instructions' => 'Select any tables you wish to exclude from the backup. Other options can be found in the Geeklog Configuration under the Database tab.',
-	'config_successful'   => 'Tables to Backup list was saved successfully.'
-);
-
-###############################################################################
-# For Demo Mode (since v2.2.1)
-
-$LANG_DEMO = array(
-    'header'                    => 'Header',
-    'subject'                   => 'Subject:',
-    'to'                        => 'To:',
-    'from'                      => 'From:',
-    'priority'                  => 'Priority:',
-    'body'                      => 'Body',
-    'notice'                    => 'Notice',
-    'emails_disabled_msg'       => 'Please note sending emails is disabled in Demo mode. An email which would have been sent was:'
 );
 
 ###############################################################################
@@ -1955,7 +1789,7 @@ $LANG_404 = array(
 
 $LANG_LOGIN = array(
     1 => 'Login required',
-    2 => "Sorry, to access this area you need to be <a href=\"{$_CONF['site_url']}/users.php\">logged in as a user</a>.",
+    2 => 'Sorry, to access this area you need to be logged in as a user.',
     3 => 'Login',
     4 => 'New User'
 );
@@ -2085,7 +1919,7 @@ $LANG_SECTEST = array(
 
 ###############################################################################
 # "What's New" Time Strings
-#
+# 
 # This here determines the order of the sentence "No new articles in 2 hrs"
 # order it so it makes sense in your language:
 # %i    item, "Articles"
@@ -2129,21 +1963,6 @@ $LANG_MONTH = array(
     12 => 'December'
 );
 
-$LANG_MONTH_SHORT = array(
-    1 => 'Jan',
-    2 => 'Feb',
-    3 => 'Mar',
-    4 => 'Apr',
-    5 => 'May',
-    6 => 'Jun',
-    7 => 'Jul',
-    8 => 'Aug',
-    9 => 'Sep',
-    10 => 'Oct',
-    11 => 'Nov',
-    12 => 'Decr'
-);
-
 ###############################################################################
 # Weekdays
 
@@ -2157,33 +1976,9 @@ $LANG_WEEK = array(
     7 => 'Saturday'
 );
 
-$LANG_WEEK_SHORT = array(
-    1 => 'Sun',
-    2 => 'Mon',
-    3 => 'Tue',
-    4 => 'Wed',
-    5 => 'Thu',
-    6 => 'Fri',
-    7 => 'Sat'
-);
-
-###############################################################################
-# AM/PM
-
-$LANG_AMPM = array(
-    'am_pm' => array(
-        'am' => 'am',
-        'pm' => 'pm',
-    ),
-    'AM_PM' => array(
-        'am' => 'AM',
-        'pm' => 'PM',
-    ),
-);
-
 ###############################################################################
 # Admin - Strings
-#
+# 
 # These are some standard strings used by core functions as well as plugins to
 # display administration lists and edit pages
 
@@ -2227,7 +2022,6 @@ $LANG_ADMIN = array(
     'token_expired' => 'The security token for this operation has expired. Please authenticate again to continue.',
     'reauth_msg'    => 'The security token for this operation has expired. If you want to continue with this operation, then please authenticate again below. This will ensure that the changes you just made will not be lost.',
     'token_expired_remote_user' => 'The security token for this operation has expired. Since you are a remote user you cannot re-authenticate, so you have lost your changes.',
-    'token_re_authentication_error' => 'There was an error after your account was re-authenticated. It is unclear if the operation you were performing was executed or not.',
     'authenticate'  => 'Authenticate',
     'approve'       => 'Approve',
     'device'        => 'Device',
@@ -2237,8 +2031,7 @@ $LANG_ADMIN = array(
     'for_computer'  => 'For Computer',
     'all'           => 'All',
     'mobile'        => 'Mobile',
-    'computer'      => 'Computer',
-    'edit_access_only'  => 'Edit Access Only'
+    'computer'      => 'Computer'
 );
 
 # Localisation of the texts for the various drop-down menus that are actually
@@ -2304,19 +2097,6 @@ $LANG_trackbackcodes = array(
     -1  => 'Trackback Disabled'
 );
 
-$LANG_structureddatatypes = array(
-    'none'              => 'None',
-    'core-webpage'      => 'WebPage',
-    'core-article'      => 'Article',
-    'core-newsarticle'  => 'NewsArticle',
-    'core-blogposting'  => 'BlogPosting'
-);
-
-$LANG_STRUCT_DATA = array(
-    'lang_structured_data_type'     => 'Structured Data Type',
-    'autotag_desc_structureddata'   => '[structureddata:schema_property]Property Value[/structureddata] - Adds a property to the structured data of the content that the autotag is embedded in.'
-);
-
 ###############################################################################
 # Localization of the Admin Configuration UI
 
@@ -2354,7 +2134,6 @@ $LANG_confignames['Core'] = array(
     'mail_charset' => 'Email Character Set',
     'site_name' => 'Site Name',
     'site_slogan' => 'Slogan',
-    'path_site_logo' => 'Site Logo',
     'owner_name' => 'Owner Name',
     'microsummary_short' => 'Microsummary',
     'path_log' => 'Log',
@@ -2379,7 +2158,6 @@ $LANG_confignames['Core'] = array(
     'allow_user_themes' => 'Allow User Themes',
     'allow_user_language' => 'Allow User Language',
     'switchlang_homepage' => 'Switch Language Block Redirects to Homepage',
-    'new_item_set_current_lang' => 'Add Current Language Id to New Item',
     'allow_user_photo' => 'Allow User Photo',
     'allow_username_change' => 'Allow Username Changes',
     'allow_account_delete' => 'Allow Account Deletion',
@@ -2508,8 +2286,6 @@ $LANG_confignames['Core'] = array(
     'page_break_comments' => 'Comments on Multi-Page Articles',
     'article_image_align' => 'Topic Icon Alignment',
     'show_topic_icon' => 'Show Topic Icon?',
-    'structured_data_type_default' => 'Structured Data Type Default',
-	'structured_data_article_topic' => 'Structured Data of Articles in Topics',
     'draft_flag' => 'Draft Flag Default',
     'frontpage' => 'Frontpage Default',
     'hide_no_news_msg' => 'Hide "No News" Message?',
@@ -2554,40 +2330,18 @@ $LANG_confignames['Core'] = array(
     'max_photo_width' => 'Max Photo Width?',
     'max_photo_height' => 'Max Photo Height?',
     'max_photo_size' => 'Max Photo Size?',
-    'generate_user_icon' => 'Generate User Icon automatically?',
     'use_gravatar' => 'Use Gravatar?',
     'gravatar_rating' => 'Gravatar Rating',
-    'gravatar_identicon' => 'Gravatar Identicon',
     'force_photo_width' => 'Force Photo Width',
     'default_photo' => 'Default Photo',
     'commentspeedlimit' => 'Comment Speed Limit',
-    'comment_limit' => 'Comments per Page',
+    'comment_limit' => 'Comment Limit',
     'comment_mode' => 'Comment Mode',
     'comment_order' => 'Comment Order',
     'comment_code' => 'Comment Default',
     'comment_edit' => 'Allow Comment Edit?',
     'comment_edittime' => 'Comment Edit Time (seconds)',
     'commentsubmission' => 'Queue Comment Submissions',
-    'likes_enabled' => 'Likes Enabled',
-    'likes_articles' => 'Article Likes',
-    'likes_comments' => 'Comment Likes',
-    'likes_speedlimit' => 'Likes Speed Limit',
-	'likes_users_listed' => 'Number of User Listed in Tooltip',
-	'likes_block_cache_time' => 'Cache Time',
-	'likes_block_include_time' => 'Include Time',
-	'likes_block_max_items' => 'Max Items Listed',
-	'likes_block_displayed_actions' => 'Displayed Actions',
-	'likes_block_title_trim_length' => 'Title Trim Length',
-	'likes_block_likes_new_line' => 'Likes on New Line',
-	'likes_block_type' => 'Type',
-	'likes_block_subtype' => 'Sub Type',
-	'likes_block_enable' => 'Enabled',
-	'likes_block_isleft' => 'Display Block on Left',
-	'likes_block_order' => 'Block Order',
-	'likes_block_topic_option' => 'Topic Options',
-	'likes_block_topic' => 'Topic',
-	'likes_block_group_id' => 'Group',
-	'likes_block_permissions' => 'Permissions',
     'passwordspeedlimit' => 'Password Speed Limit',
     'login_attempts' => 'Max. Login Attempts',
     'login_speedlimit' => 'Login Speed Limit',
@@ -2631,7 +2385,7 @@ $LANG_confignames['Core'] = array(
     'article_comment_close_days' => 'Days to close comments (default)',
     'comment_close_rec_stories' => 'Number of most recent articles enabled for comments',
     'allow_reply_notifications' => 'Allow comment reply notifications?',
-    'comment_on_same_page' => 'Comment Editor on Same Page?',
+    'comment_on_same_page' => 'Comment on Same Page?',
     'show_comments_at_replying' => 'Show Comments at Replying?',
     'search_style' => 'Results List Style',
     'search_limits' => 'Page Limits',
@@ -2649,8 +2403,6 @@ $LANG_confignames['Core'] = array(
     'autotag_permissions_related_topics' => '[related_topics: ] Permissions',
     'autotag_permissions_related_items' => '[related_items: ] Permissions',
     'autotag_permissions_block' => '[block: ] Permissions',
-    'autotag_permissions_structureddata' => '[structureddata: ] Permissions',
-	'autotag_permissions_likes_block' => '[likes_block: ] Permissions',
     'multiple_breadcrumbs' => 'Multiple Breadcrumbs',
     'disable_breadcrumbs_topics' => 'Disable Topic Breadcrumbs',
     'disable_breadcrumbs_articles' => 'Disable Article Breadcrumbs',
@@ -2667,20 +2419,21 @@ $LANG_confignames['Core'] = array(
     'filemanager_logger' => 'Enable logger?',
     'filemanager_show_thumbs' => 'Show thumbnails?',
     'filemanager_generate_thumbnails' => 'Generate thumbnails?',
+    'filemanager_upload_restrictions' => 'Allowed file extensions',
     'filemanager_upload_overwrite' => 'Overwrite existing file?',
+    'filemanager_upload_images_only' => 'Upload images only?',
     'filemanager_upload_file_size_limit' => 'Upload file size limit (MiB)',
+    'filemanager_unallowed_files' => 'Unallowed files',
+    'filemanager_unallowed_dirs' => 'Unallowed directories',
+    'filemanager_unallowed_files_regexp' => 'Regular expression for unallowed files',
+    'filemanager_unallowed_dirs_regexp' => 'Regular expression for unallowed directories',
     'filemanager_images_ext' => 'Image file extensions',
     'filemanager_show_video_player' => 'Show video player?',
     'filemanager_videos_ext' => 'Video file extensions',
     'filemanager_videos_player_width' => 'Video player width (px)',
     'filemanager_videos_player_height' => 'Video player height (px)',
     'filemanager_show_audio_player' => 'Show audio player?',
-    'filemanager_audios_ext' => 'Audio file extensions',
-    'cookie_consent' => 'Enable Cookie Consent',
-    'terms_of_use_link' => 'Terms of Use Link',
-    'privacy_policy_link' => 'Privacy Policy Link',
-    'about_cookies_link' => 'About Cookies Consent Link',
-    'ip_anonymization' => 'IP Anonymization'
+    'filemanager_audios_ext' => 'Audio file extensions'
 );
 
 $LANG_configsubgroups['Core'] = array(
@@ -2731,9 +2484,6 @@ $LANG_fs['Core'] = array(
     'fs_userphoto' => 'Photos',
     'fs_gravatar' => 'Gravatar',
     'fs_comments' => 'Comments',
-    'fs_likes' => 'Likes',
-	'fs_likes_block_settings' => 'Block Settings',
-	'fs_likes_block_permissions' => 'Block Permissions',
     'fs_htmlfilter' => 'HTML Filtering',
     'fs_censoring' => 'Censoring',
     'fs_iplookup' => 'IP Lookup',
@@ -2785,7 +2535,6 @@ $LANG_tab['Core'] = array(
     'tab_userphoto' => 'Photos',
     'tab_gravatar' => 'Gravatar',
     'tab_comments' => 'Comments',
-    'tab_likes' => 'Likes',
     'tab_htmlfilter' => 'HTML Filtering',
     'tab_censoring' => 'Censoring',
     'tab_iplookup' => 'IP Lookup',
@@ -2845,15 +2594,7 @@ $LANG_configselects['Core'] = array(
     35 => array('default' => 'default', 'Name (asc)' => 'NAME_ASC', 'Name (desc)' => 'NAME_DESC', 'Type (asc)' => 'TYPE_ASC', 'Type (desc)' => 'TYPE_DESC', 'Modified (asc)' => 'MODIFIED_ASC', 'Modified (desc)' => 'MODIFIED_DESC'),
     36 => array('False' => 'false', 'Frontpage only' => 'frontpage', 'Frontpage and Topics' => 'frontpage_topics'),
     37 => array('Disabled' => 0, 'Enabled (with "index.php")' => 1, 'Enabled (without "index.php")' => 2),
-    38 => array('Mystery Man' => 'mm', 'Identicon' => 'identicon', 'MonsterId' => 'monsterid', 'WAvatar' => 'wavatar', 'Retro' => 'retro'),
-    39 => array('None' => '', 'WebPage' => 'core-webpage', 'Article' => 'core-article', 'NewsArticle' => 'core-newsarticle', 'BlogPosting' => 'core-blogposting'),
-    40 => array('False' => 0, 'Users and Anonymous' => 1, 'Users Only' => 2),
-    41 => array('False' => 0, 'Likes and Dislikes' => 1, 'Likes Only' => 2),
-	42 => array('None' => 0, 'Use individual Article Settings' => 1),
-	43 => array('All' => TOPIC_ALL_OPTION, 'Homepage Only' => TOPIC_HOMEONLY_OPTION, 'Select Topics' => TOPIC_SELECTED_OPTION),
-	44 => array('No access' => 0, 'Read-Only' => 2),
-	// 45
-	46 => array('Likes and Dislikes' => LIKES_BLOCK_DISPLAY_ALL, 'Likes Only' => LIKES_BLOCK_DISPLAY_LIKE, 'Dislikes Only' => LIKES_BLOCK_DISPLAY_DISLIKE)
+    38 => array('Mystery Man' => 'mm', 'Identicon' => 'identicon', 'MonsterId' => 'monsterid', 'WAvatar' => 'wavatar', 'Retro' => 'retro')
 );
 
 ###############################################################################
@@ -2863,7 +2604,6 @@ $LANG_VALIDATION = array(
     'default' => 'This field contains an invalid value',
     'notEmpty' => 'This field cannot be empty',
     'alphaNumeric' => 'This field must be alpha numeric',
-	'alphaNumericOrEmpty' => 'This field must be alpha numeric or empty',
     'between' => 'This field must be in a specified range',
     'blank' => 'This field must be blank',
     'comparison' => 'This field does not match the comparison operation',
@@ -2903,7 +2643,6 @@ $LANG_VALIDATION = array(
     'timezone' => 'Invalid timezone',
     'single_char' => 'This field must be a single character',
     'page_navigation_max_pages' => 'This field must be between 2 - 21',
-    'hash' => 'This field must be a hash function supported by your version of PHP',
-    'config_setting_lang_array' => 'Each element requires a unique language shortcut (\'en\', \'de\', etc.) and the corresponding field must contain a value',
-    'config_setting_lang_array_element_req' => 'Requires at least one element. Each element requires a unique language shortcut (\'en\', \'de\', etc.) and the corresponding field must contain a value'
+    'hash' => 'This field must be a hash function supported by your version of PHP'
 );
+

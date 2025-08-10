@@ -1,25 +1,13 @@
 {# begin {templatelocation} #}
 
-{# use h1 for title only for normal view. #}
-{# display_type possible values 0 = Normal, 1 = In Block, 2 = autotag #}
-{# Only display Topic Description as a Tooltip for when poll in block #}
-{!!if {display_type} == '0' !!}
-<h1>{poll_topic}</h1>
-{!if poll_topic_description}
-<div class="poll-topic_description">{poll_topic_description}</div>
-{!endif}
-{!else}
-<div class="poll-topic">{poll_topic}{poll_topic_description_tooltip}</div>
-{!endif}
-<span class="floatright">{edit_icon}</span>
-
+<span class="floatright">{edit_icon}</span><div class="poll-topic">{poll_topic}{poll_topic_description}</div>
 {poll_questions}
 
 {# display_type possible values 0 = Normal, 1 = In Block, 2 = autotag #}
 {!!if {display_type} == '0' !!}
-<p>
+<div>
     {notification} <a href="{site_url}/polls/index.php">{lang_polltopics}</a> | {num_votes} {lang_voters}
-</p>
+</div>
 {!else}
 <div class="pluginTinyText">
     {notification} <a href="{site_url}/polls/index.php">{lang_polltopics}</a> | {num_votes} {lang_voters} {poll_comments}
@@ -28,10 +16,7 @@
 
 <!-- BEGIN poll_question -->
 <div class="poll-questions">
-    <p class="poll-question">{lang_question}{lang_question_number}{poll_question_text}</p>
-    {!if poll_description}
-    <p class="poll-description">{poll_description}</p>
-    {!endif}
+    <p class="poll-question">{lang_question}{lang_question_number}{poll_question_text}{poll_description}</p>
     <table width="100%">
         {poll_votes}
     </table>
@@ -42,7 +27,7 @@
         <tr class="pluginRow{cssidb}">
             <td class="poll_answer_text" style="width:20%">{answer_text}</td>
             <td class="poll_answer_bar">
-                <img src="{layout_url}/images/bar.gif" style="vertical-align: bottom; height:10px; width:{bar_width}%;" alt=""{xhtml}> {answer_num} ({answer_percent}%)
+                <img src="{layout_url}/images/bar.gif" style="align:bottom; height:10px; width:{bar_width}%;" alt=""{xhtml}> {answer_num} ({answer_percent}%)
             </td>
         </tr>
         <tr class="pluginRow{cssida}">

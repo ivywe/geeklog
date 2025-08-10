@@ -92,11 +92,11 @@ class Validator
     }
 
     /**
-     * @throws LogicException
+     * @throws \LogicException
      */
     public final function __clone()
     {
-        throw new LogicException('You cannot clone this object');
+        throw new \LogicException('You cannot clone this object');
     }
 
     /**
@@ -206,34 +206,6 @@ class Validator
 
         return $_this->_check();
     }
-	
-    /**
-     * Checks that a string contains only integer or letters, or nothing
-     * Returns true if string contains only integer or letters, or nothing
-     * $check can be passed as an array:
-     * array('check' => 'valueToCheck');
-     *
-     * @param  mixed $check Value to check
-     * @return boolean Success
-     */
-    public function alphaNumericOrEmpty($check)
-    {
-        $_this = Validator::getInstance();
-        $_this->reset();
-        $_this->check = $check;
-
-        if (is_array($check)) {
-            $_this->_extract($check);
-        }
-
-		// Empty check
-        if (empty($_this->check) && $_this->check != '0') {
-            return true;
-        }
-        $_this->regex = '/^[\p{Ll}\p{Lm}\p{Lo}\p{Lt}\p{Lu}\p{Nd}]+$/mu';
-
-        return $_this->_check();
-    }	
 
     /**
      * Checks that a string length is within s specified range.
@@ -288,7 +260,7 @@ class Validator
      * @param  integer $check2   only needed if $check1 is a string
      * @return boolean Success
      */
-    private function comparison($check1, $operator = null, $check2 = null)
+    public function comparison($check1, $operator = null, $check2 = null)
     {
         if (is_array($check1)) {
             extract($check1, EXTR_OVERWRITE);
@@ -529,14 +501,11 @@ class Validator
     public function extension($check, $extensions = array('gif', 'jpeg', 'png', 'jpg'))
     {
         if (is_array($check)) {
-            return self::extension(array_shift($check), $extensions);
+            return Validator::extension(array_shift($check), $extensions);
         }
-
-        $parts = explode('.', $check);
-        $extension = strtolower(array_pop($parts));
-
+        $extension = strtolower(array_pop(explode('.', $check)));
         foreach ($extensions as $value) {
-            if ($extension === strtolower($value)) {
+            if ($extension == strtolower($value)) {
                 return true;
             }
         }
@@ -699,8 +668,8 @@ class Validator
         }
 
         if (is_null($_this->regex)) {
-            // includes all NANPA members. see https://en.wikipedia.org/wiki/North_American_Numbering_Plan#List_of_NANPA_countries_and_territories
-            $_this->regex = '/^(?:\+?1)?[-. ]?\\(?[2-9][0-9][0-9]\\)?[-. ]?[2-9][0-9][0-9][-. ]?[0-9]{4}$/';
+            // includes all NANPA members. see http://en.wikipedia.org/wiki/North_American_Numbering_Plan#List_of_NANPA_countries_and_territories
+            $_this->regex = '/^(?:\+?1)?[-. ]?\\(?[2-9][0-8][0-9]\\)?[-. ]?[2-9][0-9]{2}[-. ]?[0-9]{4}$/';
         }
 
         return $_this->_check();
@@ -811,43 +780,6 @@ class Validator
 
         return $_this->_check();
     }
-	
-    /**
-     * Checks that a value is a valid URL according to http://www.w3.org/Addressing/URL/url-spec.txt
-     * The regex checks for the following component parts:
-     * - a valid, optional, scheme
-     * - a valid ip address OR
-     *   a valid domain name as defined by section 2.3.1 of http://www.ietf.org/rfc/rfc1035.txt
-     *   with an optional port number
-     * - an optional valid path
-     * - an optional query string (get parameters)
-     * - an optional fragment (anchor tag)
-     *
-     * @param  string  $check  Value to check
-     * @param  boolean $strict Require URL to be prefixed by a valid scheme (one of http(s)/ftp(s)/file/news/gopher)
-     * @return boolean Success
-     */
-    public function urlOrEmpty($check, $strict = false)
-    {
-        $_this = Validator::getInstance();
-        $_this->__populateIp();
-        $_this->check = $check;
-
-        // No check is needed expect if something exists
-        if (empty($_this->check) && $_this->check != '0') {
-            return true;
-        }		
-		
-        $validChars = '([' . preg_quote('!"$&\'()*+,-.@_:;=~') . '\/0-9a-z]|(%[0-9a-f]{2}))';
-        $_this->regex = '/^(?:(?:https?|ftps?|file|news|gopher):\/\/)' . (!empty($strict) ? '' : '?') .
-            '(?:' . $_this->__pattern['IPv4'] . '|\[' . $_this->__pattern['IPv6'] . '\]|' . $_this->__pattern['hostname'] . ')' .
-            '(?::[1-9][0-9]{0,4})?' .
-            '(?:\/?|\/' . $validChars . '*)?' .
-            '(?:\?' . $validChars . '*)?' .
-            '(?:#' . $validChars . '*)?$/i';
-
-        return $_this->_check();
-    }	
 
     /**
      * Checks if a value is in a given list.

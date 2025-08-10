@@ -35,15 +35,15 @@ if (stripos($_SERVER['PHP_SELF'], basename(__FILE__)) !== false) {
 /**
  * Returns possible theme template directories.
  *
- * @param    string or array    $root Path to template root.
- *                                If Root is string then assumes it is a call from Geeklog Core or older plugin that does not use CTL_plugin_templatePath
- *                                If Root is an array assume plugin supports CTL_plugin_templatePath
+ * @param    string or array    $root Path to template root. 
+                                If Root is string then assumes it is a call from Geeklog Core or older plugin that does not use CTL_plugin_templatePath
+                                If Root is an array assume plugin supports CTL_plugin_templatePath
  * @return   array              Theme template directories
  */
 function CTL_setTemplateRoot($root)
 {
     global $_CONF;
-
+    
     COM_deprecatedLog(__FUNCTION__, '2.2.0', '3.0.0', 'CTL_core_templatePath. Setting template class directly has been depreciated. See COM_newTemplate, CTL_core_templatePath, and CTL_plugin_templatePath for more info.');
 
     $retval = array();
@@ -79,7 +79,7 @@ function CTL_setTemplateRoot($root)
         // So just pass through since it already contains all locations
         $retval = $root;
     }
-
+    
     return $retval;
 }
 
@@ -88,37 +88,25 @@ function CTL_setTemplateRoot($root)
  *
  * @param  string $path
  * @param  string $needle
- * @return int    number of files not deleted
  */
 function CTL_clearCacheDirectories($path, $needle = '')
 {
     $path = rtrim($path, '/\\') . DIRECTORY_SEPARATOR;
-    $numFiles = 0;
 
     if ($dir = @opendir($path)) {
         while ($entry = readdir($dir)) {
-            if ($entry === '.' || $entry === '..') {
-                continue;
-            } elseif (is_link($entry) || $entry === '.svn' || $entry === 'index.html') {
-                $numFiles++;
+            if ($entry === '.' || $entry === '..' || is_link($entry) || $entry === '.svn' || $entry === 'index.html') {
                 continue;
             } elseif (is_dir($path . $entry)) {
-                if (CTL_clearCacheDirectories($path . $entry, $needle) === 0) {
-                    @rmdir($path . $entry);
-                } else {
-                    $numFiles++;
-                }
+                CTL_clearCacheDirectories($path . $entry, $needle);
+                @rmdir($path . $entry);
             } elseif (empty($needle) || strpos($entry, $needle) !== false) {
                 @unlink($path . $entry);
-            } else {
-                $numFiles++;
             }
         }
 
         @closedir($dir);
     }
-
-    return $numFiles;
 }
 
 /**
@@ -141,8 +129,8 @@ function CTL_clearCache($plugin = '')
 /**
  * Returns possible theme template directories for Core only (not any plugins, see CTL_plugin_templatePath).
  *
- * @since  v2.2.0
- * @param    string or array    $root Path to template root.
+ * @since  v2.2.0 
+ * @param    string or array    $root Path to template root. 
  * @return   array              Theme template directories
  */
 function CTL_core_templatePath($root)
@@ -168,7 +156,7 @@ function CTL_core_templatePath($root)
             }
         }
     }
-
+    
     return $retval;
 }
 
@@ -227,7 +215,7 @@ function CTL_plugin_templatePath($plugin, $path = '')
 
 /**
  * Get HTML path for a plugin file (url or physical file location).
- * Usually used to find .css, .js files needed by plugin
+ * Usually used to find .css, .js files needed by plugin 
  * Order of checking is:
  * - theme path/plugin/file
  * - html path/plugin/directory/file
@@ -241,14 +229,13 @@ function CTL_plugin_templatePath($plugin, $path = '')
  * - plugin path/plugin/directory/theme_default/file (physical path only) * if default theme exists - ie $_CONF['theme_default']
  * - plugin path/plugin/directory/default/file (physical path only)
  *
- * @param    string  $plugin            name of plugin
- * @param    string  $directory         name of directory
- * @param    string  $filename          name of file
- * @param    boolean $return_url        return url path or file path
- * @param    boolean $include_filename  if true returns path with filename, false returns jsut path
+ * @param    string  $plugin     name of plugin
+ * @param    string  $directory  name of directory
+ * @param    string  $filename   name of file
+ * @param    boolean $return_url return url path or file path
  * @return   string              full HTML path to file
  */
-function CTL_plugin_themeFindFile($plugin, $directory, $filename, $return_url = true, $include_filename = true)
+function CTL_plugin_themeFindFile($plugin, $directory, $filename, $return_url = true)
 {
     global $_CONF;
 
@@ -307,7 +294,7 @@ function CTL_plugin_themeFindFile($plugin, $directory, $filename, $return_url = 
                             $file = "{$_CONF['path']}plugins/$plugin/$directory/{$_CONF['theme_plugins']}/$filename";
                             if (file_exists($file)) {
                                 $retval = $file;
-                            } else {
+                            } else {                        
                                 // See if current theme templates stored with plugin
                                 $file = "{$_CONF['path']}plugins/$plugin/$directory/{$_CONF['theme']}/$filename";
                                 if (file_exists($file)) {
@@ -331,11 +318,6 @@ function CTL_plugin_themeFindFile($plugin, $directory, $filename, $return_url = 
                 }
             }
         }
-    }
-
-    // Remove filename if needed
-    if (!empty($retval) && !$include_filename) {
-        $dirname = pathinfo($file, PATHINFO_DIRNAME);
     }
 
     return $retval;
@@ -394,7 +376,7 @@ function CTL_plugin_setTemplatesFunctions($plugin)
         // It would have been checked in the following order. When found then quit
         $themes = array();
         if (isset($_CONF['theme_plugins']) AND ($_CONF['theme_plugins'] !='')) {;
-            // EXPERIMENTAL - Not required - Is used by all plugins - You can specify a COMPATIBLE theme (not a child theme) to use templates stored with some plugins. Can have problems if plugins include css and js files via their own functions.php
+            // EXPERIMENTAL - Not required - Is used by all plugins - You can specify a COMPATIBLE theme (not a child theme) to use templates stored with some plugins. Can have problems if plugins include css and js files via their own functions.php            
             // Problem is that $_CONF['theme'] can be set in functions.php. With $_CONF['theme_plugins'] set files will not be loaded as the wrong dir is used. $_CONF['theme'] needs to be used in functions.php for fallback with child themes
             $themes[] = $_CONF['theme_plugins']; // Override of theme to set which theme template files to use for plugins (if found)
         }
@@ -403,7 +385,7 @@ function CTL_plugin_setTemplatesFunctions($plugin)
         $themes[] = 'default';
 
         $function_found = false;
-
+        
         foreach ($themes as $theme) {
             // Include scripts on behalf of plugin template files that are theme specific
             $func = $plugin . '_css_' . $theme;
@@ -448,17 +430,6 @@ function CTL_plugin_setTemplatesFunctions($plugin)
 
         }
     }
-}
-
-/**
- * Used for when setting preprocess_fn of the template class for templates files that
- * are meant to be displayed as plain text (like for emails)
- *
- * @param    string $templateStr	Template string
- */
-function CTL_removeLineFeeds($templateStr) {
-	
-	return str_replace(["\r", "\n"], "", $templateStr);
 }
 
 /*
@@ -521,12 +492,6 @@ function plugin_configchange_template($group, $changes = array())
             CACHE_remove_instance($cacheInstance);
         }
     }
-
-	// On the safe side just delete likes block since could tie into a bunch of different items
-	if ($_CONF['likes_block_enable'] && $_CONF['likes_block_cache_time'] > 0) {
-		$cacheInstance = 'likesblock__'; // remove all likes block instances
-		CACHE_remove_instance($cacheInstance);
-	}		
 }
 
 /**
@@ -567,19 +532,19 @@ function plugin_submissiondeleted_template($type)
  * an item is saved or modified.
  * NOTE:     The behaviour of this API function changed in Geeklog 1.6.0
  *
- * @param    string  $id        unique ID of the item
- * @param    string  $type      type of the item, e.g. 'article'
- * @param    string  $old_id    (optional) old ID when the ID was changed
- * @param    string  $sub_type  (unused) sub type of item (since Geeklog 2.2.2)
+ * @param    string $id     unique ID of the item
+ * @param    string $type   type of the item, e.g. 'article'
+ * @param    string $old_id (optional) old ID when the ID was changed
+ * @return   void            (actually: false, for backward compatibility)
  * @link     http://wiki.geeklog.net/index.php/PLG_itemSaved
  */
-function plugin_itemsaved_template($id, $type, $old_id = '', $sub_type = '')
+function plugin_itemsaved_template($id, $type, $old_id = '')
 {
     // Just call item delete since same functionality
     if (empty($old_id)) {
-        plugin_itemdeleted_template($id, $type, $sub_type);
+        plugin_itemdeleted_template($id, $type);
     } else {
-        plugin_itemdeleted_template($old_id, $type, $sub_type);
+        plugin_itemdeleted_template($old_id, $type);
     }
 }
 
@@ -588,15 +553,13 @@ function plugin_itemsaved_template($id, $type, $old_id = '', $sub_type = '')
  * Plugins can define their own 'itemdeleted' function to be notified whenever
  * an item is deleted.
  *
- * @param    string  $id        ID of the item
- * @param    string  $type      type of the item, e.g. 'article'
- * @param    string  $sub_type  (unused) sub type of item (since Geeklog 2.2.2)
+ * @param    string $id   ID of the item
+ * @param    string $type type of the item, e.g. 'article'
+ * @return   void
  * @since    Geeklog 1.6.0
  */
-function plugin_itemdeleted_template($id, $type, $sub_type = '')
+function plugin_itemdeleted_template($id, $type)
 {
-    global $_STRUCT_DATA;
-
     // See if uses what's new block then delete cache of whatsnew
     // This will not catch everything though like trackbacks, comments, and
     // plugins that do not use itemsaved but let's delete the cache when we can
@@ -608,7 +571,6 @@ function plugin_itemdeleted_template($id, $type, $sub_type = '')
     $article = false;
     $block = false;
     $whatsnew = false;
-	$likes = false;
     $olderstories = false;
     $topicsblock = false;
     $topic_tree = false;
@@ -616,7 +578,6 @@ function plugin_itemdeleted_template($id, $type, $sub_type = '')
     if ($type === 'article' || $type === 'story') {
         $article = true;
         $whatsnew = true;
-		$likes = true;
         $olderstories = true;
         $topicsblock = true;
     } elseif ($type == 'topic') {
@@ -633,19 +594,11 @@ function plugin_itemdeleted_template($id, $type, $sub_type = '')
                 $whatsnew = true;
             }
         }
-		
-        // hack to see if plugin supports Likes
-        $fn_head = 'plugin_likesenabled_' . $type;
-        if (function_exists($fn_head)) {
-			// If function exists then assume support
-			$likes = true;
-        }		
     }
 
     if ($article) {
         $cacheInstance = 'article__' . $id; // remove all article instances
         CACHE_remove_instance($cacheInstance);
-        $_STRUCT_DATA->clear_cachedScript('article');
     }
     if ($block) {
         $cacheInstance = 'block__' . $id; // remove all block instances
@@ -653,10 +606,6 @@ function plugin_itemdeleted_template($id, $type, $sub_type = '')
     }
     if ($whatsnew) {
         $cacheInstance = 'whatsnew__'; // remove all whatsnew instances
-        CACHE_remove_instance($cacheInstance);
-    }
-    if ($likes) {
-        $cacheInstance = 'likesblock__'; // remove all likes block instances
         CACHE_remove_instance($cacheInstance);
     }
     if ($olderstories) {

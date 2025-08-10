@@ -76,7 +76,7 @@ $_UPDATES = array(
     '1.6.7' => array(
         "ALTER TABLE {$_TABLES['staticpage']} MODIFY COLUMN `created` DATETIME DEFAULT NULL",
         "ALTER TABLE {$_TABLES['staticpage']} MODIFY COLUMN `modified` DATETIME DEFAULT NULL",
-        "ALTER TABLE {$_TABLES['staticpage']} ADD `sp_onhits` TINYINT NOT NULL DEFAULT '1' AFTER `sp_onmenu`",
+        "ALTER TABLE {$_TABLES['staticpage']} ADD `sp_onhits` TINYINT NOT NULL DEFAULT '1' AFTER `sp_onmenu`", 
         "ALTER TABLE {$_TABLES['staticpage']} ADD `sp_onlastupdate` TINYINT NOT NULL DEFAULT '1' AFTER `sp_onhits`"
     ),
 
@@ -85,17 +85,6 @@ $_UPDATES = array(
         "ALTER TABLE {$_TABLES['staticpage']} ADD `sp_next` VARCHAR(128) NOT NULL DEFAULT '' AFTER `sp_prev`",
         "ALTER TABLE {$_TABLES['staticpage']} ADD `sp_parent` VARCHAR(128) NOT NULL DEFAULT '' AFTER `sp_next`",
     ),
-    '1.7.0' => array(
-        "ALTER TABLE {$_TABLES['staticpage']} ADD `structured_data_type` varchar(40) NOT NULL DEFAULT '' AFTER `commentcode`",
-        "ALTER TABLE {$_TABLES['staticpage']} ADD page_data TEXT DEFAULT NULL AFTER sp_content"
-    ),
-    '1.7.1' => array(
-        "ALTER TABLE {$_TABLES['staticpage']} ADD `search` TINYINT(1) NOT NULL DEFAULT '1' AFTER `draft_flag`;"
-    ),
-    '1.7.2' => array(
-        "ALTER TABLE {$_TABLES['staticpage']} ADD `likes` TINYINT NOT NULL DEFAULT '-1' AFTER `search`;",
-		"UPDATE {$_TABLES['staticpage']} SET `likes` = '0' WHERE template_flag = 1;" // A template page does not use likes
-    ),	
 );
 
 /**
@@ -134,6 +123,8 @@ function SP_update_ConfigSecurity_1_6_3()
 function SP_update_ConfValues_1_6_0()
 {
     global $_CONF, $_TABLES, $_SP_DEFAULT;
+
+    require_once $_CONF['path_system'] . 'classes/config.class.php';
 
     $c = config::get_instance();
 
@@ -187,6 +178,8 @@ function SP_update_ConfValues_1_6_0()
 function SP_update_ConfValues_1_6_1()
 {
     global $_CONF, $_TABLES, $_SP_DEFAULT;
+
+    require_once $_CONF['path_system'] . 'classes/config.class.php';
 
     $c = config::get_instance();
 

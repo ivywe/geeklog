@@ -10,7 +10,7 @@
 // | API method and 2) implements all the common code needed by the Calendar   |
 // | plugin's PHP files.                                                       |
 // +---------------------------------------------------------------------------+
-// | Copyright (C) 2000-2020 by the following authors:                         |
+// | Copyright (C) 2000-2017 by the following authors:                         |
 // |                                                                           |
 // | Authors: Tony Bibbs       - tony AT tonybibbs DOT com                     |
 // |          Tom Willett      - twillett AT users DOT sourceforge DOT net     |
@@ -63,13 +63,10 @@ Language::override(array(
 * Check and see if we need to load the plugin configuration
 */
 if (!isset($_CA_CONF['calendarloginrequired'])) {
+    require_once $_CONF['path_system'] . 'classes/config.class.php';
+
     $ca_config = config::get_instance();
     $_CA_CONF = $ca_config->get_config('calendar');
-
-    // $_CA_CONF['recaptcha'] inctroduced in polls v1.1.8
-    // Need to check if it exists before updating incase user is actually doing a upgrade to this version and it doesn't exist yet
-    // ie code base version doesn't match database version
-    $_CA_CONF['recaptcha'] = (isset($_CA_CONF['recaptcha'])) ? (int) $_CA_CONF['recaptcha'] : 0;
 }
 
 // +---------------------------------------------------------------------------+
@@ -168,10 +165,10 @@ function phpblock_calendar($help = '', $title = '')
                 $theRow = 1;           // Start with today!
                 $oldDate1 = 'no_day';  // Invalid Date!
                 $oldDate2 = 'last_d';  // Invalid Date!
-                $className = PLG_getThemeItem('core-css-list-default', 'core');
+                $className = 'list-new-plugins';
                 $headline = false;
             } else {
-                $className = PLG_getThemeItem('core-css-list-default', 'core');
+                $className = 'list-new-plugins';
                 $headline = false;
             }
             if ($_CA_CONF['personalcalendars'] == 0) {
@@ -205,13 +202,13 @@ function phpblock_calendar($help = '', $title = '')
                     // Start Date strings...
                     $startDate = $theEvent['datestart'];
                     $theTime1 = strtotime($startDate);
-                    $dayName1 = COM_strftime('%A', $theTime1);
+                    $dayName1 = strftime('%A', $theTime1);
                     list($abbrDate1,) = COM_getUserDateTimeFormat($theTime1, 'dateonly');
 
                     // End Date strings...
                     $endDate = $theEvent['dateend'];
                     $theTime2 = strtotime($endDate);
-                    $dayName2 = COM_strftime('%A', $theTime2);
+                    $dayName2 = strftime('%A', $theTime2);
                     list($abbrDate2,) = COM_getUserDateTimeFormat($theTime2, 'dateonly');
 
                     $todaysEvent = false;
@@ -430,7 +427,7 @@ function plugin_savesubmission_calendar($A)
 
         return $retval;
     }
-
+    
     // check ok, proceed to saving
     if (isset($A['end_year'])) {
         $A['end_year'] = COM_applyFilter($A['end_year'], true);
@@ -501,8 +498,8 @@ function plugin_savesubmission_calendar($A)
         if (!empty($_USER['homepage'])) {
             $authorurl = $_USER['homepage'];
         }
-    }
-
+    }    
+    
     $result = PLG_checkForSpam($spamCheck, $_CONF['spamx'], $permanentlink, Geeklog\Akismet::COMMENT_TYPE_EVENT, $authorname, $authoremail, $authorurl);
     if ($result > PLG_SPAM_NOT_FOUND) {
         COM_updateSpeedlimit('submit');
@@ -520,8 +517,7 @@ function plugin_savesubmission_calendar($A)
 
     // Remove any autotags the user doesn't have permission to use
     $A['description'] = PLG_replaceTags($A['description'], '', true);
-	$A['description'] = GLText::remove4byteUtf8Chars(GLText::stripTags(COM_checkWords($A['description'])));
-	$description = DB_escapeString($A['description']); // Can't escape array as that gets used after by notification and need line breaks
+    $A['description'] = DB_escapeString(htmlspecialchars(GLText::remove4byteUtf8Chars(COM_checkWords($A['description']))));
     $A['address1'] = DB_escapeString(GLText::remove4byteUtf8Chars(GLText::stripTags(COM_checkWords($A['address1']))));
     $A['address2'] = DB_escapeString(GLText::remove4byteUtf8Chars(GLText::stripTags(COM_checkWords($A['address2']))));
     $A['city'] = DB_escapeString(GLText::remove4byteUtf8Chars(GLText::stripTags(COM_checkWords($A['city']))));
@@ -548,7 +544,6 @@ function plugin_savesubmission_calendar($A)
         $A['allday'] = 0;
     }
 
-	$A['start_ampm'] = '';
     if (isset($A['hour_mode']) && ($A['hour_mode'] == 24)) {
         $start_hour = COM_applyFilter($A['start_hour'], true);
         if ($start_hour >= 12) {
@@ -583,20 +578,19 @@ function plugin_savesubmission_calendar($A)
     $A['end_minute'] = COM_applyFilter($A['end_minute'], true);
 
     if ($A['start_ampm'] == 'pm' && $A['start_hour'] != 12) {
-        $A['start_hour'] = (int) $A['start_hour'] + 12;
+        $A['start_hour'] = $A['start_hour'] + 12;
     }
     if ($A['start_ampm'] == 'am' && $A['start_hour'] == 12) {
         $A['start_hour'] = '00';
     }
     if ($A['end_ampm'] == 'pm' && $A['end_hour'] != 12) {
-        $A['end_hour'] = (int) $A['end_hour'] + 12;
+        $A['end_hour'] = $A['end_hour'] + 12;
     }
     if ($A['end_ampm'] == 'am' && $A['end_hour'] == 12) {
         $A['end_hour'] = '00';
     }
     $A['timestart'] = $A['start_hour'] . ':' . $A['start_minute'] . ':00';
     $A['timeend'] = $A['end_hour'] . ':' . $A['end_minute'] . ':00';
-	
     if ($A['calendar_type'] == 'master') { // add to site calendar
         if (($_CA_CONF['eventsubmission'] == 1) &&
             !SEC_hasRights('calendar.submit')
@@ -609,7 +603,7 @@ function plugin_savesubmission_calendar($A)
 
             DB_save($_TABLES['eventsubmission'],
                 'eid,title,event_type,url,datestart,timestart,dateend,timeend,allday,location,address1,address2,city,state,zipcode,description,owner_id',
-                "{$A['eid']},'{$A['title']}','{$A['event_type']}','{$A['url']}','{$A['datestart']}','{$A['timestart']}','{$A['dateend']}','{$A['timeend']}',{$A['allday']},'{$A['location']}','{$A['address1']}','{$A['address2']}','{$A['city']}','{$A['state']}','{$A['zipcode']}','$description',{$uid}");
+                "{$A['eid']},'{$A['title']}','{$A['event_type']}','{$A['url']}','{$A['datestart']}','{$A['timestart']}','{$A['dateend']}','{$A['timeend']}',{$A['allday']},'{$A['location']}','{$A['address1']}','{$A['address2']}','{$A['city']}','{$A['state']}','{$A['zipcode']}','{$A['description']}',{$uid}");
 
             if (isset($_CA_CONF['notification']) &&
                 ($_CA_CONF['notification'] == 1)
@@ -635,7 +629,7 @@ function plugin_savesubmission_calendar($A)
 
             DB_save($_TABLES['events'],
                 'eid,title,event_type,url,datestart,timestart,dateend,timeend,allday,location,address1,address2,city,state,zipcode,description,owner_id,group_id,perm_owner,perm_group,perm_members,perm_anon',
-                "{$A['eid']},'{$A['title']}','{$A['event_type']}','{$A['url']}','{$A['datestart']}','{$A['timestart']}','{$A['dateend']}','{$A['timeend']}',{$A['allday']},'{$A['location']}','{$A['address1']}','{$A['address2']}','{$A['city']}','{$A['state']}','{$A['zipcode']}','$description',$owner_id,{$A['group_id']},{$A['perm_owner']},{$A['perm_group']},{$A['perm_members']},{$A['perm_anon']}");
+                "{$A['eid']},'{$A['title']}','{$A['event_type']}','{$A['url']}','{$A['datestart']}','{$A['timestart']}','{$A['dateend']}','{$A['timeend']}',{$A['allday']},'{$A['location']}','{$A['address1']}','{$A['address2']}','{$A['city']}','{$A['state']}','{$A['zipcode']}','{$A['description']}',$owner_id,{$A['group_id']},{$A['perm_owner']},{$A['perm_group']},{$A['perm_members']},{$A['perm_anon']}");
 
             PLG_itemSaved($A['eid'], 'calendar');
 
@@ -652,12 +646,12 @@ function plugin_savesubmission_calendar($A)
     } elseif ($_CA_CONF['personalcalendars'] == 1) { // add to personal calendar
         if (COM_isAnonUser()) {
             // anonymous users don't have personal calendars - bail
-            COM_accessLog("Anonymous user attempted to write to a personal calendar which anonymous users do not have.");
+            COM_accessLog("Attempt to write to the personal calendar of user '{$A['uid']}'.");
             COM_redirect($_CONF['site_url'] . '/calendar/index.php');
         } else {
             DB_save($_TABLES['personal_events'],
                 'uid,eid,title,event_type,url,datestart,timestart,dateend,timeend,allday,location,address1,address2,city,state,zipcode,description',
-                "{$_USER['uid']},'{$A['eid']}','{$A['title']}','{$A['event_type']}','{$A['url']}','{$A['datestart']}','{$A['timestart']}','{$A['dateend']}','{$A['timeend']}',{$A['allday']},'{$A['location']}','{$A['address1']}','{$A['address2']}','{$A['city']}','{$A['state']}','{$A['zipcode']}','$description'");
+                "{$_USER['uid']},'{$A['eid']}','{$A['title']}','{$A['event_type']}','{$A['url']}','{$A['datestart']}','{$A['timestart']}','{$A['dateend']}','{$A['timeend']}',{$A['allday']},'{$A['location']}','{$A['address1']}','{$A['address2']}','{$A['city']}','{$A['state']}','{$A['zipcode']}','{$A['description']}'");
             COM_redirect($_CONF['site_url'] . '/calendar/index.php?mode=personal&amp;msg=17');
         }
     } else { // personal calendars are disabled
@@ -695,10 +689,7 @@ function plugin_submit_calendar($mode = 'master')
         exit;
     }
 
-    $passed_mode = Geeklog\Input::fPost('calendar_type', null);
-	if ($passed_mode != null) {
-		$mode = $passed_mode;
-	}
+    $mode = Geeklog\Input::fPost('calendar_type', null);
 
     if ($mode !== null) {
         if (!in_array($mode, array('master', 'personal', 'quickadd'))) {
@@ -706,16 +697,15 @@ function plugin_submit_calendar($mode = 'master')
         }
     } elseif (Geeklog\Input::fRequest('mode') === 'personal') {
         $mode = 'personal';
-	}
+    }
 
     if (($_CA_CONF['personalcalendars'] == 1) && ($mode === 'quickadd')) {
         // check for missing event title field
-        $tempTitle = GLText::remove4byteUtf8Chars(GLText::stripTags(COM_checkWords($_POST['title'])));
-        if (empty($tempTitle)) {
+        if (empty(GLText::remove4byteUtf8Chars(GLText::stripTags(COM_checkWords($_POST['title']))))) {
             // If missing must set or process goes into infinite loop
             $_POST['title'] = $LANG_CAL_2[32]; // Default title will be "Event"
         }
-
+        
         // quick add form, just save it.
         $display = plugin_savesubmission_calendar($_POST);
 
@@ -871,6 +861,7 @@ function plugin_submit_calendar($mode = 'master')
  *
  * @param    string $eid  id of event to delete
  * @param    string $type 'submission' when attempting to delete a submission
+ * @return            string          HTML redirect
  */
 function CALENDAR_deleteEvent($eid, $type = '')
 {
@@ -1095,68 +1086,32 @@ function CALENDAR_listevents()
  */
 function CALENDAR_sendNotification($table, $A)
 {
-    global $_CONF, $_TABLES, $_USER, $LANG01, $LANG08, $LANG09, $LANG_CAL_1, $LANG_CAL_2, $LANG31;
+    global $_CONF, $_TABLES, $LANG01, $LANG08, $LANG09, $LANG_CAL_1, $LANG_CAL_2;
 
+    $title = stripslashes($A['title']);
+    $description = stripslashes($A['description']);
     list($dateTime, ) = COM_getUserDateTimeFormat(strtotime($A['datestart'] . ' ' . $A['timestart']), 'date');
-	
-	// Create HTML and plaintext version of submission email
-	$t = COM_newTemplate(CTL_plugin_templatePath('calendar', 'emails'));
-	
-	$t->set_file(array('email_html' => 'event_submission-html.thtml'));
-	// Remove line feeds from plain text templates since required to use {LB} template variable
-	$t->preprocess_fn = "CTL_removeLineFeeds"; // Set preprocess_fn before the template file you want to use it on		
-	$t->set_file(array('email_plaintext' => 'event_submission-plaintext.thtml'));
-
-	$t->set_var('email_divider', $LANG31['email_divider']);
-	$t->set_var('email_divider_html', $LANG31['email_divider_html']);
-	$t->set_var('LB', LB);
-	
-	$t->set_var('lang_title', $LANG09[16]);
-	$t->set_var('submission_title', $A['title']);
-	$t->set_var('lang_datetime', $LANG09[17]);
-	$t->set_var('submission_datetime', $dateTime);
+    $mailBody = sprintf("%s: %s\n%s: %s", $LANG09[16], $title, $LANG09[17], $dateTime);
     if ($A['allday']) {
-		$t->set_var('lang_allday', $LANG_CAL_2[26]);
-    }	
-	if (!empty($A['url']) && ($A['url'] !== 'http://') && ($A['url'] !== 'https://')) {
-		$t->set_var('lang_url', $LANG09[33]);
-		$t->set_var('submission_url', $A['url']);	
-	}
-	$t->set_var('lang_contributed_by', $LANG01[1]);
-	$t->set_var('link_contributer_name', COM_getDisplayName($_USER['uid']));	
-
-	$description = PLG_replaceTags($A['description']);
-	// Just like comments, event description really should a postmode that is saved with the description (ie store either 'html' or 'plaintext') OR just remove HTML but they don't so lets figure out if description is html by searching for html tags. This is done during displaying of links as well
-	// Needs to be done after autotags incase they insert HTML
-	if (preg_match('/<.*>/', $description) == 0) {
-		$description_plaintext = $description;
-		$description_html = COM_nl2br($description);
-	} else {	
-		$description_html = GLText::htmlFixURLs($description);
-		$description_plaintext = GLText::html2Text($description_html);
-	}
-	$t->set_var('submission_description_plaintext', $description_plaintext);
-	$t->set_var('submission_description_html', $description_html);	
-	
-	// Add link to content
-    if ($table == $_TABLES['eventsubmission']) {
-		$t->set_var('lang_link_label', $LANG01[10]); // Submissions
-        
-		$submission_link = $_CONF['site_admin_url'] . "/moderation.php";
-    } else {
-		$t->set_var('lang_link_label', $LANG_CAL_1[12]); // Event
-        
-		$submission_link = COM_buildURL($_CONF['site_url'] . "/calendar/event.php?eid={$A['eid']}");
+        $mailBody .= ' (' . $LANG_CAL_2[26] . ')';
     }
-	$t->set_var('submission_link', $submission_link);		
+    $mailBody .= "\n";
+    if (!empty($A['url']) && ($A['url'] !== 'http://') && ($A['url'] !== 'https://')) {
+        $mailBody .= "$LANG09[33]: <" . $A['url'] . ">\n";
+    }
+    $mailBody .= "\n" . $description . "\n\n";
+    if ($table == $_TABLES['eventsubmission']) {
+        $mailBody .= "$LANG01[10] <{$_CONF['site_admin_url']}/moderation.php>\n\n";
+    } else {
+        $mailBody .= "$LANG_CAL_1[12] <{$_CONF['site_url']}/calendar/event.php?eid={$A['eid']}>\n\n";
+    }
+    $mailSubject = $_CONF['site_name'] . ' ' . $LANG_CAL_2[43];
 
-	// Output final content
-	$message[] = $t->parse('output', 'email_html');	
-	$message[] = $t->parse('output', 'email_plaintext');	
-	
-	$mailSubject = $_CONF['site_name'] . ' ' . $LANG_CAL_2[43];
-	
-	COM_mail($_CONF['site_mail'], $mailSubject, $message, '' , true);
+    $mailBody .= "\n------------------------------\n";
+    $mailBody .= "\n$LANG08[34]\n";
+    $mailBody .= "\n------------------------------\n";
+
+    COM_mail($_CONF['site_mail'], $mailSubject, $mailBody);
 }
 
 /**
@@ -1177,14 +1132,8 @@ function plugin_submissioncount_calendar()
 
 /**
  * Implements the [event:] autotag.
- *
- * @param   string  $op
- * @param   string  $content
- * @param   array   $autotag
- * @return  array|string
- * @throws  InvalidArgumentException
  */
-function plugin_autotags_calendar($op, $content = '', $autotag = array())
+function plugin_autotags_calendar($op, $content = '', $autotag = '')
 {
     global $_CONF, $_TABLES, $LANG_CAL_1, $_CA_CONF, $_GROUPS;
 
@@ -1238,10 +1187,6 @@ function plugin_autotags_calendar($op, $content = '', $autotag = array())
         }
 
         return $content;
-    } elseif ($op === 'closetag') {
-        return array();
-    } else {
-        throw new InvalidArgumentException('Bad argument for "$op"');
     }
 }
 
@@ -1265,8 +1210,6 @@ function plugin_getfeednames_calendar()
  * @param    string $feed   feed ID
  * @param    string $link   link to homepage
  * @param    string $update list of story ids
- * @param    string $feedType
- * @param    int    $feedVersion
  * @return   array              content of the feed
  */
 function plugin_getfeedcontent_calendar($feed, &$link, &$update, $feedType, $feedVersion)
@@ -1466,8 +1409,6 @@ function plugin_cclabel_calendar()
 
 /**
  * returns the administrative option for this plugin
- *
- * @return  array
  */
 function plugin_getadminoption_calendar()
 {
@@ -1481,14 +1422,9 @@ function plugin_getadminoption_calendar()
         return array($LANG_CAL_1[16],
             $_CONF['site_admin_url'] . '/plugins/calendar/index.php',
             $total_events);
-    } else {
-        return array();
     }
 }
 
-/**
- * @return array
- */
 function plugin_getuseroption_calendar()
 {
     global $_CONF, $LANG_CAL_1, $_CA_CONF;
@@ -1497,8 +1433,6 @@ function plugin_getuseroption_calendar()
         $url = $_CONF['site_url'] . '/calendar/index.php?mode=personal';
 
         return array($LANG_CAL_1[42], $url, '');
-    } else {
-        return array();
     }
 }
 
@@ -1511,9 +1445,6 @@ function plugin_getuseroption_calendar()
 function plugin_user_delete_calendar($uid)
 {
     global $_TABLES, $_CA_CONF;
-
-	// Delete any submission records
-	DB_delete($_TABLES['eventsubmission'], 'owner_id', $uid);
 
     DB_delete($_TABLES['personal_events'], 'owner_id', $uid);
 
@@ -1568,9 +1499,9 @@ function plugin_upgrade_calendar()
     if (!plugin_compatible_with_this_version_calendar('calendar')) {
         return 3002;
     }
-
-    // Retrieve other plugin info like min geeklog version and homepage
-    $inst_parms = plugin_autoinstall_calendar('calendar');
+    
+    // Retrieve other plugin info like min geeklog version and homepage 
+    $inst_parms = plugin_autoinstall_calendar('calendar');    
 
     require_once $_CONF['path'] . 'plugins/calendar/sql/'
         . $_DB_dbms . '_updates.php';
@@ -1583,6 +1514,8 @@ function plugin_upgrade_calendar()
     while (!$done) {
         switch ($current_version) {
             case '1.0.0':
+                require_once $_CONF['path_system'] . 'classes/config.class.php';
+
                 $plugin_path = $_CONF['path'] . 'plugins/calendar/';
                 require_once $plugin_path . 'install_defaults.php';
 
@@ -1682,21 +1615,7 @@ function plugin_upgrade_calendar()
             case '1.1.5':
                 $current_version = '1.1.6';
                 break;
-
-            case '1.1.6':
-                $current_version = '1.1.7';
-                break;
-
-            case '1.1.7':
-                calendar_update_ConfValues_1_1_7();
-                $current_version = '1.1.8';  // Shipped with Geeklog 2.2.1
-                break;
-
-            case '1.1.8':
-                calendar_update_ConfValues_1_1_8();
-                $current_version = '1.1.9';  // Shipped with Geeklog 2.2.2
-                break;
-
+                
             default:
                 $done = true;
                 break;
@@ -1706,7 +1625,7 @@ function plugin_upgrade_calendar()
     // update plugin version number and other info
     DB_query("UPDATE {$_TABLES['plugins']} SET pi_version = '$code_version', pi_gl_version = '{$inst_parms['info']['pi_gl_version']}', pi_homepage = '{$inst_parms['info']['pi_homepage']}' WHERE pi_name = 'calendar'");
 
-    COM_errorLog( "Updated calendar plugin from v$installed_version to v$code_version", 1 );
+    COM_errorLog( "Updated calendar plugin from v$installed_version to v$code_version", 1 );       
 
     return true;
 }
@@ -1889,15 +1808,16 @@ function plugin_dopluginsearch_calendar($query, $datestart, $dateend, $topic, $t
 /**
  * Set template variables
  *
- * @param    string    $templatename name of template, e.g. 'header'
- * @param    Template  $template     reference of actual template
- * @note                             A plugin should use its name as a prefix for the names
- *                                   of its template variables, e.g. 'calendar_xxx' and 'lang_calendar_xxx'.
- *                                   'button_calendar' is an exception, as such a variable existed for header.thtml
- *                                   in Geeklog 1.4.0 and earlier, where the Calendar was an integral part
- *                                   of Geeklog. It is added here for backward-compatibility.
+ * @param    string $templatename name of template, e.g. 'header'
+ * @param    ref    $template     reference of actual template
+ * @return   void
+ *                                Note: A plugin should use its name as a prefix for the names of its
+ *                                template variables, e.g. 'calendar_xxx' and 'lang_calendar_xxx'.
+ *                                'button_calendar' is an exception, as such a variable existed for header.thtml
+ *                                in Geeklog 1.4.0 and earlier, where the Calendar was an integral part
+ *                                of Geeklog. It is added here for backward-compatibility.
  */
-function plugin_templatesetvars_calendar($templatename, $template)
+function plugin_templatesetvars_calendar($templatename, &$template)
 {
     global $LANG_CAL_1;
 
@@ -2329,13 +2249,13 @@ function plugin_configmanager_select_block_topic_calendar()
 /**
  * Callback function when an item was saved
  *
- * @param    string  $id        (unused) ID of item being saved
- * @param    string  $type      type of item ('article', 'staticpages', ...)
- * @param    string  $old_id    (unused) previous ID of item, if != $id
- * @param    string  $sub_type  (unused) sub type of item (since Geeklog 2.2.2)
+ * @param    string $id     (unused) ID of item being saved
+ * @param    string $type   type of item ('article', 'staticpages', ...)
+ * @param    string $old_id (unused) previous ID of item, if != $id
+ * @return   void
  * @see      PLG_itemSaved
  */
-function plugin_itemsaved_calendar($id, $type, $old_id, $sub_type)
+function plugin_itemsaved_calendar($id, $type, $old_id)
 {
     global $_TABLES, $_CA_CONF;
 
@@ -2357,12 +2277,12 @@ function plugin_itemsaved_calendar($id, $type, $old_id, $sub_type)
 /**
  * Callback function when an item was deleted
  *
- * @param    string  $id        ID of item being deleted
- * @param    string  $type      type of item ('article', 'staticpages', ...)
- * @param    string  $sub_type  (unused) sub type of item (since Geeklog 2.2.2)
+ * @param    string $id   ID of item being deleted
+ * @param    string $type type of item ('article', 'staticpages', ...)
+ * @return   void
  * @see      PLG_itemDeleted
  */
-function plugin_itemdeleted_calendar($id, $type, $sub_type)
+function plugin_itemdeleted_calendar($id, $type)
 {
     global $_TABLES, $_CA_CONF;
 
@@ -2380,77 +2300,4 @@ function plugin_itemdeleted_calendar($id, $type, $sub_type)
         }
         // Note: All topics could get deleted from array which would mean the block would not display until user adds more in config
     }
-}
-
-/**
- * Did user create any events
- *
- * @param    int     $uid
- * @return   string        number of events user contributed. If nothing leave blank
- */
-function plugin_usercontributed_calendar($uid)
-{
-    global $_TABLES, $LANG_CAL_ADMIN;
-
-    $retval = '';
-
-    // Include events and event submissions
-    $count = DB_getItem($_TABLES['events'], 'COUNT(owner_id)', "owner_id = {$uid}") + DB_getItem($_TABLES['eventsubmission'], 'COUNT(owner_id)', "owner_id = {$uid}");
-
-    if ($count > 0) {
-        $retval = str_replace('%s', $count, $LANG_CAL_ADMIN['num_events']);
-    }
-
-    return $retval;
-}
-
-/**
- * Lets Geeklog know the names of language variables and arrays that can be overridden if need be
- *
- * @return   array
- */
-function plugin_getlanguageoverrides_calendar()
-{
-    return array('LANG_CAL_1', 'LANG_CAL_2', '_LANG_CAL_SEARCH', 'LANG_CAL_MESSAGE', 'PLG_calendar_MESSAGE4');
-}
-
-/**
- * Return the info asked by PLG_collectRecaptchaInfo().
- *
- * @return  array of type => [
- *              'type'     => type                   // required, passed as the 1st parameter to plugin_templatesetvars_xxx()
- *              'version'  => reCAPTCHA version,     // required: RECAPTCHA_NO_SUPPORT(0), RECAPTCHA_SUPPORT_V2(1), RECAPTCHA_SUPPORT_V2_INVISIBLE(2), RECAPTCHA_SUPPORT_V3(4)
- *              'form_id'  => form id,               // required only for reCAPTCHA V2 Invisible
- *              'action'   => action,                // optional
- *              'score_threshold' => score threshold // required only for reCAPTCHA V3 (0.0 - 1.0)
- *           ]
- */
-function plugin_supportsRecaptcha_calendar()
-{
-    global $_CA_CONF;
-
-    return [
-        [
-            'type'            => 'calendar',
-            'version'         => (isset($_CA_CONF['recaptcha']) ? (int) $_CA_CONF['recaptcha'] : RECAPTCHA_SUPPORT_V3),
-            'form_id'         => 'submit_event_form',
-            'action'          => 'calendar/submit',
-            'score_threshold' => (isset($_CA_CONF['recaptcha_score']) ? $_CA_CONF['recaptcha_score'] : RECAPTCHA_DEFAULT_SCORE_THRESHOLD),
-        ],
-    ];
-}
-
-/**
- * Return URL of item even if the item doesn't exist, e.g., after it has been deleted
- *
- * @param  string  $sub_type  (unused) sub type of plugin
- * @param  string  $item_id   the id of the item
- * @return string
- * @since  Geeklog 2.2.2
- */
-function plugin_idToURL_calendar($sub_type, $item_id)
-{
-    global $_CONF;
-
-    return $_CONF['site_url'] . '/calendar/event.php?' . 'eid=' . $item_id;
 }

@@ -31,14 +31,7 @@ global $LANG32;
 
 $LANG_XMLSMAP = array(
     'plugin' => 'XMLSitemap',
-    'admin' => 'ניהול XMLSitemap',
-    'description' => 'Usually, all the sitemap files will automatically be updated whenever an item is added, changed or deleted.  If something went wrong, please update sitemap files manually by pressing the button bellow.',
-    'filename' => 'File name',
-    'updated' => 'Updated',
-    'not_saved' => 'Not Saved',
-    'update_now' => 'Update all the sitemap files now!',
-    'update_success' => 'All the sitemap files were successfully updated.',
-    'update_fail' => 'Failed to update sitemap files.  Please refer to the "error.log" for details.'
+    'admin' => 'ניהול XMLSitemap'
 );
 
 // Localization of the Admin Configuration UI
@@ -50,18 +43,13 @@ $LANG_configsections['xmlsitemap'] = array(
 $LANG_confignames['xmlsitemap'] = array(
     'sitemap_file' => 'שם קובץ Sitemap',
     'mobile_sitemap_file' => 'שם קובץ Mobile Sitemap',
-    'include_homepage' => 'Homepage in Sitemap',
     'types' => 'תוכן ה-sitemap',
+    'exclude' => 'Plugins שלא יכללו ב-sitemap',
     'lastmod' => 'Content Types to include lastmod element',
     'priorities' => 'Priority',
     'frequencies' => 'Frequency',
     'ping_google' => 'Send ping to Google',
-    'indexnow' => 'Enable IndexNow',
-    'indexnow_key' => 'IndexNow Key',
-    'indexnow_key_location' => 'IndexNow Key Location',
-    'news_sitemap_file' => 'News Sitemap file name',
-    'news_sitemap_topics' => 'Include Articles from these Topics',
-    'news_sitemap_age' => 'Max Age of Articles'
+    'ping_bing' => 'Send ping to Bing'
 );
 
 $LANG_configsubgroups['xmlsitemap'] = array(
@@ -72,16 +60,14 @@ $LANG_tab['xmlsitemap'] = array(
     'tab_main' => 'הגדרות כלליות של XMLSitemap',
     'tab_pri' => 'עדיפות',
     'tab_freq' => 'תכיפות עדכונים',
-    'tab_ping' => 'Ping',
-    'tab_news' => 'News Sitemap'
+    'tab_ping' => 'Ping'
 );
 
 $LANG_fs['xmlsitemap'] = array(
     'fs_main' => 'ההגדרות הכלליות של XMLSitemap',
     'fs_pri' => 'עדיפות (ברירת המחדל = 0.5, הכי נמוך = 0.0, הכי גבוה = 1.0)',
     'fs_freq' => 'תדירות עדכונים',
-    'fs_ping' => 'Send ping on updating sitemap',
-    'fs_news' => 'News Sitemap Settings'
+    'fs_ping' => 'Send ping on updating sitemap'
 );
 
 // Note: entries 0, 1, 9, and 12 are the same as in $LANG_configselects['Core']

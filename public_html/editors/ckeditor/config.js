@@ -1,71 +1,67 @@
 /**
- * @license Copyright (c) 2003-2021, CKSource - Frederico Knabben. All rights reserved.
+ * @license Copyright (c) 2003-2018, CKSource - Frederico Knabben. All rights reserved.
  * For licensing, see https://ckeditor.com/legal/ckeditor-oss-license
  */
 
-// Base groups of buttons for toolbars
-    // Geeklog has 4 toolbar types 'Basic', 'Common', 'Advanced', 'Full Featured'
-    // These item groups are used  by 1 or more of the first 3 toolbar types. The 'Full Featured' toolbar is defined separately below
-    // If for example you want to remove the 'Image' button from the toolbar you would have to remove the text "'Image'," (including the quotes and comma) from the items group 'insert' and 'insert_advanced along with the 'Full Featured' toolbar list below.
-var tools = {
-        items: {
-            'source': ['Source'],
-            'clipboard': ['Cut', 'Copy', 'Paste', 'PasteText'],
-            'undo': ['Undo', 'Redo'],
-            'editing': ['Find', 'Replace', '-', 'SelectAll', '-', 'Scayt'],
-            'links': ['Link', 'Unlink'],
-            'basicstyles': ['Bold', 'Italic', 'Underline', 'Strike', 'Subscript', 'Superscript', '-', 'RemoveFormat'],
-            'insert': ['Image', 'Table', 'HorizontalRule', 'SpecialChar'],
-            'paragraph': ['NumberedList', 'BulletedList', '-', 'Outdent', 'Indent', '-', 'Blockquote', 'CreateDiv', '-', 'JustifyLeft', 'JustifyCenter', 'JustifyRight', '-', 'BidiLtr', 'BidiRtl'],
-            'styles': ['Styles', 'Format', 'Font', 'FontSize'],
-            'colors': ['TextColor', 'BGColor'],
-            'tools': ['Maximize', 'ShowBlocks'],
-            'about': ['About'],
+ var tools = {
+	items: {
+		'source': ['Source'],
+		'clipboard': ['Cut', 'Copy', 'Paste', 'PasteText'],
+		'undo': ['Undo', 'Redo'],
+		'editing': ['Find', 'Replace', '-', 'SelectAll', '-', 'Scayt'],
+		'links': ['Link', 'Unlink'],
+		'basicstyles': ['Bold', 'Italic', 'Underline', 'Strike', 'Subscript', 'Superscript', '-', 'RemoveFormat'],
+		'insert': ['Image', 'Table', 'HorizontalRule', 'SpecialChar'],
+		'paragraph': ['NumberedList', 'BulletedList', '-', 'Outdent', 'Indent', '-', 'Blockquote', 'CreateDiv', '-', 'JustifyLeft', 'JustifyCenter', 'JustifyRight', '-', 'BidiLtr', 'BidiRtl'],
+		'styles': ['Styles', 'Format', 'Font', 'FontSize'],
+		'colors': ['TextColor', 'BGColor'],
+		'tools': ['Maximize', 'ShowBlocks'],
+		'about': ['About'],
 
-            'basicstyles_basic': ['Bold', 'Italic'],
-            'paragraph_basic': ['NumberedList', 'BulletedList'],
+		'basicstyles_basic': ['Bold', 'Italic'],
+		'paragraph_basic': ['NumberedList', 'BulletedList'],
 
-            'insert_advanced': ['Image', 'Flash', 'Table', 'HorizontalRule', 'Smiley', 'SpecialChar']
-        },
+		'insert_advanced': ['Image', 'Flash', 'Table', 'HorizontalRule', 'Smiley', 'SpecialChar']
+	},
 
-        allowed: function(tag, attr) {
-            var undefined;
-            if (tag === undefined) {
-                return undefined;
-            }
-            if (geeklogAllowedHtml[tag] === undefined) {
-                return false;
-            }
-            if (attr === 1) {
-                return true;
-            }
-            for (var i in attr) {
-                if (geeklogAllowedHtml[tag][i] === undefined) {
-                    return false;
-                }
-            }
-            return true;
-        },
+	allowed: function(tag, attr) {
+		var undefined;
+		if (tag === undefined) {
+			return undefined;
+		}
+		if (geeklogAllowedHtml[tag] === undefined) {
+			return false;
+		}
+		if (attr === 1) {
+			return true;
+		}
+		for (var i in attr) {
+			if (geeklogAllowedHtml[tag][i] === undefined) {
+				return false;
+			}
+		}
+		return true;
+	},
 
-        remove_one: function(ary, target) {
-            ary = this.items[ary];
-            for (var i = ary.length - 1; i >= 0; i--) {
-                if (ary[i] === target) ary.splice(i, 1);
-            }
-        },
+	remove_one: function(ary, target) {
+		ary = this.items[ary];
+		for (var i = ary.length - 1; i >= 0; i--) {
+			if (ary[i] === target) ary.splice(i, 1);
+		}
+	},
 
-        remove: function(pattern, target) {
-            for (var i in pattern) {
-                if (!this.allowed(i, pattern[i])) {
-                    for (var j in target) {
-                        for (var k in target[j]) {
-                            this.remove_one(j, target[j][k]);
-                        }
-                    }
-                }
-            }
-        }
-    };
+	remove: function(pattern, target) {
+		for (var i in pattern) {
+			if (!this.allowed(i, pattern[i])) {
+				for (var j in target) {
+					for (var k in target[j]) {
+						this.remove_one(j, target[j][k]);
+					}
+				}
+			}
+		}
+	}
+};
 
 tools.remove({'strong':1}, {'basicstyles':['Bold'], 'basicstyles_basic':['Bold']});
 tools.remove({'em':1}, {'basicstyles':['Italic'], 'basicstyles_basic':['Italic']});
@@ -83,118 +79,102 @@ tools.remove({'div':1}, {'paragraph':['CreateDiv']});
 tools.remove({'span':{'style':1}}, {'styles':['Font','FontSize'], 'colors':['TextColor','BGColor']});
 
 CKEDITOR.editorConfig = function( config ) {
-    // Define changes to default configuration here. For example:
-    // config.language = 'fr';
-    // config.uiColor = '#AADC6E';
+	// Define changes to default configuration here. For example:
+	// config.language = 'fr';
+	// config.uiColor = '#AADC6E';
 
-	// Set Language to the same as Geeklog. This also gets passed to File Manager
-	// If not set CK Editor will determine language which may cause issue with File Manager 
-	// For example if CK Editor determines language to be "en-ca", File Manager doesn't support this language and will forever load
-	if (geeklogLanguage != '') {
-		config.language = geeklogLanguage;
-	}
+	// Add extra plugins
+	// Makes protected source sections visible and editable.
+	// Especially important for [code]..[/code] and [raw]..[/raw] for Geeklog.
+	config.extraPlugins = 'showprotected';
 
-    // Add extra plugins
-    // Makes protected source sections visible and editable.
-    // Especially important for [code]..[/code] and [raw]..[/raw] for Geeklog.
-    config.extraPlugins = 'showprotected';
-	
-	// Plugins not needed
-	// exportpdf throws error "Error code: exportpdf-no-token-url" so remove
-	config.removePlugins = 'exportpdf';
+	// Disable Advanced Content Filter
+	config.allowedContent = true;
 
-    // Disable Advanced Content Filter
-    config.allowedContent = true;
+	// Whether to escape basic HTML entities in the document
+	config.basicEntities = false;
 
-    // Whether to escape basic HTML entities in the document
-    config.basicEntities = false;
+	// Whether to use HTML entities in the output.
+	config.entities = false;
 
-    // Whether to use HTML entities in the output.
-    config.entities = false;
+	// Whether to convert some symbols, mathematical symbols, and Greek letters to HTML entities.
+	config.entities_greek = false;
 
-    // Whether to convert some symbols, mathematical symbols, and Greek letters to HTML entities.
-    config.entities_greek = false;
+	// Whether to convert some Latin characters (Latin alphabet No. 1, ISO 8859-1) to HTML entities.
+	config.entities_latin = false;
 
-    // Whether to convert some Latin characters (Latin alphabet No. 1, ISO 8859-1) to HTML entities.
-    config.entities_latin = false;
+	// Whether automatically create wrapping blocks around inline contents
+	config.autoParagraph = false;
 
-    // Whether automatically create wrapping blocks around inline contents
-    config.autoParagraph = false;
+	config.protectedSource.push(/<pre[\s\S]+?\/pre>/g);
+	config.protectedSource.push(/\[code[^:][\s\S]+?\/code\]/g);
+	config.protectedSource.push(/\[raw[\s\S]+?\/raw\]/g);
 
-    config.protectedSource.push(/<pre[\s\S]+?\/pre>/g);
-    config.protectedSource.push(/\[code[^:][\s\S]+?\/code\]/g);
-    config.protectedSource.push(/\[raw[\s\S]+?\/raw\]/g);
+	config.toolbar = 'toolbar1';
 
-    config.toolbar = 'toolbar1';
+	config.toolbar_toolbar1 = [
+		tools.items['source'],
+		tools.items['undo'],
+		tools.items['basicstyles_basic'],
+		tools.items['links'],
+		tools.items['paragraph_basic'],
+		tools.items['insert'],
+		tools.items['tools']
+	];
 
-    // Basic Toolbar buttons
-    config.toolbar_toolbar1 = [
-        tools.items['source'],
-        tools.items['undo'],
-        tools.items['basicstyles_basic'],
-        tools.items['links'],
-        tools.items['paragraph_basic'],
-        tools.items['insert'],
-        tools.items['tools']
-    ];
+	config.toolbar_toolbar2 = [
+		tools.items['source'],
+		tools.items['clipboard'],
+		tools.items['undo'],
+		tools.items['editing'],
+		tools.items['basicstyles'],
+		tools.items['links'],
+		tools.items['paragraph'],
+		tools.items['insert'],
+		tools.items['tools']
+	];
 
-    // Common Toolbar buttons
-    config.toolbar_toolbar2 = [
-        tools.items['source'],
-        tools.items['clipboard'],
-        tools.items['undo'],
-        tools.items['editing'],
-        tools.items['basicstyles'],
-        tools.items['links'],
-        tools.items['paragraph'],
-        tools.items['insert'],
-        tools.items['tools']
-    ];
+	config.toolbar_toolbar3 = [
+		tools.items['source'],
+		tools.items['clipboard'],
+		tools.items['undo'],
+		tools.items['editing'],
+		tools.items['basicstyles'],
+		tools.items['links'],
+		tools.items['paragraph'],
+		tools.items['insert_advanced'],
+		tools.items['colors'],
+		tools.items['tools'],
+		tools.items['styles']
+	];
 
-    // Advanced Toolbar buttons
-    config.toolbar_toolbar3 = [
-        tools.items['source'],
-        tools.items['clipboard'],
-        tools.items['undo'],
-        tools.items['editing'],
-        tools.items['basicstyles'],
-        tools.items['links'],
-        tools.items['paragraph'],
-        tools.items['insert_advanced'],
-        tools.items['colors'],
-        tools.items['tools'],
-        tools.items['styles']
-    ];
+	config.toolbar_full = [
+		{ name: 'document', groups: [ 'mode', 'document', 'doctools' ], items: [ 'Source', '-', 'Save', 'NewPage', 'Preview', 'Print', '-', 'Templates' ] },
+		{ name: 'clipboard', groups: [ 'clipboard', 'undo' ], items: [ 'Cut', 'Copy', 'Paste', 'PasteText', 'PasteFromWord', '-', 'Undo', 'Redo' ] },
+		{ name: 'editing', groups: [ 'find', 'selection', 'spellchecker' ], items: [ 'Find', 'Replace', '-', 'SelectAll', '-', 'Scayt' ] },
+		{ name: 'forms', items: [ 'Form', 'Checkbox', 'Radio', 'TextField', 'Textarea', 'Select', 'Button', 'ImageButton', 'HiddenField' ] },
+		'/',
+		{ name: 'basicstyles', groups: [ 'basicstyles', 'cleanup' ], items: [ 'Bold', 'Italic', 'Underline', 'Strike', 'Subscript', 'Superscript', '-', 'RemoveFormat' ] },
+		{ name: 'paragraph', groups: [ 'list', 'indent', 'blocks', 'align', 'bidi' ], items: [ 'NumberedList', 'BulletedList', '-', 'Outdent', 'Indent', '-', 'Blockquote', 'CreateDiv', '-', 'JustifyLeft', 'JustifyCenter', 'JustifyRight', 'JustifyBlock', '-', 'BidiLtr', 'BidiRtl' ] },
+		{ name: 'links', items: [ 'Link', 'Unlink', 'Anchor' ] },
+		{ name: 'insert', items: [ 'Image', 'Flash', 'Table', 'HorizontalRule', 'Smiley', 'SpecialChar', 'PageBreak', 'Iframe' ] },
+		'/',
+		{ name: 'styles', items: [ 'Styles', 'Format', 'Font', 'FontSize' ] },
+		{ name: 'colors', items: [ 'TextColor', 'BGColor' ] },
+		{ name: 'tools', items: [ 'Maximize', 'ShowBlocks' ] },
+		{ name: 'others', items: [ '-' ] },
+		{ name: 'about', items: [ 'About' ] }
+	];
 
-    // Full Featured Toolbar buttons
-    config.toolbar_full = [
-        { name: 'document', groups: [ 'mode', 'document', 'doctools' ], items: [ 'Source', '-', 'NewPage', 'Preview', 'Print', '-', 'Templates' ] },
-        { name: 'clipboard', groups: [ 'clipboard', 'undo' ], items: [ 'Cut', 'Copy', 'Paste', 'PasteText', 'PasteFromWord', '-', 'Undo', 'Redo' ] },
-        { name: 'editing', groups: [ 'find', 'selection', 'spellchecker' ], items: [ 'Find', 'Replace', '-', 'SelectAll', '-', 'Scayt' ] },
-        { name: 'forms', items: [ 'Form', 'Checkbox', 'Radio', 'TextField', 'Textarea', 'Select', 'Button', 'ImageButton', 'HiddenField' ] },
-        '/',
-        { name: 'basicstyles', groups: [ 'basicstyles', 'cleanup' ], items: [ 'Bold', 'Italic', 'Underline', 'Strike', 'Subscript', 'Superscript', '-', 'RemoveFormat' ] },
-        { name: 'paragraph', groups: [ 'list', 'indent', 'blocks', 'align', 'bidi' ], items: [ 'NumberedList', 'BulletedList', '-', 'Outdent', 'Indent', '-', 'Blockquote', 'CreateDiv', '-', 'JustifyLeft', 'JustifyCenter', 'JustifyRight', 'JustifyBlock', '-', 'BidiLtr', 'BidiRtl' ] },
-        { name: 'links', items: [ 'Link', 'Unlink', 'Anchor' ] },
-        { name: 'insert', items: [ 'Image', 'Flash', 'Table', 'HorizontalRule', 'Smiley', 'SpecialChar', 'PageBreak', 'Iframe' ] },
-        '/',
-        { name: 'styles', items: [ 'Styles', 'Format', 'Font', 'FontSize' ] },
-        { name: 'colors', items: [ 'TextColor', 'BGColor' ] },
-        { name: 'tools', items: [ 'Maximize', 'ShowBlocks' ] },
-        { name: 'others', items: [ '-' ] },
-        { name: 'about', items: [ 'About' ] }
-    ];
-
-    // Filemanager
-    if (geeklogFileManager) {
-        config.filebrowserBrowseUrl = geeklog.site_url + '/filemanager/index.php?Type=File';
-        //	config.filebrowserBrowseUrl = geeklog.site_url + '/filemanager/index.php?Type=Media';
-        config.filebrowserImageBrowseUrl = geeklog.site_url + '/filemanager/index.php?Type=Image';
-    }
+	// Filemanager
+	config.filebrowserBrowseUrl = geeklog.site_url + '/filemanager/index.php?Type=File';
+//	config.filebrowserBrowseUrl = geeklog.site_url + '/filemanager/index.php?Type=Media';
+	config.filebrowserImageBrowseUrl = geeklog.site_url + '/filemanager/index.php?Type=Image';
+	config.filebrowserFlashBrowseUrl = geeklog.site_url + '/filemanager/index.php?Type=Flash';
 };
 
 
 CKEDITOR.on('instanceReady', function(ev) {
-    // Fix ends of self closing tags
-    ev.editor.dataProcessor.writer.selfClosingEnd = geeklog.xhtml + '>';
+	// Fix ends of self closing tags
+	ev.editor.dataProcessor.writer.selfClosingEnd = geeklog.xhtml + '>';
 });

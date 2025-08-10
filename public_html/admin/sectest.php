@@ -204,11 +204,23 @@ function doTest($baseUrl, $urlToCheck, $what)
  */
 function checkInstallDir()
 {
-    global $LANG_SECTEST, $failed_tests;
+    global $_CONF, $LANG_SECTEST, $failed_tests;
 
-    $installDir = COM_getInstallDir();
+    // we don't have the path to the admin directory, so try to figure it out
+    // from $_CONF['site_admin_url']
+    $adminUrl = $_CONF['site_admin_url'];
+    if (strrpos($adminUrl, '/') === strlen($adminUrl)) {
+        $adminUrl = substr($adminUrl, 0, -1);
+    }
+    $pos = strrpos($adminUrl, '/');
+    if ($pos === false) {
+        // only guessing ...
+        $installDir = $_CONF['path_html'] . 'admin/install';
+    } else {
+        $installDir = $_CONF['path_html'] . substr($adminUrl, $pos + 1) . '/install';
+    }
 
-    if (!empty($installDir)) {
+    if (is_dir($installDir)) {
         $retval = '<li>' . sprintf($LANG_SECTEST['remove_inst'],
                 '<strong>' . $installDir . '</strong>') . ' '
             . $LANG_SECTEST['remove_inst2'] . '</li>';

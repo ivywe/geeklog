@@ -8,7 +8,7 @@
 // |                                                                           |
 // | This file implements plugin support in Geeklog.                           |
 // +---------------------------------------------------------------------------+
-// | Copyright (C) 2000-2022 by the following authors:                         |
+// | Copyright (C) 2000-2017 by the following authors:                         |
 // |                                                                           |
 // | Authors: Tony Bibbs       - tony AT tonybibbs DOT com                     |
 // |          Blaine Lang      - blaine AT portalparts DOT com                 |
@@ -43,8 +43,6 @@ if (stripos($_SERVER['PHP_SELF'], basename(__FILE__)) !== false) {
     die('This file can not be used on its own!');
 }
 
-global $_TABLES, $_CONF;
-
 /**
  * Response codes for the service invocation PLG_invokeService(). Note that
  * these are intentionally vague so as not to give away too much information.
@@ -65,59 +63,8 @@ define('PLG_SPAM_ACTION_NONE', 0);
 define('PLG_SPAM_ACTION_NOTIFY', 8);
 define('PLG_SPAM_ACTION_DELETE', 128);
 
-// Global constants to show which reCAPTCHA version each plugin supports (since Geeklog 2.2.1)
-define('RECAPTCHA_NO_SUPPORT', 0);
-define('RECAPTCHA_SUPPORT_V2', 1);
-define('RECAPTCHA_SUPPORT_V2_INVISIBLE', 2);
-
-// Supported since v1.2.4 (Geeklog 2.2.2)
-define('RECAPTCHA_SUPPORT_V3', 4);
-define('RECAPTCHA_DEFAULT_SCORE_THRESHOLD', 0.5);
-
-// Constants for the max number of allowed tries within speed limit (since Geeklog 2.2.2)
-// Types in Geeklog core include: comment, likes, mail, password, pingback, submit, trackback
-const SPEED_LIMIT_MAX_COMMENT = 1;
-const SPEED_LIMIT_MAX_LIKES = 1;
-const SPEED_LIMIT_MAX_MAIL = 1;
-const SPEED_LIMIT_MAX_PASSWORD = 1;
-const SPEED_LIMIT_MAX_PINGBACK = 1;
-const SPEED_LIMIT_MAX_SUBMIT = 1;
-const SPEED_LIMIT_MAX_TRACKBACK = 1;
-
-/*
-Error Limits (since Geeklog 2.2.2)
-Types in Geeklog core include: 
-	error-403
-		For Illegal access to admin screen.
-		This only gets triggered after 'login_attempts' config option has been reached.
-		
-	error-404
-		All 404 errors included.
-		Remember to consider search engine bots as they may generate 404 errors. This should happen at a slow pace though.
-		
-	error-spam
-		All types of SPAM included.
-		All speedlimits should be the same so this error limit can work correctly.
-
-	error-speedlimit
-		All speedlimits reached included.
-		All speedlimits should be the same so this error limit can work correctly.
-		Need to consider not only speedlimits but also 'error-spam'.
-		
-*/
-// Config Options for the max number of allowed tries within speed limit (from 1 to ...)
-$_CONF['speedlimit_max_error-403'] = 3; 
-$_CONF['speedlimit_max_error-404'] = 20;
-$_CONF['speedlimit_max_error-spam'] = 5;
-$_CONF['speedlimit_max_error-speedlimit'] = 10;
-// Config Options for the time window used in COM_clearSpeedlimit (in seconds)
-$_CONF['speedlimit_window_error-403'] = 60; 
-$_CONF['speedlimit_window_error-404'] = 120;
-$_CONF['speedlimit_window_error-spam'] = 270; // Based on anonymous users and all speedlimits (comment, likes, etc.) enabled and set to 45 seconds. 
-$_CONF['speedlimit_window_error-speedlimit'] = 540; // Based on 'error-spam' settings
-
 // buffer for function names for the center block API
-$PLG_bufferCenterAPI = [];
+$PLG_bufferCenterAPI = array();
 $PLG_buffered = false;
 
 // buffer enabled plugins
@@ -127,7 +74,7 @@ $result = DB_query("SELECT pi_name FROM {$_TABLES['plugins']} WHERE pi_enabled =
  * @global array List of all active plugins
  */
 global $_PLUGINS;
-$_PLUGINS = [];
+$_PLUGINS = array();
 while ($A = DB_fetchArray($result)) {
     $_PLUGINS[] = $A['pi_name'];
 }
@@ -137,6 +84,7 @@ while ($A = DB_fetchArray($result)) {
  *
  * @param    string $function_name holds name of function to call
  * @param    array  $args     arguments to send to function
+ * @return   void
  * @access   private
  * @internal not to be used by plugins
  */
@@ -276,7 +224,7 @@ function PLG_chkVersion($type)
  */
 function PLG_uninstall($type)
 {
-    global $_PLUGINS, $_TABLES, $_CONF;
+    global $_PLUGINS, $_TABLES;
 
     if (empty($type)) {
         return false;
@@ -371,11 +319,9 @@ function PLG_uninstall($type)
             COM_errorLog('...success', 1);
         }
 
-        // remove comments for this plugin if any exist
+        // remove comments for this plugin
         COM_errorLog("Attempting to remove comments for $type", 1);
         DB_delete($_TABLES['comments'], 'type', $type);
-		require_once $_CONF['path_system'] . 'lib-comment.php'; // May not be loaded so do it now
-		CMT_deleteComment('', '', $type, false);
         COM_errorLog('...success', 1);
 
         // uninstall php-blocks
@@ -398,21 +344,12 @@ function PLG_uninstall($type)
         COM_errorLog("Attempting to remove topic assignments table records for $type", 1);
         DB_delete($_TABLES['topic_assignments'], 'type', $type);
         COM_errorLog('...success', 1);
-		
-        // remove likes table data for this plugin if exists
-        COM_errorLog("Attempting to remove likes table records for $type", 1);
-        DB_delete($_TABLES['likes'], 'type', $type);
-        COM_errorLog('...success', 1);		
 
         // uninstall the plugin
         COM_errorLog("Attempting to unregister the $type plugin from Geeklog", 1);
         DB_delete($_TABLES['plugins'], 'pi_name', $type);
         COM_errorLog('...success', 1);
-		
-		COM_errorLog("Clearing entire Geeklog Cache", 1);
-		CTL_clearCache();
-		COM_errorLog('...success', 1);
-		
+
         COM_errorLog("Finished uninstalling the $type plugin.", 1);
 
         return true;
@@ -444,7 +381,7 @@ function PLG_uninstall($type)
  */
 function PLG_enableStateChange($type, $enable)
 {
-    global $_CONF;
+    global $_CONF, $_TABLES, $_DB_table_prefix;
 
     $args[1] = $enable;
 
@@ -454,32 +391,19 @@ function PLG_enableStateChange($type, $enable)
         require_once($_CONF['path'] . 'plugins/' . $type . '/functions.inc');
     }
 
-    return PLG_callFunctionForOnePlugin('plugin_enablestatechange_' . $type, $args);
+    return PLG_callFunctionForOnePlugin('plugin_enablestatechange_' . $type,
+        $args);
 }
 
 /**
  * Checks to see if user is a plugin moderator
  * Geeklog is asking if the user is a moderator for any installed plugins.
  *
- * @return bool
+ * @return   boolean     True if current user is moderator of plugin otherwise false
  */
 function PLG_isModerator()
 {
-    global $_PLUGINS;
-
-    foreach ($_PLUGINS as $piName) {
-        $function = 'plugin_ismoderator_' . $piName;
-        if (is_callable($function) && $function()) {
-            return true;
-        }
-    }
-
-    $function = 'CUSTOM_ismoderator';
-    if (is_callable($function) && $function()) {
-        return true;
-    }
-
-    return false;
+    return PLG_callFunctionForAllPlugins('ismoderator');
 }
 
 /**
@@ -487,7 +411,7 @@ function PLG_isModerator()
  * Note that this is fairly unflexible.  This simply loops through the plugins
  * in the database in the order they were installed and get their menu items.
  * If you want more flexibility in your menu then you should hard code the menu
- * items in index.thtml for the theme(s) you are using.
+ * items in header.thtml for the theme(s) you are using.
  *
  * @return   array   Returns menu options for plugin
  */
@@ -510,64 +434,25 @@ function PLG_getMenuItems()
 }
 
 /**
- * Get URL where comments are viewed from for id
- * This also works for items (like articles) that are multipaged and the comments do not appear on the first page
- * NOTE: The Plugin API does not support $_CONF['url_rewrite'] here,
+ * Get view URL and name of unique identifier
  *
  * @author  Vincent Furia, vinny01 AT users DOT sourceforge DOT net
- * @param   string $type Plugin of comment
- * @return  string string of URL of page with comments on it
+ * @param   string $type Plugin to delete comment
+ * @return  array   string of URL of view page, name of unique identifier
  */
-function PLG_getCommentUrlId($type, $id = '')
+function PLG_getCommentUrlId($type)
 {
     global $_CONF;
 
-    if (empty($id)) {
-        // #Issue #1022 to fix articles with multiple pages and where comments are located
-        // Need to add extra field to this function but still support old function until Geeklog v3.0.0. As of then $id will be required
-        COM_deprecatedLog(__FUNCTION__, '2.2.1', '3.0.0', 'plugin_getcommenturlid_' . $type . " will require an id field passed to it");
-
-        $ret = PLG_callFunctionForOnePlugin('plugin_getcommenturlid_' . $type);
-        if (empty($ret[0])) {
-            $ret[0] = $_CONF['site_url'] . "/$type/index.php";
-        }
-        if (empty($ret[1])) {
-            $ret[1] = 'id';
-        }
-
-        // @return  array   string of URL of view page, name of unique identifier
-        return $ret;
-    } else {
-        $args = array(
-            1 => $id,
-        );
-
-        return PLG_callFunctionForOnePlugin('plugin_getcommenturlid_' . $type, $args);
+    $ret = PLG_callFunctionForOnePlugin('plugin_getcommenturlid_' . $type);
+    if (empty($ret[0])) {
+        $ret[0] = $_CONF['site_url'] . "/$type/index.php";
     }
-}
-
-/**
- * Return the comment code to this plugin item. This is based not only the code of the actual plugin item but the access the user has to the item
- *
- * @param   string  $type Plugin of comment
- * @param   string	$id   Item id to which $cid belongs
- * @param   int		$uid  user id (0 for current user)
- * @return  int    Return a CommentCode: COMMENT_CODE_ENABLED (0), COMMENT_CODE_DISABLED (-1), COMMENT_CODE_CLOSED (1)
- * @since    Geeklog v2.2.1
- */
-function PLG_commentEnabled($type, $id, $uid = 0)
-{
-    global $_CONF;
-
-    $args = array(
-        1 => $id,
-    );
-
-    if ($type === 'article') {
-        require_once $_CONF['path_system'] . 'lib-article.php';
+    if (empty($ret[1])) {
+        $ret[1] = 'id';
     }
 
-    return PLG_callFunctionForOnePlugin('plugin_commentenabled_' . $type, $args);
+    return $ret;
 }
 
 /**
@@ -577,48 +462,22 @@ function PLG_commentEnabled($type, $id, $uid = 0)
  * @param   string $type Plugin to delete comment
  * @param   int    $cid  Comment to be deleted
  * @param   string $id   Item id to which $cid belongs
- * @param   boolean $returnOption  Either return a boolean on success or not, or redirect
- * @return  mixed        Based on $returnOption. false for failure or true for success, else a redirect for success or failure
+ * @return  mixed        false for failure, HTML string (redirect?) for success
  */
-function PLG_commentDelete($type, $cid, $id, $returnBoolean = false)
+function PLG_commentDelete($type, $cid, $id)
 {
     global $_CONF;
+
+    $args = array(
+        1 => $cid,
+        2 => $id,
+    );
 
     if ($type === 'article') {
         require_once $_CONF['path_system'] . 'lib-article.php';
     }
 
-    $function = 'plugin_deletecomment_' . $type;
-    $numParameters = 2;
-    if (function_exists($function)) {
-        try {
-            $info = new ReflectionFunction($function);
-            $numParameters = $info->getNumberOfParameters();
-        } catch (ReflectionException $e) {
-            $numParameters = 0;
-        }
-
-        if ($numParameters == 3) {
-            $args = array(
-                1 => $cid,
-                2 => $id,
-                3 => $returnBoolean
-            );
-        }
-    }
-
-    if ($numParameters == 2) {
-        // Issue #1035
-        // Need to add extra field to this function but still support old function until Geeklog v3.0.0. As of then $returnBoolean will be required
-        COM_deprecatedLog(__FUNCTION__, '2.2.1', '3.0.0', 'plugin_deletecomment_' . $type . " will require a returnBoolean field passed to it");
-
-        $args = array(
-            1 => $cid,
-            2 => $id,
-        );
-    }
-
-    return PLG_callFunctionForOnePlugin($function, $args);
+    return PLG_callFunctionForOnePlugin('plugin_deletecomment_' . $type, $args);
 }
 
 /**
@@ -657,7 +516,7 @@ function PLG_commentSave($type, $title, $comment, $id, $pid, $postMode)
  * @param   string  $type   Plugin to display comment
  * @param   string  $id     Unique identifier for item comment belongs to
  * @param   int     $cid    Comment id to display (possibly including sub-comments)
- * @param   string  $title  title of item comment belongs to
+ * @param   string  $title  Page/comment title
  * @param   string  $order  'ASC' or 'DSC' or blank
  * @param   string  $format 'threaded', 'nested', or 'flat'
  * @param   int     $page   Page number of comments to display
@@ -737,9 +596,9 @@ function PLG_commentPreSave($uid, &$title, &$comment, $sid, $pid, $type, &$postM
  *
  * @author Mark Evans, mevans AT ecsnet DOT com
  * @access public
- * @param string        $type     Type of item, i.e.; registration, contact ...
- * @param string|array  $content  item specific content
- * @return string                 empty is no error, error message if error was encountered
+ * @param string $type    Type of item, i.e.; registration, contact ...
+ * @param string $content item specific content
+ * @return string empty is no error, error message if error was encountered
  * @see    PLG_commentPreSave
  */
 function PLG_itemPreSave($type, $content)
@@ -868,14 +727,11 @@ function PLG_getPluginStats($showSiteStats)
  */
 function PLG_getSearchTypes()
 {
-    global $_PLUGINS, $_CONF;
+    global $_PLUGINS;
 
     $types = array();
 
-	require_once $_CONF['path_system'] . 'lib-article.php';
-	$all_plugins = array_merge($_PLUGINS, array('article'));
-
-    foreach ($all_plugins as $pi_name) {
+    foreach ($_PLUGINS as $pi_name) {
         $function = 'plugin_searchtypes_' . $pi_name;
         if (function_exists($function)) {
             $currentTypes = $function ();
@@ -899,73 +755,33 @@ function PLG_getSearchTypes()
 }
 
 /**
- * Allows plugins a chance to format their item in the search results if needed.
- * This is more about removing unneeded code than adding formatting as that could
- * affect how the search row is displayed
- *
- * @access public
- * @param string        $type     		Plugin
- * @param string        $id       		Plugin item id (just in case needed to deal with content)
- * @param string  		$contentType  	Type of content (either 'title' or 'description' or 'url')
- * @param string  		$content  		item specific content
- * @return string                 		Updated content or content with no changes
- * @since    Geeklog v2.2.1
- */
-function PLG_searchFormat($type, $id, $contentType, $content)
-{
-    global $_CONF;
-
-    if ($type === 'article') {
-        require_once $_CONF['path_system'] . 'lib-article.php';
-    } elseif ($type === 'comment') {
-        require_once $_CONF['path_system'] . 'lib-comment.php';
-    }
-
-    $args = array(
-        1 => $id,
-		2 => $contentType,
-        3 => $content);
-
-    $retval = PLG_callFunctionForOnePlugin('plugin_searchformat_' . $type, $args);
-	// If nothing returned whether function doesn't exist or no changes to content then just return same content
-	if (empty($retval)) {
-		$retval = $content;
-	}
-
-	return $retval;
-}
-
-/**
  * This function gives each plugin the opportunity to do their search
  * and return their results.  Results come back in an array of HTML
  * formatted table rows that can be quickly printed by search.php
  *
- * @param  string $query     What the user searched for
- * @param  string $dateStart beginning of date range to search for
- * @param  string $dateEnd   ending date range to search for
- * @param  string $topic     the topic the user searched within
- * @param  string $type      Type of items they are searching, or 'all'
- * @param  int    $author    UID...only return results for this person
- * @param  string $keyType   search key type: 'all', 'phrase', 'any'
- * @param  int    $page      page number of current search (deprecated)
- * @param  int    $perPage   number of results per page (deprecated)
- * @return array of SearchCriteria
+ * @param    string $query     What the user searched for
+ * @param    string $dateStart beginning of date range to search for
+ * @param    string $dateEnd   ending date range to search for
+ * @param    string $topic     the topic the user searched within
+ * @param    string $type      Type of items they are searching, or 'all'
+ * @param    int    $author    UID...only return results for this person
+ * @param    string $keyType   search key type: 'all', 'phrase', 'any'
+ * @param    int    $page      page number of current search (deprecated)
+ * @param    int    $perPage   number of results per page (deprecated)
+ * @return   array             Returns search results
  */
 function PLG_doSearch($query, $dateStart, $dateEnd, $topic, $type, $author, $keyType = 'all', $page = 1, $perPage = 10)
 {
-    global $_PLUGINS, $_CONF;
+    global $_PLUGINS;
 
     /**
      * The API, as of 1.6.0, does not use $page, $perpage
      * $type is now only used in the core and should not be passed to the plugin
      */
 
-	$search_results = array();
+    $search_results = array();
 
-	require_once $_CONF['path_system'] . 'lib-article.php';
-	$all_plugins = array_merge($_PLUGINS, array('article'));
-
-    foreach ($all_plugins as $pi_name) {
+    foreach ($_PLUGINS as $pi_name) {
         $function = 'plugin_dopluginsearch_' . $pi_name;
         if (function_exists($function)) {
             $result = $function($query, $dateStart, $dateEnd, $topic, $type, $author, $keyType, $page, $perPage);
@@ -1195,32 +1011,6 @@ function PLG_approveSubmission($type, $id)
     return PLG_callFunctionForOnePlugin('plugin_moderationapprove_' . $type, $args);
 }
 
-
-/**
- * This function is responsible for calling
- * plugin_moderationcommentapprove_<pluginname> which allows plugins to update
- * the item related to the comment
- *
- * @param        string $type Plugin name related to the comment submission approval
- * @param        string $id   used to identify the record to approve
- * @return       boolean     Returns true on success otherwise false
- * @since    Geeklog v2.2.1
- */
-function PLG_approveCommentSubmission($type, $id, $cid)
-{
-    global $_CONF;
-
-    if ($type === 'article') {
-        require_once $_CONF['path_system'] . 'lib-article.php';
-    }
-
-    $args = array(
-        1 => $id,
-        2 => $cid);
-
-    return PLG_callFunctionForOnePlugin('plugin_moderationcommentapprove_' . $type, $args);
-}
-
 /**
  * This function is responsible for calling
  * plugin_moderationdelete_<pluginname> which deletes an item from the
@@ -1285,7 +1075,7 @@ function PLG_getModerationValues($type)
 }
 
 /**
- * This function is responsible for calling plugin_submit_<pluginname> so
+ * This function is resonsible for calling plugin_submit_<pluginname> so
  * that the submission form for the plugin is displayed.
  *
  * @param        string $type Plugin to show submission form for
@@ -1381,15 +1171,8 @@ function PLG_createUser($uid)
 function PLG_deleteUser($uid)
 {
     global $_PLUGINS, $_CONF;
-	
-    // Treat comments and likes library like a plugin (since belong to core group)
-    $pluginTypes = ['comment', 'likes'];
-    require_once $_CONF['path_system'] . 'lib-comment.php';
-    require_once $_CONF['path_system'] . 'lib-likes.php';	
 
-    $pluginTypes = array_merge($pluginTypes, $_PLUGINS);	
-
-    foreach ($pluginTypes as $pi_name) {
+    foreach ($_PLUGINS as $pi_name) {
         $function = 'plugin_user_delete_' . $pi_name;
         if (function_exists($function)) {
             $function($uid);
@@ -1397,7 +1180,7 @@ function PLG_deleteUser($uid)
     }
 
     if ($_CONF['custom_registration']) {
-        $function = 'CUSTOM_userDelete';
+        $function = 'CUSTOM_user_delete';
         if (function_exists($function)) {
             $function($uid);
         }
@@ -1431,7 +1214,7 @@ function PLG_loginUser($uid)
 }
 
 /**
- * This function will inform all plugins when a user account has reached the Max
+ * This function will inform all plugins when a user account has reached the Max 
  * number of invalid login attempts in the specified number of seconds.
  *
  * @param    int $uid user id of the user account with the max invalid logins
@@ -1539,10 +1322,10 @@ function PLG_groupChanged($grp_id, $mode)
 /**
  * Geeklog is about to display the edit form for the user's profile. Plugins
  * now get a chance to add their own variables and input fields to the form.
- * Note: When data is saved PLG_profileExtrasSave is called
  *
- * @param  int      $uid      user id of the user profile to be edited
- * @param  Template $template reference of the Template for the profile edit form
+ * @param    int $uid       user id of the user profile to be edited
+ * @param    ref &$template reference of the Template for the profile edit form
+ * @return   void
  */
 function PLG_profileVariablesEdit($uid, &$template)
 {
@@ -1564,7 +1347,6 @@ function PLG_profileVariablesEdit($uid, &$template)
 /**
  * Geeklog is about to display the edit form for the user's profile. Plugins
  * now get a chance to add their own blocks below the standard form.
- * Note: When data is saved PLG_profileExtrasSave is called
  *
  * @param    int $uid user id of the user profile to be edited
  * @return   string          HTML for additional block(s)
@@ -1591,33 +1373,6 @@ function PLG_profileBlocksEdit($uid)
 }
 
 /**
- * The user wants to save changes to his/her profile. Any plugin that added its
- * own variables (PLG_profileVariablesEdit) or blocks (PLG_profileBlocksEdit)
- * to the profile input form will now have to extract its data and save it.
- * Note: Plugins will have to refer to the global $_POST array to get the
- * actual data.
- * Note: Extra fields can be added to the "About You" and "Privacy" tabs only.
- * Remember The User Admin form only saves the About You information so those
- * that use the Privacy fields when saving will have to check what file they are
- * saving from.
- *
- * @param    string $plugin name of a specific plugin or empty(all plugins)
- * @return   void
- */
-function PLG_profileExtrasSave($plugin = '', $uid = '')
-{
-    $args = array(
-        1 => $uid
-    );
-
-    if (empty($plugin)) {
-        PLG_callFunctionForAllPlugins('profileextrassave', $args);
-    } else {
-        PLG_callFunctionForOnePlugin('plugin_profileextrassave_' . $plugin, $args);
-    }
-}
-
-/**
  * Geeklog is about to display the user's profile. Plugins now get a chance to
  * add their own variables to the profile.
  *
@@ -1627,13 +1382,9 @@ function PLG_profileExtrasSave($plugin = '', $uid = '')
  */
 function PLG_profileVariablesDisplay($uid, $template)
 {
-    global $_CONF, $_PLUGINS;
-	
-	require_once $_CONF['path_system'] . 'lib-likes.php';
+    global $_PLUGINS;
 
-    $all_plugins = array_merge($_PLUGINS, array('likes'));	
-
-    foreach ($all_plugins as $pi_name) {
+    foreach ($_PLUGINS as $pi_name) {
         $function = 'plugin_profilevariablesdisplay_' . $pi_name;
         if (function_exists($function)) {
             $function ($uid, $template);
@@ -1675,6 +1426,29 @@ function PLG_profileBlocksDisplay($uid)
 }
 
 /**
+ * The user wants to save changes to his/her profile. Any plugin that added its
+ * own variables or blocks to the profile input form will now have to extract
+ * its data and save it.
+ * Plugins will have to refer to the global $_POST array to get the
+ * actual data.
+ *
+ * @param    string $plugin name of a specific plugin or empty(all plugins)
+ * @return   void
+ */
+function PLG_profileExtrasSave($plugin = '', $uid = '')
+{
+    $args = array(
+        1 => $uid
+    );     
+    
+    if (empty($plugin)) {
+        PLG_callFunctionForAllPlugins('profileextrassave', $args);
+    } else {
+        PLG_callFunctionForOnePlugin('plugin_profileextrassave_' . $plugin, $args);
+    }
+}
+
+/**
  * This function can be called to check if a plugin wants to set a template
  * variable
  * A plugin can check for $templatename == 'header' and then set additional
@@ -1688,8 +1462,8 @@ function PLG_profileBlocksDisplay($uid)
  * - 'registration' (user registration form)
  * - 'contact' (email user form)
  * - 'emailstory' (email story to a friend)
- * - 'loginblock' (login form as a block)
- * - 'loginform' (both login form in the content area and login block since similar function and is only one checked by Geeklog login function)
+ * - 'loginblock' (login form in the side bar)
+ * - 'loginform' (login form in the content area)
  * - 'search' (advanced search form; simple search is usually part of 'header')
  *
  * @param    string   $templateName Name of calling template
@@ -1794,9 +1568,7 @@ function PLG_collectTags($type = 'tagname')
     require_once $_CONF['path_system'] . 'lib-article.php';
     require_once $_CONF['path_system'] . 'lib-user.php';
     require_once $_CONF['path_system'] . 'lib-topic.php';
-	require_once $_CONF['path_system'] . 'lib-likes.php';
     require_once $_CONF['path_system'] . 'lib-block.php';
-    require_once $_CONF['path_system'] . 'lib-structureddata.php';
 
 
     if (!is_array($_PLUGINS)) {
@@ -1806,7 +1578,7 @@ function PLG_collectTags($type = 'tagname')
          */
         $_PLUGINS = array();
     }
-    $all_plugins = array_merge($_PLUGINS, array('article', 'user', 'topic', 'likes', 'block', 'structureddata'));
+    $all_plugins = array_merge($_PLUGINS, array('story', 'user', 'topic', 'block'));
 
     $autolinkModules = array();
 
@@ -1844,27 +1616,22 @@ function PLG_collectTags($type = 'tagname')
 }
 
 /**
- * This function will allow plugins to support the use of custom autotags (use to be called autolinks)
+ * This function will allow plugins to support the use of custom autolinks
  * in other site content. Plugins can now use this API when saving content
- * and have the content checked for any autotags before saving.
- * The autotag would be like:  [story:20040101093000103 here]
+ * and have the content checked for any autolinks before saving.
+ * The autolink would be like:  [story:20040101093000103 here]
  *
- * @param   string $content Content that should be parsed for autotags
- * @param   string $parse_plugin    Optional if you only want to parse using a specific plugin
- * @param   bool   $remove          Optional if you want to remove the autotag from the content
- * @param   string $plugin          Optional plugin of content - requires id - New as of Geeklog 2.2.1
- *                                      Allows autotag to know what has called it (what content it is embedded in)
- *                                      so it can use functions like PLG_getItemInfo.
- *                                      Note: not supported for things like autotags in templates or blocks
- * @param   string $id              Optional id of content - requires plugin - New as of Geeklog 2.2.1
+ * @param   string $content Content that should be parsed for autolinks
+ * @param   string $plugin  Optional if you only want to parse using a specific plugin
+ * @param   bool   $remove  Optional if you want to remove the autotag from the content
  * @return  string
  */
-function PLG_replaceTags($content, $parse_plugin = '', $remove = false, $plugin = '', $id = '')
+function PLG_replaceTags($content, $plugin = '', $remove = false)
 {
     global $_CONF, $LANG32;
 
     if (isset($_CONF['disable_autolinks']) && ($_CONF['disable_autolinks'] == 1)) {
-        // autotags are disabled - return $content unchanged
+        // autolinks are disabled - return $content unchanged
         return $content;
     }
 
@@ -1876,20 +1643,14 @@ function PLG_replaceTags($content, $parse_plugin = '', $remove = false, $plugin 
     } else {
         $autolinkModules = PLG_collectTags();
     }
-
+    
     //See if any tags require close tags
-    $tags_requireclose = array();
-    $collectclosetags = PLG_collectTags('closetag');
-    $i = 0;
-    foreach ($collectclosetags as $key => $val) {
-        $tags_requireclose[$i] = $key;
-        $i++;
-    }
+    $tags_requireclose = array_flip(PLG_collectTags('closetag'));
 
     for ($i = 1; $i <= 5; $i++) {
         // list($content, $markers) = GLText::protectJavascript($content);
 
-        // For each supported module, scan the content looking for any autotags
+        // For each supported module, scan the content looking for any AutoLink tags
         $tags = array();
         $contentLength = MBYTE_strlen($content);
         $content_lower = MBYTE_strtolower($content);
@@ -1926,7 +1687,7 @@ function PLG_replaceTags($content, $parse_plugin = '', $remove = false, $plugin 
                                 $tagId = $params[1];
                             }
                         }
-
+                        
                         // [tag:parameter1 And the rest here is parameter2]This is parameter3 if exist.[/tag]
                         $newTag = array(
                             'module'   => $module,
@@ -1937,7 +1698,7 @@ function PLG_replaceTags($content, $parse_plugin = '', $remove = false, $plugin 
                             'parm1'    => str_replace(']', '', $tagId),
                             'parm2'    => $label,
                         );
-
+                        
                         if (in_array($moduleTag, $tags_requireclose)) {
                             // Check for close tag after end of start tag. if exist we have a parm3
                             $close_tag = '[/' . $moduleTag . ']';
@@ -1946,13 +1707,13 @@ function PLG_replaceTags($content, $parse_plugin = '', $remove = false, $plugin 
                                 $end_of_whole_tag_pos = $start_pos_close_tag + strlen($close_tag);
                                 $wrapped_text_length = $start_pos_close_tag - ($end_pos_tag + 1);
                                 $wrapped_text = MBYTE_substr($content, ($end_pos_tag + 1), $wrapped_text_length);
-
+                                
                                 // New parm3
                                 $newTag['parm3'] = $wrapped_text;
                                 // Since parm3 now update tagstr and length as well
                                 $newTag['tagstr'] = $tag . $wrapped_text . $close_tag;
                                 $newTag['length'] = $end_of_whole_tag_pos - $start_pos_tag;
-
+                                
                                 $tags[] = $newTag; // add completed tag to list
                             } else {
                                 // Error: no close tag found - return with no changes
@@ -1980,21 +1741,10 @@ function PLG_replaceTags($content, $parse_plugin = '', $remove = false, $plugin 
                     $content = str_replace($autotag['tagstr'], '', $content);
                 } else {
                     $function = 'plugin_autotags_' . $autotag['module'];
-                    if (function_exists($function) && (empty($parse_plugin) || ($parse_plugin == $autotag['module']))) {
-                        try {
-                            $info = new ReflectionFunction($function);
-                            $numParameters = $info->getNumberOfParameters();
-                        } catch (ReflectionException $e) {
-                            $numParameters = 0;
-                        }
-
-                        if ($numParameters == 4) {
-                            $parameters['type'] = $plugin;
-                            $parameters['id'] = $id;
-                            $content = $function('parse', $content, $autotag, $parameters);
-                        } else {
-                            $content = $function('parse', $content, $autotag);
-                        }
+                    if (function_exists($function) &&
+                        (empty($plugin) || ($plugin == $autotag['module']))
+                    ) {
+                        $content = $function('parse', $content, $autotag);
                     }
                 }
             }
@@ -2456,7 +2206,8 @@ function PLG_getWhatsNewComment($type = '', $numReturn = 0, $uid = 0)
  * The caller should check for return values > 0 in which case spam has been
  * detected and the poster should be told, either via
  * <code>
- *   COM_redirect($_CONF['site_url'] . '/index.php?msg=' . $result . '&amp;plugin=spamx');
+ *   echo COM_refresh($_CONF['site_url'] . '/index.php?msg=' . $result
+ *                    . '&amp;plugin=spamx');
  * </code>
  * or by
  * <code>
@@ -2480,7 +2231,7 @@ function PLG_checkForSpam($comment, $action = -1, $permanentLink = null,
                           $commentType = Geeklog\Akismet::COMMENT_TYPE_COMMENT,
                           $commentAuthor = null, $commentAuthorEmail = null, $commentAuthorURL = null)
 {
-    global $_PLUGINS, $_CONF;
+    global $_PLUGINS;
 
     foreach ($_PLUGINS as $pi_name) {
         $function = 'plugin_checkforSpam_' . $pi_name;
@@ -2491,14 +2242,9 @@ function PLG_checkForSpam($comment, $action = -1, $permanentLink = null,
             );
 
             if ($result > PLG_SPAM_NOT_FOUND) { // Plugin found a match for spam
-                $ipAddress = \Geeklog\IP::getIPAddress();
-                COM_clearSpeedlimit($_CONF['speedlimit_window_error-spam']);
-                COM_checkSpeedlimit('error-spam', $_CONF['speedlimit_max_error-spam'], $ipAddress, $isSpeeding);
-                if (!$isSpeeding) {
-                    COM_updateSpeedlimit('error-spam', $ipAddress);
-                }
+                $result = PLG_spamAction($comment, $action);
 
-                return PLG_spamAction($comment, $action);
+                return $result;
             }
         }
     }
@@ -2508,10 +2254,9 @@ function PLG_checkForSpam($comment, $action = -1, $permanentLink = null,
         $result = $function($comment, $action);
 
         if ($result > PLG_SPAM_NOT_FOUND) { // Plugin found a match for spam
-            COM_clearSpeedlimit($_CONF['speedlimit_window_error-spam']);
-            COM_checkSpeedlimit('error-spam', $_CONF['speedlimit_max_error-spam']);
+            $result = PLG_spamAction($comment, $action);
 
-            return PLG_spamAction($comment, $action);
+            return $result;
         }
     }
 
@@ -2566,7 +2311,6 @@ function PLG_spamAction($content, $action = -1)
  * - 'id'            - ID of the item, e.g. sid for articles
  * - 'title'         - title of the item
  * - 'url'           - URL of the item
- * - 'likes'         - Likes setting for item (F
  * 'excerpt' and 'description' may return the same value. Properties should be
  * returned in the order they are listed in $what. Properties that are not
  * available should return an empty string.
@@ -2576,11 +2320,7 @@ function PLG_spamAction($content, $action = -1)
  * @param    string $id      ID of an item under the plugin's control or '*'
  * @param    string $what    comma-separated list of item properties
  * @param    int    $uid     user ID or 0 = current user
- * @param    array  $options not required and may not be supported.
- *           string $options['sub_type']               A sub type of type for when plugins have more than one item type. Added Geeklog v2.2.1
- *           string $options['filter']                 Filters work only for returning multiple items (using *). Allows filtering based on different supported properties. Unsupported filters are ignored
- *           string $options['filter']['topic-ids']    Comma separated list of topic ids in single quotes to be used in a sql statement ie: 'topicid1','topicid2'
- *           string $options['filter']['date-created'] Returns items created from this Unix timestamp till current date
+ * @param    array  $options (reserved for future extensions)
  * @return   mixed               string or array of strings with the information
  * @link     http://wiki.geeklog.net/index.php/PLG_getItemInfo
  */
@@ -2593,12 +2333,6 @@ function PLG_getItemInfo($type, $id, $what, $uid = 0, $options = array())
 
         $type = 'story';
     }
-	
-    if ($type == 'comment') {
-        global $_CONF;
-
-        require_once $_CONF['path_system'] . 'lib-comment.php';
-    }	
 
     $args = array(
         1 => $id,
@@ -2765,34 +2499,30 @@ function PLG_submissionDeleted($type)
  * an item is saved or modified.
  * NOTE:     The behaviour of this API function changed in Geeklog 1.6.0
  *
- * @param    string  $id        unique ID of the item
- * @param    string  $type      type of the item, e.g. 'article'
- * @param    string  $old_id    (optional) old ID when the ID was changed
- * @param    string  $sub_type  (optional) sub type of the item (since Geeklog 2.2.2)
- * @return   void|bool          (actually: false, for backward compatibility)
+ * @param    string $id     unique ID of the item
+ * @param    string $type   type of the item, e.g. 'article'
+ * @param    string $old_id (optional) old ID when the ID was changed
+ * @return   void|bool      (actually: false, for backward compatibility)
  * @link     http://wiki.geeklog.net/index.php/PLG_itemSaved
  */
-function PLG_itemSaved($id, $type, $old_id = '', $sub_type = '')
+function PLG_itemSaved($id, $type, $old_id = '')
 {
     global $_CONF, $_PLUGINS;
 
-    if (strpos($type, '.') !== false) {
-        // Old way
-        list($type, $sub_type) = explode('.', $type, 2);
-    }
+    $t = explode('.', $type);
+    $plg_type = $t[0];
 
-    // Treat template and likes library like a plugin (since belong to core group)
-    $pluginTypes = ['template', 'likes'];
+    // Treat template system like a plugin (since belong to core group)
+    $pluginTypes = array('template');
     require_once $_CONF['path_system'] . 'lib-template.php';
-    require_once $_CONF['path_system'] . 'lib-likes.php';	
 
     $pluginTypes = array_merge($pluginTypes, $_PLUGINS);
 
     foreach ($pluginTypes as $pi_name) {
-        if ($pi_name !== $type) {
+        if ($pi_name != $plg_type) {
             $function = 'plugin_itemsaved_' . $pi_name;
             if (function_exists($function)) {
-                $function($id, $type, $old_id, $sub_type);
+                $function($id, $type, $old_id);
             }
         }
     }
@@ -2810,38 +2540,35 @@ function PLG_itemSaved($id, $type, $old_id = '', $sub_type = '')
  * Plugins can define their own 'itemdeleted' function to be notified whenever
  * an item is deleted.
  *
- * @param    string $id         ID of the item
- * @param    string $type       type of the item, e.g. 'article'
- * @param    string  $sub_type  sub type of item (since Geeklog 2.2.2)
+ * @param    string $id   ID of the item
+ * @param    string $type type of the item, e.g. 'article'
+ * @return   void
  * @since    Geeklog 1.6.0
  */
-function PLG_itemDeleted($id, $type, $sub_type = '')
+function PLG_itemDeleted($id, $type)
 {
     global $_CONF, $_PLUGINS;
 
-    if (strpos($type, '.') !== false) {
-        // The old way
-        list($type, $sub_type) = explode('.', $type, 2);
-    }
+    $t = explode('.', $type);
+    $plg_type = $t[0];
 
-    // Treat template and likes library like a plugin (since belong to core group)
-    $pluginTypes = ['template', 'likes'];
+    // Treat template system like a plugin (since belong to core group)
+    $pluginTypes = array('template');
     require_once $_CONF['path_system'] . 'lib-template.php';
-    require_once $_CONF['path_system'] . 'lib-likes.php';	
 
     $pluginTypes = array_merge($pluginTypes, $_PLUGINS);
 
     foreach ($pluginTypes as $pi_name) {
-        if ($pi_name !== $type) {
+        if ($pi_name != $plg_type) {
             $function = 'plugin_itemdeleted_' . $pi_name;
             if (function_exists($function)) {
-                $function($id, $type, $sub_type);
+                $function($id, $type);
             }
         }
     }
 
     if (function_exists('CUSTOM_itemdeleted')) {
-        CUSTOM_itemdeleted($id, $type, $sub_type);
+        CUSTOM_itemdeleted($id, $type);
     }
 }
 
@@ -2896,61 +2623,6 @@ function PLG_itemDisplay($id, $type)
 }
 
 /**
- * Get theme information for the request item location. For example CSS Classes or Styles
- * Introduced in Geeklog v2.2.1
- *
- * @param    string $id   unique ID of the item (either defined by core or a plugin)
- * @param    string $type type of the item or plugin, e.g. 'article'
- *
- * @return   string One or more CSS classes to be used in HTML
-  */
-function PLG_getThemeItem($id, $type)
-{
-    global $_CONF;
-
-    $retval = '';
-
-    switch($type)
-    {
-        case 'core';
-        case 'article';
-        case 'story';
-        case 'comment';
-        case 'topic';
-            // Check theme for these types
-            $function = 'theme_getThemeItem_' . $_CONF['theme'];
-            if (function_exists($function)) {
-                $retval = $function($id);
-            } elseif (!empty($_CONF['theme_default'])) {
-                // See if default theme if so check for it
-                $function = 'theme_getThemeItem_' . $_CONF['theme_default'];
-                if (function_exists($function)) {
-                    $retval = $function($id);
-                }
-            }
-
-            break;
-
-        default;
-            // Assume type is plugin so check plugin specific theme templates
-            $function = $type . '_getThemeItem_' . $_CONF['theme'];
-            if (function_exists($function)) {
-                $retval = $function($id);
-            } elseif (!empty($_CONF['theme_default'])) {
-                // See if default theme if so check if plugin templates exist
-                $function = $type . '_getThemeItem_' . $_CONF['theme_default'];
-                if (function_exists($function)) {
-                    $retval = $function($id);
-                }
-            }
-
-            break;
-    }
-
-    return $retval;
-}
-
-/**
  * Get list of template locations where blocks can appear. This includes Themes, Plugins, and Plugin Templates
  * Introduced in Geeklog v2.2.0
  *
@@ -2960,9 +2632,9 @@ function PLG_getThemeItem($id, $type)
 function PLG_getBlockLocations()
 {
     global $_PLUGINS, $_CONF;
-
+    
     $ret = array();
-
+    
     // Include block locations on behalf of the theme
     $function = 'theme_getBlockLocations_' . $_CONF['theme'];
     if (function_exists($function)) {
@@ -2985,19 +2657,19 @@ function PLG_getBlockLocations()
                 foreach ($items as &$item) {
                     $item['type'] = 'theme';
                     $item['type_name'] = $_CONF['theme_default'];
-                }
+                }                
                 $ret = array_merge($ret, $items);
             }
         }
     }
-
-
+    
+    
     // Add in components so they can act like plugins
     require_once $_CONF['path_system'] . 'lib-article.php';
     require_once $_CONF['path_system'] . 'lib-comment.php';
 
-    $pluginTypes = array_merge(array('article', 'comment'), $_PLUGINS);
-
+    $pluginTypes = array_merge(array('article', 'comment'), $_PLUGINS);    
+    
     foreach ($pluginTypes as $pi_name) {
         // Check plugin itself (would cover all plugin theme templates)
         $function = 'plugin_getBlockLocations_' . $pi_name;
@@ -3008,11 +2680,11 @@ function PLG_getBlockLocations()
                 foreach ($items as &$item) {
                     $item['type'] = 'plugin';
                     $item['type_name'] = $pi_name;
-                }
+                }                
                 $ret = array_merge($ret, $items);
             }
         }
-
+        
         // Now check plugin specific theme templates as it may only be assigned here
         $function = $pi_name . '_getBlockLocations_' . $_CONF['theme'];
         if (function_exists($function)) {
@@ -3022,7 +2694,7 @@ function PLG_getBlockLocations()
                 foreach ($items as &$item) {
                     $item['type'] = 'plugin';
                     $item['type_name'] = $pi_name;
-                }
+                }                
                 $ret = array_merge($ret, $items);
             }
         } elseif (!empty($_CONF['theme_default'])) {
@@ -3035,11 +2707,11 @@ function PLG_getBlockLocations()
                     foreach ($items as &$item) {
                         $item['type'] = 'plugin';
                         $item['type_name'] = $pi_name;
-                    }
+                    }                
                     $ret = array_merge($ret, $items);
                 }
             }
-        }
+        }        
     }
 
     if (function_exists('CUSTOM_getBlockLocations')) {
@@ -3065,11 +2737,9 @@ function PLG_getBlockLocations()
 function PLG_getBlocks($side, $topic = '')
 {
     global $_PLUGINS;
-	
-	$all_plugins = array_merge($_PLUGINS, array('likes'));
 
     $ret = array();
-    foreach ($all_plugins as $pi_name) {
+    foreach ($_PLUGINS as $pi_name) {
         $function = 'plugin_getBlocks_' . $pi_name;
         if (function_exists($function)) {
             $items = $function($side, $topic);
@@ -3102,11 +2772,9 @@ function PLG_getBlocks($side, $topic = '')
 function PLG_getBlocksConfig($side, $topic = '')
 {
     global $_PLUGINS;
-	
-	$all_plugins = array_merge($_PLUGINS, array('likes'));
 
     $ret = array();
-    foreach ($all_plugins as $pi_name) {
+    foreach ($_PLUGINS as $pi_name) {
         $function = 'plugin_getBlocksConfig_' . $pi_name;
         if (function_exists($function)) {
             $items = $function($side, $topic);
@@ -3193,11 +2861,11 @@ function PLG_getIcon($type)
 function PLG_getLanguageURL()
 {
     global $_CONF, $_PLUGINS;
-
+    
     // Don't use a plugin function or plugin config for this as plugins functions.inc is not loaded yet when COM_getLanguage is called in lib-common
     // Instead grab from a hidden Core conf_values (which are loaded)
     // See _getLanguageInfoFromURL in lib-common for a detailed explanation
-
+      
     $retval = array();
 
     // Add article and topic to enabled plugins
@@ -3213,7 +2881,7 @@ function PLG_getLanguageURL()
             }
         }
     }
-
+    
     return $retval;
 }
 
@@ -3489,7 +3157,7 @@ function PLG_pluginStateChange($type, $status)
 function PLG_resolveDependencies()
 {
     global $_PLUGINS, $_TABLES;
-
+    $retval = '';
     $flag = true; // false means that all dependencies are resolved
     while ($flag) { // loop until ALL dependencies are satisfied
         $flag = false; // set this if any plugin has been disabled during the loop
@@ -3604,7 +3272,7 @@ function PLG_printDependencies($pi_name, $pi_gl_version = '')
                 } else if ($status == 'ok') {
                     $retval .= "<b class='status_green'>{$LANG32[51]}</b>";
                 }
-                $retval .= "</b> "; // Need space after tag incase tags are removed in geeklog tooltips for theme
+                $retval .= "</b>";
             } else if (isset($value['db'])) { // check for a database requirement
                 $dbAvailable[] = array($value['db'], $op, $ver); // cache the database types
                 if ($_DB_dbms == $value['db']) { // this db requirement matches the database that the site is run on
@@ -3616,7 +3284,7 @@ function PLG_printDependencies($pi_name, $pi_gl_version = '')
                     } else { // unsupported version
                         $retval .= "<b class='status_red'>{$LANG32[54]}</b>";
                     }
-                    $retval .= "</b> "; // Need space after tag incase tags are removed in geeklog tooltips for theme
+                    $retval .= "</b>";
                 }
             }
         }
@@ -3625,7 +3293,7 @@ function PLG_printDependencies($pi_name, $pi_gl_version = '')
             foreach ($dbAvailable as $key => $value) { // print every database that would satisfy this requirement
                 $retval .= "<b class=\"notbold\" style=\"display: block; padding: 2px; margin: 0;\">{$value[0]} {$value[1]} {$value[2]} ";
                 $retval .= "<b class='status_red'>{$LANG32[54]}</b>";
-                $retval .= "</b> "; // Need space after tag incase tags are removed in geeklog tooltips for theme
+                $retval .= "</b>";
             }
         }
     } else if (!empty($pi_gl_version)) { // old plugin install
@@ -3654,6 +3322,7 @@ function PLG_checkDependencies($pi_name)
 {
     global $_TABLES, $_DB_dbms;
 
+    $retval = true;
     $params = PLG_getParams($pi_name);
 
     $dbSupported = false; // True if we support the database that the plugin is requiring
@@ -3766,7 +3435,7 @@ function PLG_checkAvailable($pi_name, $version, $operator = '>=')
  * @param    $version                    string     A version to ask for, the default operator is '>='
  * @param    $operator                   string     Optional operator to override the default
  *                                       See COM_versionCompare() for all valid operators
- * @return                               bool
+ * @return                    bool
  * @since    Geeklog 1.8.0
  */
 function PLG_checkAvailableDb($db, $pi_name, $version, $operator = '>=')
@@ -3967,405 +3636,4 @@ function PLG_collectSitemapItems($type, $uid = 1, $limit = 0)
     }
 
     return $result;
-}
-
-/**
- * Prepare a list of all plugins that a user has contributed content too.
- * If plugin finds content for user then should return text else then nothing.
- * Used by User Batch Admin to show in user list if user has contributed
- *
- * @param    int    $uid                                user ID
- *
- * @return   array   array of plugin names with text (can be empty)
- *
- * @since    Geeklog-2.2.1
- * @link     NA
- */
-function PLG_userContributed($uid)
-{
-    global $_CONF, $_PLUGINS;
-
-    require_once $_CONF['path_system'] . 'lib-article.php';
-    require_once $_CONF['path_system'] . 'lib-comment.php';
-
-    $retval = array();
-
-    $pluginTypes = array_merge(array('article', 'comment'), $_PLUGINS);
-
-    foreach ($pluginTypes as $pi_name) {
-        $function = 'plugin_usercontributed_' . $pi_name;
-        if (function_exists($function)) {
-            $contributed = $function($uid);
-            if (!empty($contributed)) {
-                $retval[$pi_name] = $contributed;
-            }
-        }
-    }
-
-    return $retval;
-}
-
-/**
- * This function will return an array of language variable names and arrays that can
- * be over written by Geeklog using the Language Override Manager
- *
- * @return   array      will be used by language class
- * @since    Geeklog 2.2.1
- */
-function PLG_getLanguageOverrides()
-{
-    global $_PLUGINS;
-
-    $overrides = array();
-
-    foreach ($_PLUGINS as $pi_name) {
-        $function = 'plugin_getlanguageoverrides_' . $pi_name;
-        if (function_exists($function)) {
-            $retarray = $function();
-            if (is_array($retarray)) {
-                $overrides = array_merge($overrides, $retarray);
-            }
-        }
-    }
-
-    $function = 'CUSTOM_getlanguageoverrides';
-    if (function_exists($function)) {
-        $retarray = $function();
-        if (is_array($retarray)) {
-            $overrides = array_merge($overrides, $retarray);
-        }
-    }
-
-    return $overrides;
-}
-
-/**
-* See if Likes system enabled for a plugin
-*
-* @param    string  $type      	plugin name
-* @param    string  $sub_type	Sub type of plugin to allow plugins to have likes for more than one type of item (not required)
-* @param   string $id       	Item id for which like is for (not required)
-* @return   int                 0 = disabled, 1 = Likes and Dislikes, 2 = Likes only
-* @since    Geeklog 2.2.1
-*
-*/
-function PLG_typeLikesEnabled($type, $sub_type, $id = '')
-{
-    global $_CONF;
-
-    $retval = false;
-
-    // ensure that we're picking up these libraries when needed as they are not always loaded
-    if ($type == 'comment') {
-        require_once $_CONF['path_system'] . 'lib-comment.php';
-    }
-    if ($type == 'likes') {
-        require_once $_CONF['path_system'] . 'lib-likes.php';
-    }
-
-    if ($_CONF['likes_enabled']) {
-        $args[1] = $sub_type;
-		$args[2] = $id;
-        $function = 'plugin_likesenabled_' . $type;
-
-        $retval = PLG_callFunctionForOnePlugin($function,$args);
-    }
-
-    return $retval;
-}
-
-/**
-* Find out Likes plural label for item
-*
-* @param    string  $type      	plugin name
-* @param    string  $sub_type	Sub type of plugin to allow plugins to have likes for more than one type of item (not required)
-* @return   string              Plural name of item that can be liked or disliked
-* @since    Geeklog 2.2.2
-*
-*/
-function PLG_typeLikesLabel($type, $sub_type)
-{
-    global $_CONF;
-
-    $retval = '';
-
-    // ensure that we're picking up these libraries when needed as they are not always loaded
-    if ($type == 'comment') {
-        require_once $_CONF['path_system'] . 'lib-comment.php';
-    }
-    if ($type == 'likes') {
-        require_once $_CONF['path_system'] . 'lib-likes.php';
-    }	
-
-    if ($_CONF['likes_enabled']) {
-        $args[1] = $sub_type;
-        $function = 'plugin_likeslabel_' . $type;
-
-        $retval = PLG_callFunctionForOnePlugin($function,$args);
-    }
-
-    return $retval;
-}
-
-/**
- * Checks to see if user can perform a likes action on a item
- *
- * @param   string $type     Plugin for which like is for
- * @param   string $sub_type Sub type of plugin to allow plugins to have likes for more than one type of item (not required)
- * @param   string $id       Item id for which like is for
- * @param   int    $uid      User id who is liking item
- * @param   int    $ip       ip who is liking item
- *
- * @return   bool
- * @since    Geeklog 2.2.1
- */
-function PLG_canUserLike($type, $sub_type, $id, $uid, $ip)
-{
-   global $_CONF;
-
-    $retval = false;
-
-    // Check user requirement
-    if ( $_CONF['likes_enabled'] != 0 ) {
-        if ( $_CONF['likes_enabled'] == 1 ) { // Means both actual user accounts and anonymous users
-            $retval = true;
-        } else if ( !COM_isAnonUser() ) {
-            $retval = true;
-        } else {
-            $retval = false;
-        }
-    }
-
-    if ( $retval == true ) {
-        $args[1] = $sub_type;
-        $args[2] = $id;
-        $args[3] = $uid;
-        $args[4] = $ip;
-        $function = 'plugin_canuserlike_' . $type;
-
-        $retval = PLG_callFunctionForOnePlugin($function,$args);
-    }
-
-    return $retval;
-}
-
-/**
-* An item has had a likes action, allow plugin to update their records
-*
-* @param    string  $type       plugin name
-* @param    string  $sub_type   Sub type of plugin to allow plugins to have likes for more than one type of item (not required)
-* @param    string  $item_id    the id of the item with the like action
-* @param    int     $action     the like action for the item. If LIKES_ACTION_NONE (0) then considered a delete
-*
-* @return   void
-* @since    Geeklog 2.2.1
-*
-*/
-function PLG_itemLike($type, $sub_type, $item_id, $action)
-{
-    global $_CONF;
-	
-	$retval = true;
-
-	if ($_CONF['likes_block_enable'] && $_CONF['likes_block_cache_time'] > 0) {
-		$cacheInstance = 'likesblock__'; // remove all likes block instances
-		CACHE_remove_instance($cacheInstance);	
-	}
-
-    $args[1] = $sub_type;
-    $args[2] = $item_id;
-    $args[3] = $action;
-    $function = 'plugin_itemlikesaction_' . $type;
-
-    $retval = PLG_callFunctionForOnePlugin($function,$args);
-
-    return $retval;
-}
-
-/**
-* Return URL of item Like is for
-*
-* @param    string  $type       plugin name
-* @param    string  $sub_type   Sub type of plugin to allow plugins to have likes for more than one type of item (not required)
-* @param    string  $item_id    the id of the item with the like action
-*
-* @return   void
-* @since    Geeklog 2.2.1
-*
-*/
-function PLG_getItemLikeURL($type, $sub_type, $item_id)
-{
-    $retval = true;
-
-    $args[1] = $sub_type;
-    $args[2] = $item_id;
-    $function = 'plugin_getItemLikeURL_' . $type;
-
-    $retval = PLG_callFunctionForOnePlugin($function,$args);
-
-    return $retval;
-}
-
-/**
- * Ask plugins which reCAPTCHA version they support and what the id attribute of
- * the form is to which reCAPTCHA will be attached.
- *
- * @return  array of type => [
- *              'type'     => type               // required, passed as the 1st parameter to plugin_templatesetvars_xxx()
- *              'version'  => reCAPTCHA version, // required: RECAPTCHA_NO_SUPPORT(0), RECAPTCHA_SUPPORT_V2(1), RECAPTCHA_SUPPORT_V2_INVISIBLE(2)
- *              'form_id'  => form id,           // required only for reCAPTCHA V2 Invisible
- *              'plugin'   => plugin name,       // added by the function for debugging
- *           ]
- */
-function PLG_collectRecaptchaInfo()
-{
-    global $_PLUGINS;
-    static $retval = null;
-
-    // Use cached info if available
-    if ($retval !== null) {
-        return $retval;
-    }
-
-    $retval = [];
-
-    if (!in_array('recaptcha', $_PLUGINS)) {
-        return $retval;
-    }
-
-    foreach ($_PLUGINS as $pluginName) {
-        $function = 'plugin_supportsRecaptcha_' . $pluginName;
-        if (!is_callable($function)) {
-            continue;
-        }
-
-        $items = $function();
-        if (empty($items) || !is_array($items)) {
-            continue;
-        }
-
-        foreach ($items as $item) {
-            // Type
-            if (empty($item['type'])) {
-                COM_errorLog(__METHOD__ . ': type was empty for "' . $pluginName . '".');
-                continue;
-            }
-
-            // Check which reCAPTCHA version each plugin supports.  Valid values are:
-            // RECAPTCHA_NO_SUPPORT(0), RECAPTCHA_SUPPORT_V2(1), RECAPTCHA_SUPPORT_V2_INVISIBLE(2), RECAPTCHA_SUPPORT_V3(4)
-            if (isset($item['version'])) {
-                $item['version'] = (int) $item['version'];
-
-                if (($item['version'] < RECAPTCHA_NO_SUPPORT) || ($item['version'] > RECAPTCHA_SUPPORT_V3)) {
-                    COM_errorLog(__METHOD__ . ': bad reCAPTCHA version for "' . $pluginName . '".');
-                    continue;
-                }
-            } else {
-                COM_errorLog(__METHOD__ . ': no reCAPTCHA version was given for "' . $pluginName . '".');
-                continue;
-            }
-
-            // Check for the id attribute of a form to which reCAPTCHA will be attached
-            if (empty($item['form_id'])) {
-                $item['form_id'] = '';
-
-                // reCAPTCHA V2 Invisible requires a form id, but none was given
-                if ($item['version'] == RECAPTCHA_SUPPORT_V2_INVISIBLE) {
-                    COM_errorLog(__METHOD__ . ': form id was not given.  reCAPTCHA is disabled for "' . $pluginName . '".');
-                    continue;
-                }
-            }
-
-            // For debugging
-            $item['plugin'] = $pluginName;
-
-            if (isset($retval[$item['type']] )) {
-                COM_errorLog(
-                    sprintf(
-                        '%s: type "%s" was duplicated for "%s" and "%s".',
-                        __METHOD__, $item['type'], $item['plugin'], $retval[$item['type']]['plugin']
-                    )
-                );
-                continue;
-            }
-
-            $retval[$item['type']] = $item;
-        }
-    }
-
-    return $retval;
-}
-
-/**
- * Gives plugins a chance to specify their own Structured Data Types
- *
- * @return   array   Returns Structured Data Types from plugins
- */
-function PLG_getStructuredDataTypes()
-{
-    global $_PLUGINS;
-
-    $structureddatatypes = array();
-
-    foreach ($_PLUGINS as $pi_name) {
-        $function = 'plugin_getstructureddatatypes_' . $pi_name;
-        if (function_exists($function)) {
-            $plugin_structureddatatypes = $function();
-            if (is_array($plugin_structureddatatypes)) {
-                $structureddatatypes = array_merge($structureddatatypes, $plugin_structureddatatypes);
-            }
-        }
-    }
-
-    return $structureddatatypes;
-}
-
-/**
- * Return URL of item EVEN IF THE ITEM DOES NOT EXIST, e.g., after it has been deleted
- *
- * @param  string  $type      plugin name
- * @param  string  $sub_type  sub type of plugin
- * @param  string  $item_id   the id of the item
- * @return string             URL of the item
- * @since  Geeklog 2.2.2
- */
-function PLG_idToURL($type, $sub_type, $item_id)
-{
-    $args = [
-        1 => $sub_type,
-        2 => $item_id,
-    ];
-    $function = 'plugin_idToURL_' . $type;
-
-    return PLG_callFunctionForOnePlugin($function, $args);
-}
-
-/**
- * Gives plugins a chance to handle the user's speeding
- *
- * @param  string  $type      speeding type e.g.  'login', 'submit', 'error-404', 'error-spam'
- * @param  string  $property  in most cases, the real IP address (not anonymized) of the user
- * @param  int     $last      seconds since last speeding.  -1 means  previous speeding for the type is unknown
- * @return void
- * @since  Geeklog 2.2.2
- */
-function PLG_onSpeeding($type, $property = '', $last = -1)
-{
-    global $_PLUGINS;
-
-    if (empty($property)) {
-        $property = \Geeklog\IP::getIPAddress();
-    }
-
-    foreach ($_PLUGINS as $pi_name) {
-        $function = 'plugin_onSpeeding_' . $pi_name;
-        if (function_exists($function)) {
-            $function($type, $property, $last);
-        }
-    }
-
-    $function = 'CUSTOM_onSpeeding';
-    if (function_exists($function)) {
-        $function($type, $property, $last);
-    }
 }

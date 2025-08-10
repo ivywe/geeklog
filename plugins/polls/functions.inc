@@ -46,9 +46,6 @@ if (stripos($_SERVER['PHP_SELF'], basename(__FILE__)) !== false) {
 
 $plugin_path = $_CONF['path'] . 'plugins/polls/';
 
-// used for Likes and Topic controls
-define("POLLS_PLUGIN_NAME", 'polls');
-
 /**
  * Language file include
  */
@@ -67,6 +64,8 @@ Language::override(array(
  * Check and see if we need to load the plugin configuration
  */
 if (!isset($_PO_CONF['pollsloginrequired'])) {
+    require_once $_CONF['path_system'] . 'classes/config.class.php';
+
     $po_config = config::get_instance();
     $_PO_CONF = $po_config->get_config('polls');
 }
@@ -95,43 +94,6 @@ function plugin_getmenuitems_polls()
     return $menuitems;
 }
 
-
-/**
- * Return the comment code to this plugin item. This is based not only the code of the actual plugin item but the access the user has to the item
- *
- * @param   string $id   Item id to which $cid belongs
- * @param   int    $uid  user id or 0 = current user
- * @return  int    Return a CommentCode: COMMENT_CODE_ENABLED (0), COMMENT_CODE_DISABLED (-1), COMMENT_CODE_CLOSED (1)
- */
-function plugin_commentenabled_polls($id, $uid = 0)
-{
-    global $_TABLES;
-
-    // CommentCode: COMMENT_CODE_ENABLED (0), COMMENT_CODE_DISABLED (-1), COMMENT_CODE_CLOSED (1)
-    $commentCode = COMMENT_CODE_DISABLED;
-
-    $sql = "SELECT pid, commentcode, owner_id, group_id, perm_owner, perm_group, perm_members, perm_anon FROM {$_TABLES['polltopics']}";
-    $sql .= " WHERE pid = '" . DB_escapeString($id) . "' " . COM_getPermSQL('AND', $uid);
-    $result = DB_query($sql);
-    $A = DB_fetchArray($result);
-    if (DB_numRows($result) == 1) {
-        if ($A['commentcode'] == COMMENT_CODE_ENABLED) {
-            $commentCode = COMMENT_CODE_ENABLED;
-        } elseif ($A['commentcode'] == COMMENT_CODE_CLOSED) { // Closed but still visible so give admins access
-            if (SEC_hasRights('polls.edit', 'AND', $uid) &&
-                (SEC_hasAccess($A['owner_id'], $A['group_id'],
-                        $A['perm_owner'], $A['perm_group'], $A['perm_members'],
-                        $A['perm_anon'], $uid) == 3)) {
-                $commentCode = COMMENT_CODE_ENABLED; // If Admin then treat comment like enabled
-            } else {
-                $commentCode = COMMENT_CODE_CLOSED;
-            }
-        }
-    }
-
-    return $commentCode;
-}
-
 /**
  * Poll saves a comment
  *
@@ -148,18 +110,14 @@ function plugin_savecomment_polls($title, $comment, $id, $pid, $postmode)
 
     $retval = '';
 
-    // Use plugin_commentenabled_foo permission check to determine if user has permissions to save a comment for this item
-    // CommentCode: COMMENT_CODE_ENABLED (0), COMMENT_CODE_DISABLED (-1), COMMENT_CODE_CLOSED (1)
-    if (plugin_commentenabled_polls($id) != COMMENT_CODE_ENABLED) {
-        COM_handle404($_CONF['site_url'] . '/index.php');
+    $commentcode = DB_getItem($_TABLES['polltopics'], 'commentcode',
+        "pid = '$id'");
+    if ($commentcode != 0) {
+        COM_redirect($_CONF['site_url'] . '/index.php');
     }
 
     $ret = CMT_saveComment($title, $comment, $id, $pid, 'polls', $postmode);
-    if (($ret > 0) || is_string($ret)) { // failure //FIXME: some failures should not return to comment form
-        if (is_string($ret)) {
-            $retval .= $ret;
-        }
-
+    if ($ret > 0) { // failure //FIXME: some failures should not return to comment form
         $retval .= CMT_commentForm($title, $comment, $id, $pid, 'polls',
             $LANG03[14], $postmode);
 
@@ -171,30 +129,10 @@ function plugin_savecomment_polls($title, $comment, $id, $pid, $postmode)
             }
         }
     } else { // success
-        // if the comment ends up in the submission queue, say so
-        $url = $_CONF['site_url'] . "/polls/index.php?pid=$id";
-        if (($_CONF['commentsubmission'] == 1) &&
-            !SEC_hasRights('comment.submit')
-        ) {
-            $url .= '&msg=15';
-        }
-        COM_redirect($url);
+        COM_redirect($_CONF['site_url'] . "/polls/index.php?pid=$id");
     }
 
     return $retval;
-}
-
-/**
- * Comment Submission approved
- *
- * @param   string $id       Item id to which $cid belongs
- * @param   int     $cid    Approved Comment id
- */
-function plugin_moderationcommentapprove_polls($id, $cid)
-{
-    // Nothing needed to do on approval of comment to plugin item
-
-    return true;
 }
 
 /**
@@ -202,14 +140,13 @@ function plugin_moderationcommentapprove_polls($id, $cid)
  *
  * @param   int    $cid Comment to be deleted
  * @param   string $id  Item id to which $cid belongs
- * @param   boolean $returnOption  Either return a boolean on success or not, or redirect
- * @return  mixed        Based on $returnOption. false for failure or true for success, else a redirect for success or failure
+ * @return  mixed   false for failure, HTML string (redirect?) for success
  */
-function plugin_deletecomment_polls($cid, $id, $returnBoolean)
+function plugin_deletecomment_polls($cid, $id)
 {
     global $_CONF, $_TABLES, $_USER;
 
-    $retval = false;
+    $retval = '';
 
     $has_editPermissions = SEC_hasRights('polls.edit');
     $result = DB_query(
@@ -223,21 +160,11 @@ function plugin_deletecomment_polls($cid, $id, $returnBoolean)
             $A['perm_members'], $A['perm_anon']) == 3
     ) {
         CMT_deleteComment($cid, $id, 'polls');
-
-        if ($returnBoolean) {
-            $retval = true;
-        } else {
-            COM_redirect($_CONF['site_url'] . "/polls/index.php?pid=$id&amp;aid=-1");
-        }
+        COM_redirect($_CONF['site_url'] . "/polls/index.php?pid=$id&amp;aid=-1");
     } else {
-        COM_errorLog("User {$_USER['username']} (IP: " . \Geeklog\IP::getIPAddress() . ") "
+        COM_errorLog("User {$_USER['username']} (IP: {$_SERVER['REMOTE_ADDR']}) "
             . "tried to illegally delete comment $cid from poll $id");
-
-        if ($returnBoolean) {
-            $retval = false;
-        } else {
-            COM_redirect($_CONF['site_url'] . '/index.php');
-        }
+        COM_redirect($_CONF['site_url'] . '/index.php');
     }
 
     return $retval;
@@ -512,7 +439,7 @@ function plugin_autouninstall_polls()
  */
 function POLLS_pollVote($pid, $showall = true, $displaytype = 0, $order = '', $mode = '', $page = 1)
 {
-    global $_CONF, $_PO_CONF, $_TABLES, $_USER, $LANG_POLLS, $LANG01, $LANG25,
+    global $_CONF, $_TABLES, $_USER, $LANG_POLLS, $LANG01, $LANG25,
            $_IMAGE_TYPE;
 
     $retval = '';
@@ -543,21 +470,16 @@ function POLLS_pollVote($pid, $showall = true, $displaytype = 0, $order = '', $m
                     'block'      => 'pollblock.thtml',
                     'comments'   => 'pollcomments.thtml',
                 ));
-
+                
                 $blocks = array('poll_questions', 'poll_answer');
                 foreach ($blocks as $block) {
                     $poll->set_block('block', $block);
-                }
-
+                }            
+                
                 $poll->set_var('display_type', $displaytype);
                 $poll->set_var('poll_id', $pid);
                 $poll->set_var('poll_topic', $P['topic']);
                 $poll->set_var('poll_topic_description', $P['description']);
-                if (!empty($P['description'])) {
-                    $poll->set_var('poll_topic_description_tooltip', COM_getTooltip('', $P['description']));
-                } else {
-                    $poll->set_var('poll_topic_description_tooltip', '');
-                }
                 $poll->set_var('num_votes', COM_numberFormat($P['voters']));
                 $poll->set_var('poll_vote_url', $_CONF['site_url']
                     . '/polls/index.php');
@@ -635,7 +557,7 @@ function POLLS_pollVote($pid, $showall = true, $displaytype = 0, $order = '', $m
                     $nanswers = DB_numRows($answers);
                     for ($i = 0; $i < $nanswers; $i++) {
                         $A = DB_fetchArray($answers);
-                        if (($j < count($aid)) && isset($aid[$j]) && ($aid[$j] == $A['aid'])) {
+                        if (($j < count($aid)) && ($aid[$j] == $A['aid'])) {
                             $poll->set_var('selected', ' checked');
                         }
                         $poll->set_var('answer_id', $A['aid']);
@@ -652,13 +574,6 @@ function POLLS_pollVote($pid, $showall = true, $displaytype = 0, $order = '', $m
                 }
                 $poll->set_var('lang_polltopics', $LANG_POLLS['polltopics']);
                 $poll->set_var('poll_notification', $notification);
-
-				if ($_CONF['likes_enabled'] && $_PO_CONF['likes_polls']) {
-					$poll->set_var('likes_control',LIKES_control(POLLS_PLUGIN_NAME, '', $pid, $_PO_CONF['likes_polls']));
-				} else {
-					$poll->set_var('likes_control', '');
-				}
-				
                 if ($P['commentcode'] >= 0) {
                     $num_comments = DB_count($_TABLES['comments'],
                         array('sid', 'type'),
@@ -812,10 +727,9 @@ function POLLS_pollsave($pid, $aid)
     }
 
     // This always does an insert so no need to provide key_field and key_value args
-    $seq = \Geeklog\IP::getSeq();
     DB_query(
-        "INSERT INTO {$_TABLES['pollvoters']} (seq, date, pid) "
-        . "VALUES ($seq, " . time() . ", '" . DB_escapeString($pid) . "')");
+        "INSERT INTO {$_TABLES['pollvoters']} (ipaddress, date, pid) "
+        . "VALUES ('" . DB_escapeString($_SERVER['REMOTE_ADDR']) . "', " . time() . ", '" . DB_escapeString($pid) . "')");
     $retval .= COM_showMessageText(
             $LANG_POLLS['savedvotemsg'] . ' "'
             . DB_getItem($_TABLES['polltopics'], 'topic', "pid = '" . DB_escapeString($pid) . "'") . '"',
@@ -834,7 +748,6 @@ function POLLS_pollsave($pid, $aid)
  * @param        int    $scale       Size in pixels to scale formatted results to
  * @param        string $order       'ASC' or 'DESC' for Comment ordering (SQL statment ordering)
  * @param        string $mode        Comment Mode possible values 'nocomment', 'flat', 'nested', 'threaded'
- * @param        int    $page
  * @param        int    $displaytype Possible values 0 = Normal, 1 = In Block, 2 = autotag
  * @see POLLS_pollVote
  * @see POLLS_showPoll
@@ -894,20 +807,15 @@ function POLLS_pollResults($pid, $scale = 100, $order = '', $mode = '', $page = 
                 'result'    => 'pollresult.thtml',
                 'comments'  => 'pollcomments.thtml'
             ));
-
+            
             $blocks = array('poll_question', 'poll_votes_bar', 'poll_votes_num');
             foreach ($blocks as $block) {
                 $poll->set_block('result', $block);
-            }
-
+            }            
+            
             $poll->set_var('display_type', $displaytype);
             $poll->set_var('poll_topic', $P['topic']);
             $poll->set_var('poll_topic_description', $P['description']);
-            if (!empty($P['description'])) {
-                $poll->set_var('poll_topic_description_tooltip', COM_getTooltip('', $P['description']));
-            } else {
-                $poll->set_var('poll_topic_description_tooltip', '');
-            }
             $poll->set_var('poll_id', $pid);
             $poll->set_var('num_votes', COM_numberFormat($P['voters']));
             $poll->set_var('lang_voters', $LANG_POLLS['voters']);
@@ -940,7 +848,7 @@ function POLLS_pollResults($pid, $scale = 100, $order = '', $mode = '', $page = 
                     $counter = ($j + 1) . "/$nquestions: ";
                 }
                 $poll->set_var('poll_question_text', $counter . $Q['question']);
-                $poll->set_var('poll_description', $Q['description']);
+                $poll->set_var('poll_description', $counter . $Q['description']);
 
                 $answer_sql = "SELECT votes, answer, remark FROM {$_TABLES['pollanswers']} "
                     . "WHERE pid = '" . DB_escapeString($pid) . "' AND qid = '" . DB_escapeString($Q['qid']) . "' "
@@ -989,12 +897,6 @@ function POLLS_pollResults($pid, $scale = 100, $order = '', $mode = '', $page = 
                     break;
                 }
             }
-			
-			if ($_CONF['likes_enabled'] && $_PO_CONF['likes_polls']) {
-				$poll->set_var('likes_control',LIKES_control(POLLS_PLUGIN_NAME, '', $pid, $_PO_CONF['likes_polls']));
-			} else {
-				$poll->set_var('likes_control', '');
-			}
 
             if ($P['commentcode'] >= 0) {
                 $num_comments = DB_count($_TABLES['comments'],
@@ -1045,19 +947,13 @@ function POLLS_ipAlreadyVoted($pid, $ip = '')
     $retval = false;
 
     if (empty($ip)) {
-        $ip = \Geeklog\IP::getIPAddress();
+        $ip = $_SERVER['REMOTE_ADDR'];
     }
 
-    $ip = DB_escapeString($ip);
-    $pid = DB_escapeString($pid);
-    $sql = "SELECT COUNT(*) AS cnt FROM {$_TABLES['pollvoters']} AS p "
-        . "LEFT JOIN {$_TABLES['ip_addresses']} AS i "
-        . "ON p.seq = i.seq "
-        . "WHERE (i.ipaddress = '$ip') AND (p.pid = '$pid')";
-    $result = DB_query($sql);
-    $A = DB_fetchArray($result, false);
-
-    if (is_array($A) && isset($A['cnt']) && ($A['cnt'] > 0)) {
+    if (DB_count($_TABLES['pollvoters'],
+            array('ipaddress', 'pid'),
+            array(DB_escapeString($ip), DB_escapeString($pid))) > 0
+    ) {
         $retval = true;
     }
 
@@ -1229,10 +1125,10 @@ function plugin_getheadercode_polls()
     // the poll block or autotag being displayed after COM_SiteHeader being called
     // we need to set it just in case (for Geeklog version older than v2.2.0 - currently polls plugin supports 2.1.1)
     $_SCRIPTS->setCSSFile('polls', CTL_plugin_themeFindFile('polls', 'css', 'style.css'));
-
+    
     // Look for poll templates functions.php for current theme. If exist add in its required javascript and css
     // Currently being used by denim theme to load UIKit progress component
-    CTL_plugin_setTemplatesFunctions("polls");
+    CTL_plugin_setTemplatesFunctions("polls");    
 }
 
 /**
@@ -1256,9 +1152,9 @@ function plugin_upgrade_polls()
     if (!plugin_compatible_with_this_version_polls('polls')) {
         return 3002;
     }
-
-    // Retrieve other plugin info like min geeklog version and homepage
-    $inst_parms = plugin_autoinstall_polls('polls');
+    
+    // Retrieve other plugin info like min geeklog version and homepage 
+    $inst_parms = plugin_autoinstall_polls('polls');     
 
     require_once $_CONF['path'] . 'plugins/polls/sql/' . $_DB_dbms . '_updates.php';
     require_once $_CONF['path'] . 'plugins/polls/install_updates.php';
@@ -1270,6 +1166,8 @@ function plugin_upgrade_polls()
     while (!$done) {
         switch ($current_version) {
             case '1.1.0':
+                require_once $_CONF['path_system'] . 'classes/config.class.php';
+
                 $plugin_path = $_CONF['path'] . 'plugins/polls/';
                 require_once $plugin_path . 'install_defaults.php';
 
@@ -1402,57 +1300,14 @@ function plugin_upgrade_polls()
 
                 $current_version = '2.1.7';
                 break;
-
+                
             case '2.1.7':
                 $current_version = '2.1.8';
-                break;
-
+                break; 
+                
             case '2.1.8':
                 $current_version = '2.1.9';
-                break;
-
-            case '2.1.9':
-                if (isset($_UPDATES[$current_version])) {
-                    $_SQL = $_UPDATES[$current_version];
-                    foreach ($_SQL as $sql) {
-                        DB_query($sql);
-                    }
-                }
-
-                $current_version = '2.2.0'; // Ships with Geeklog v2.2.1
-                break;
-
-            case '2.2.0':
-                // Add 'seq' column
-                if (isset($_UPDATES[$current_version])) {
-                    $_SQL = $_UPDATES[$current_version];
-                    foreach ($_SQL as $sql) {
-                        DB_query($sql);
-                    }
-                }
-
-                // Move IP addresses to the 'ip_addresses' table
-                $result = DB_query("SELECT id, ipaddress FROM {$_TABLES['pollvoters']}");
-                $rows = [];
-
-                while (($A = DB_fetchArray($result, false)) !== false) {
-                    $rows[] = $A;
-                }
-
-                foreach ($rows as $row) {
-                    $id = (int) $row['id'];
-                    $ipAddress = $row['ipaddress'];
-                    $seq = \Geeklog\IP::getSeq($ipAddress);
-                    DB_query("UPDATE {$_TABLES['pollvoters']} SET seq = $seq WHERE id = $id");
-                }
-
-                // Drop the 'ipaddress' column
-                DB_query("ALTER TABLE {$_TABLES['pollvoters']} DROP COLUMN ipaddress");
-				
-				polls_update_ConfValues_2_2_1();
-
-                $current_version = '2.2.1'; // Ships with Geeklog v2.2.2
-                break;
+                break;                 
 
             default:
                 $done = true;
@@ -1462,7 +1317,7 @@ function plugin_upgrade_polls()
     // update plugin version number and other info
     DB_query("UPDATE {$_TABLES['plugins']} SET pi_version = '$code_version', pi_gl_version = '{$inst_parms['info']['pi_gl_version']}', pi_homepage = '{$inst_parms['info']['pi_homepage']}' WHERE pi_name = 'polls'");
 
-    COM_errorLog( "Updated polls plugin from v$installed_version to v$code_version", 1 );
+    COM_errorLog( "Updated polls plugin from v$installed_version to v$code_version", 1 );      
 
     return true;
 }
@@ -1503,7 +1358,7 @@ function plugin_migrate_polls($old_conf)
  */
 function plugin_getiteminfo_polls($pid, $what, $uid = 0, $options = array())
 {
-    global $_CONF, $_PO_CONF, $_TABLES, $_USER;
+    global $_CONF, $_TABLES, $_USER;
 
     // parse $what to see what we need to pull from the database
     $properties = explode(',', $what);
@@ -1511,12 +1366,8 @@ function plugin_getiteminfo_polls($pid, $what, $uid = 0, $options = array())
 
     foreach ($properties as $p) {
         switch ($p) {
-            case 'date-created':
-                $fields[] = 'UNIX_TIMESTAMP(created) AS c_unixdate';
-                break;
-
             case 'date-modified':
-                $fields[] = 'UNIX_TIMESTAMP(modified) AS m_unixdate';
+                $fields[] = 'UNIX_TIMESTAMP(modified) AS unixdate';
                 break;
 
             case 'id':
@@ -1527,12 +1378,6 @@ function plugin_getiteminfo_polls($pid, $what, $uid = 0, $options = array())
                 $fields[] = 'topic';
                 break;
 
-		case 'likes':
-			// Likes polls setting is a global variable and not an item per item setting
-			$fields[] = $_PO_CONF['likes_polls'] . ' AS likes';
-			$groupby_fields[] = 'likes';
-			break;
-			
             case 'url':
                 // needed for $pid == '*', but also in case we're only requesting
                 // the URL (so that $fields isn't emtpy)
@@ -1584,12 +1429,8 @@ function plugin_getiteminfo_polls($pid, $what, $uid = 0, $options = array())
         $props = array();
         foreach ($properties as $p) {
             switch ($p) {
-                case 'date-created':
-                    $props['date-created'] = $A['c_unixdate'];
-                    break;
-
                 case 'date-modified':
-                    $props['date-modified'] = $A['m_unixdate'];
+                    $props['date-modified'] = $A['unixdate'];
                     break;
 
                 case 'id':
@@ -1599,10 +1440,6 @@ function plugin_getiteminfo_polls($pid, $what, $uid = 0, $options = array())
                 case 'title':
                     $props['title'] = $A['topic'];
                     break;
-					
-				case 'likes':
-					$props['likes'] = $A['likes'];					
-					break;					
 
                 case 'url':
                     if (empty($A['pid'])) {
@@ -1701,27 +1538,21 @@ function plugin_getconfigtooltip_polls($id)
     return;
 }
 
-
 /**
- * Provide URL for the link to a comment's parent item.
- * NOTE: The Plugin API does not support $_CONF['url_rewrite'] here,
- *       so we'll end up with a non-rewritten URL ...
+ * Provide URL and ID for the link to a comment's parent
  *
- * @return   string   string of URL
+ * @return   array   array consisting of the base URL and the ID name
  */
-function plugin_getcommenturlid_polls($id)
+function plugin_getcommenturlid_polls()
 {
     global $_CONF;
 
-    // Cannot use COM_buildURL as comment stuff does not support URL Rewrite - $retval = COM_buildUrl($_CONF['site_url'] . '/article.php?story=' . $id);
-    $retval = $_CONF['site_url'] . '/polls/index.php?pid=' . $id;
+    $tmp = array(
+        $_CONF['site_url'] . '/polls/index.php',
+        'pid',
+    );
 
-    //  If polls.php is the calling file we can figure out if results of the poll are showing or the actual poll form
-    if (strpos($_SERVER['PHP_SELF'], '/polls/index.php') !== false && -1 == ((int) Geeklog\Input::fGet('aid', 0))) {
-        $retval .= '&amp;aid=-1';
-    }
-
-    return $retval;
+    return $tmp;
 }
 
 /**
@@ -1733,10 +1564,10 @@ function plugin_getcommenturlid_polls($id)
  *
  * @param  string $op
  * @param  string $content
- * @param  array $autotag
- * @return array|string
+ * @param  string $autotag
+ * @return mixed
  */
-function plugin_autotags_polls($op, $content = '', $autotag = array())
+function plugin_autotags_polls($op, $content = '', $autotag = '')
 {
     global $_CONF, $_PO_CONF, $_TABLES, $LANG_POLLS, $_GROUPS;
 
@@ -1787,7 +1618,7 @@ function plugin_autotags_polls($op, $content = '', $autotag = array())
                 switch ($autotag['tag']) {
                     case 'poll':
                         if (!empty($autotag['parm2'])) {
-                            $title = $autotag['parm2'];
+                            $title = COM_applyFilter($autotag['parm2']);
                         } else {
                             $title = DB_getItem($_TABLES['polltopics'], 'topic', "pid = '" . DB_escapeString($pid) . "' ");
                         }
@@ -1917,7 +1748,7 @@ function plugin_getwhatsnew_polls()
         }
 
         if (isset($url)) {
-            $retval .= COM_makeList($newpolls, PLG_getThemeItem('core-css-list-new', 'core'));
+            $retval .= COM_makeList($newpolls, 'list-new-plugins');
         }
     }
 
@@ -2123,13 +1954,12 @@ function plugin_configmanager_select_block_topic_polls()
 /**
  * Callback function when an item was saved
  *
- * @param    string $id         (unused) ID of item being saved
- * @param    string $type       type of item ('article', 'staticpages', ...)
- * @param    string $old_id     (unused) previous ID of item, if != $id
- * @param    string  $sub_type  (unused) sub type of item (since Geeklog 2.2.2)
+ * @param    string $id     (unused) ID of item being saved
+ * @param    string $type   type of item ('article', 'staticpages', ...)
+ * @param    string $old_id (unused) previous ID of item, if != $id
  * @see      PLG_itemSaved
  */
-function plugin_itemsaved_polls($id, $type, $old_id, $sub_type)
+function plugin_itemsaved_polls($id, $type, $old_id)
 {
     global $_PO_CONF;
 
@@ -2151,12 +1981,11 @@ function plugin_itemsaved_polls($id, $type, $old_id, $sub_type)
 /**
  * Callback function when an item was deleted
  *
- * @param    string  $id        ID of item being deleted
- * @param    string  $type      type of item ('article', 'staticpages', ...)
- * @param    string  $sub_type  (unused) sub type of item (since Geeklog 2.2.2)
+ * @param    string $id   ID of item being deleted
+ * @param    string $type type of item ('article', 'staticpages', ...)
  * @see      PLG_itemDeleted
  */
-function plugin_itemdeleted_polls($id, $type, $sub_type)
+function plugin_itemdeleted_polls($id, $type)
 {
     global $_PO_CONF;
 
@@ -2228,108 +2057,4 @@ function plugin_dopluginsearch_polls($query, $dateStart, $dateEnd, $topic, $type
     $search->setRank(2);
 
     return $search;
-}
-
-/**
- * Lets Geeklog know the names of language variables and arrays that can be overridden if need be
- *
- * @return   array
- */
-function plugin_getlanguageoverrides_polls()
-{
-
-    return array('LANG_POLLS');
-}
-
-/**
- * Return URL of item even if the item doesn't exist, e.g., after it has been deleted
- *
- * @param  string  $sub_type  (unused) sub type of plugin
- * @param  string  $item_id   the id of the item
- * @return string
- * @since  Geeklog 2.2.2
- */
-function plugin_idToURL_polls($sub_type, $item_id)
-{
-    global $_CONF;
-
-    return $_CONF['site_url'] . '/polls/index.php?pid=' . $item_id . '&amp;aid=-1';
-}
-
-/**
- * Find out Likes plural label for item
- *
- * @return   string 	Plural name of item that can be liked or disliked
- */
-function plugin_likeslabel_polls($sub_type)
-{
-    global $LANG_POLLS;
-
-    return $LANG_POLLS['polls'];
-}
-
-/**
- * Is Likes system enabled for item
- *
- * @return   int    0 = disabled, 1 = Likes and Dislikes, 2 = Likes only
- */
-function plugin_likesenabled_polls($sub_type, $id)
-{
-    global $_PO_CONF;
-
-    return $_PO_CONF['likes_polls'];
-}
-
-/**
- * Can user perform a like action on item
- * Need to check not only likes enabled for item but same owner and read permissions to item
- * Note: $Id is filtered as a string by likes.php.
- *       If needed do additional checks here (like if you need a numeric value)
- *       but you cannot change the value of id since it will not change in the original calling function
- *
- * @return   bool
- */
-function plugin_canuserlike_polls($sub_type, $id, $uid, $ip)
-{
-    global $_PO_CONF, $_TABLES;
-
-    $retval = false;
-
-    if ($_PO_CONF['likes_polls'] > 0) {
-        $perm_sql = COM_getPermSQL( 'AND', $uid, 2);
-        $sql = "SELECT owner_id,group_id,perm_owner,perm_group,perm_members,perm_anon FROM {$_TABLES['polltopics']} WHERE pid='".$id."' " . $perm_sql;
-        $result = DB_query($sql);
-        if (DB_numRows($result) > 0) {
-            list ($owner_id, $group_id,$perm_owner,$perm_group,$perm_members,$perm_anon) = DB_fetchArray($result);
-            if ($owner_id != $uid) {
-                $retval = true;
-            }
-        }
-    }
-
-    return $retval;
-}
-
-/**
- * Get URL for item like is for
- * Note: $Id is filtered as a string by likes.php.
- *       If needed do additional checks here (like if you need a numeric value)
- *       but you cannot change the value of id since it will not change in the original calling function
- *
- * @return   string    URL of item like is for
- */
-function plugin_getItemLikeURL_polls($sub_type, $id)
-{
-    global $_PO_CONF, $_TABLES;
-
-    $retval = '';
-
-    if ($_PO_CONF['likes_polls'] > 0) {
-        // No sense rebuilding stuff here so use PLG_getItemInfo
-        // PLG_getItemInfo will only return url if user has permissions
-        $options['sub_type'] = $sub_type;
-        $retval = PLG_getItemInfo(POLLS_PLUGIN_NAME, $id, 'url', 0, $options);
-    }
-
-    return $retval;
 }

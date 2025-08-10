@@ -322,16 +322,7 @@ class SearchCriteria
         return array($sql, $ftSQL);
     }
 
-    /**
-     * Return the SQL to get a date range
-     *
-     * @param  string  $type  'AND' or 'WHERE'
-     * @param  string  $column
-     * @param  string  $dateStart
-     * @param  string  $dateEnd
-     * @return string
-     */
-    public function getDateRangeSQL($type, $column, $dateStart, $dateEnd)
+    public function getDateRangeSQL($type = 'WHERE', $column, $dateStart, $dateEnd)
     {
         if (!empty($dateStart) || !empty($dateEnd)) {
             // Do some date checking and fill in missing dates
@@ -352,7 +343,7 @@ class SearchCriteria
             $startDate = mktime(0, 0, 0, $DS[1], $DS[2], $DS[0]);
             $endDate = mktime(23, 59, 59, $DE[1], $DE[2], $DE[0]);
 
-            return " $type (UNIX_TIMESTAMP({$column}) BETWEEN '{$startDate}' AND '{$endDate}') ";
+            return " $type (UNIX_TIMESTAMP($column) BETWEEN '$startDate' AND '$endDate') ";
         }
 
         return '';

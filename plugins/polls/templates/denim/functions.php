@@ -48,3 +48,5 @@ function polls_js_files_denim()
     // No extra JS files needed by plugin. Assume theme loads all required.
     return array();
 }
+
+?>

@@ -76,7 +76,7 @@ if (!SEC_hasRights('group.edit')) {
 function editgroup($grp_id = '')
 {
     global $_TABLES, $_CONF, $_USER, $LANG_ACCESS, $LANG_ADMIN, $MESSAGE,
-           $LANG28, $_GROUP_VERBOSE, $_GROUP_MAINGROUPS, $_GROUP_LOOPGROUPS;
+           $LANG28, $_GROUP_VERBOSE, $_GROUP_MAINGROUPS;
 
     require_once $_CONF['path_system'] . 'lib-admin.php';
 
@@ -267,61 +267,50 @@ function editgroup($grp_id = '')
             }
             $sql = "SELECT grp_id, grp_name, grp_descr, grp_gl_core FROM {$_TABLES['groups']} WHERE (grp_name <> 'Root')" . $xsql . ' AND ' . $whereGroups;
         }
-
+        
         // Create a complete list of inherited groups for this group being edited so we know what needs to be disabled on screen
-        $resultY = DB_query($sql, 1);
-        $nrowsY = DB_numRows($resultY);
-        $_GROUP_MAINGROUPS = array(); // Inherited groups from the actual groups the current group belongs to
-        $_GROUP_LOOPGROUPS = array(); // Groups that current group cannot belong to as it would create a loop on to itself (ie A can belong to B, B can belong to C but C cannot belong to A as it would then create a loop)
-        for ($iY = 1; $iY <= $nrowsY; $iY++) {
+        $resultA = DB_query($sql, 1);
+        $nrowsA = DB_numRows($resultA);
+        $_GROUP_MAINGROUPS = array();
+        for ($iA = 1; $iA <= $nrowsA; $iA++) {
             $groups = array();
-            $Y = DB_fetchArray($resultY);
+            $A = DB_fetchArray($resultA);
             //Figure out if group being listed is already an inherited group
             
-            $resultZ = DB_query("SELECT ug_main_grp_id,grp_name FROM {$_TABLES["group_assignments"]},{$_TABLES["groups"]}"
-                    . " WHERE grp_id = ug_main_grp_id AND ug_grp_id = " . $Y['grp_id'], 1);
-            $nrowsZ = DB_numRows($resultZ);
-            while ($nrowsZ > 0) {
+            $result = DB_query("SELECT ug_main_grp_id,grp_name FROM {$_TABLES["group_assignments"]},{$_TABLES["groups"]}"
+                    . " WHERE grp_id = ug_main_grp_id AND ug_grp_id = " . $A['grp_id'], 1);
+
+            $nrows = DB_numRows($result);
+            while ($nrows > 0) {
                 $inheritedgroups = array();
 
-                for ($i = 1; $i <= $nrowsZ; $i++) {
-                    $Z = DB_fetchArray($resultZ);
+                for ($i = 1; $i <= $nrows; $i++) {
+                    $B = DB_fetchArray($result);
 
-                    if (!in_array($Z['ug_main_grp_id'], $groups)) {
-                        array_push($inheritedgroups, $Z['ug_main_grp_id']);
-                        $groups[$Z['grp_name']] = $Z['ug_main_grp_id'];
+                    if (!in_array($B['ug_main_grp_id'], $groups)) {
+                        array_push($inheritedgroups, $B['ug_main_grp_id']);
+                        $groups[$B['grp_name']] = $B['ug_main_grp_id'];
                     }
                 }
 
                 if (count($inheritedgroups) > 0) {
                     $glist = implode(',', $inheritedgroups);
-                    $resultZ = DB_query("SELECT ug_main_grp_id,grp_name FROM {$_TABLES["group_assignments"]},{$_TABLES["groups"]}"
+                    $result = DB_query("SELECT ug_main_grp_id,grp_name FROM {$_TABLES["group_assignments"]},{$_TABLES["groups"]}"
                             . " WHERE grp_id = ug_main_grp_id AND ug_grp_id IN ($glist)", 1);
-                    $nrowsZ = DB_numRows($resultZ);
+                    $nrows = DB_numRows($result);
                 } else {
-                    $nrowsZ = 0;
+                    $nrows = 0;
                 }
             }
-            /*
+            
             // Check if part of inherited and if selected part of inherited
-            if (in_array($grp_id, $groups) OR in_array($Y['grp_id'], explode(' ', $selected))) {
+            if (in_array($grp_id, $groups) OR in_array($A['grp_id'], explode(' ', $selected))) {
                 $_GROUP_MAINGROUPS = array_merge($_GROUP_MAINGROUPS, $groups);
                 // Add top group
-                $_GROUP_MAINGROUPS[$Y['grp_name']] = $Y['grp_id'];                        
-            } 
-            */            
-            // Check if could create a security group loop and then check, if part of inherited and if selected part of inherited
-            if (in_array($grp_id, $groups)) { 
-                $_GROUP_LOOPGROUPS = array_merge($_GROUP_LOOPGROUPS, $groups);
-                // Add loop group
-                $_GROUP_LOOPGROUPS[$Y['grp_name']] = $Y['grp_id'];
-            } elseif (in_array($Y['grp_id'], explode(' ', $selected))) {
-                $_GROUP_MAINGROUPS = array_merge($_GROUP_MAINGROUPS, $groups);
-                // Add top group
-                $_GROUP_MAINGROUPS[$Y['grp_name']] = $Y['grp_id'];
-            } 
+                $_GROUP_MAINGROUPS[$A['grp_name']] = $A['grp_id'];                        
+            }
         }
-
+              
         $query_arr = array('table'          => 'groups',
                            'sql'            => $sql,
                            'query_fields'   => array('grp_name'),
@@ -449,12 +438,11 @@ function removeIndirectFeatures($grp_id, array $features)
  * code closely if you need to modify this function. Also right is synonymous
  * with feature.
  *
- * @param    mixed     $grp_id           ID to print rights for
- * @param    boolean   $core             indicates if group is a core Geeklog group
- * @param    Template  $group_templates  Template instance
- * @return   string    HTML for rights
+ * @param    mixed   $grp_id ID to print rights for
+ * @param    boolean $core   indicates if group is a core Geeklog group
+ * @return   string      HTML for rights
  */
-function printrights($grp_id = '', $core = 0, Template $group_templates = null)
+function printrights($grp_id = '', $core = 0, &$group_templates)
 {
     global $_TABLES, $_USER, $LANG_ACCESS, $_GROUP_VERBOSE;
 
@@ -651,6 +639,7 @@ function savegroup($grp_id, $grp_name, $grp_descr, $grp_admin, $grp_gl_core, $gr
             }
         }
 
+        $grp_descr = COM_stripslashes($grp_descr);
         $grp_descr = DB_escapeString($grp_descr);
 
         $grp_applydefault_add = true;
@@ -899,7 +888,7 @@ function listusers($grp_id)
     $join_userinfo = '';
     $select_userinfo = '';
     if ($_CONF['lastlogin']) {
-        $join_userinfo = "LEFT JOIN {$_TABLES['user_attributes']} ON {$_TABLES['users']}.uid={$_TABLES['user_attributes']}.uid ";
+        $join_userinfo = "LEFT JOIN {$_TABLES['userinfo']} ON {$_TABLES['users']}.uid={$_TABLES['userinfo']}.uid ";
         $select_userinfo = ",lastlogin ";
     }
 
@@ -1088,7 +1077,7 @@ function grp_selectUsers($group_id, $listtype = 0)
 function editusers($group)
 {
     global $_CONF, $_TABLES, $_USER, $LANG_ACCESS, $LANG_ADMIN, $LANG28,
-           $_IMAGE_TYPE, $_SCRIPTS;
+           $_IMAGE_TYPE;
 
     require_once $_CONF['path_system'] . 'lib-admin.php';
 
@@ -1139,16 +1128,9 @@ function editusers($group)
 
     $retval .= ADMIN_createMenu($menu_arr, $LANG_ACCESS['editgroupmsg'],
         $_CONF['layout_url'] . '/images/icons/group.' . $_IMAGE_TYPE);
-		
-    // Add JavaScript
-    // Hide the Advanced Editor as JavaScript is required. If JS is enabled then the JS below will un-hide it
-    $js = 'document.getElementById("admin-groupmembers").style.display="";';
-    $_SCRIPTS->setJavaScript($js, true);
-	$_SCRIPTS->setJavaScriptFile('admin-groupmembers', '/javascript/moveusers.js');		
 
     $groupmembers = COM_newTemplate(CTL_core_templatePath($_CONF['path_layout'] . 'admin/group'));
     $groupmembers->set_file(array('groupmembers' => 'groupmembers.thtml'));
-	$groupmembers->set_var('noscript', COM_getNoScript(false));
     $groupmembers->set_var('group_listing_url', $group_listing_url);
     $groupmembers->set_var('phpself', $_CONF['site_admin_url'] . '/group.php');
     $groupmembers->set_var('lang_adminhome', $LANG_ACCESS['adminhome']);

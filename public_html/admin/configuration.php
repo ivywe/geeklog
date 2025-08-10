@@ -2,13 +2,13 @@
 
 /* Reminder: always indent with 4 spaces (no tabs). */
 // +---------------------------------------------------------------------------+
-// | Geeklog 2.2                                                               |
+// | Geeklog 2.1                                                               |
 // +---------------------------------------------------------------------------+
 // | configuration.php                                                         |
 // |                                                                           |
 // | Loads the administration UI and sends input to config.class               |
 // +---------------------------------------------------------------------------+
-// | Copyright (C) 2007-2020 by the following authors:                         |
+// | Copyright (C) 2007-2011 by the following authors:                         |
 // |                                                                           |
 // | Authors: Aaron Blankstein  - kantai AT gmail DOT com                      |
 // |          Akeda Bagus       - admin AT gedex DOT web DOT id                |
@@ -31,7 +31,6 @@
 // |                                                                           |
 // +---------------------------------------------------------------------------+
 
-use Geeklog\Input;
 /**
  * Geeklog common function library
  */
@@ -59,24 +58,25 @@ function configmanager_select_language_helper()
  */
 function configmanager_select_theme_helper()
 {
-    global $LANG04;
+    $themes = array();
 
-    $themes = [];
+    $themeFiles = COM_getThemes(true);
+    usort($themeFiles, 'strcasecmp');
 
-    $themeInfos = COM_getThemes(true, true, true);
-    uasort(
-        $themeInfos,
-        function ($a, $b) {
-            return strcasecmp($a['theme_name'], $b['theme_name']);
+    foreach ($themeFiles as $theme) {
+        $words = explode('_', $theme);
+        $bwords = array();
+        foreach ($words as $th) {
+            if ((strtolower($th[0]) == $th[0]) &&
+                (strtolower($th[1]) == $th[1])
+            ) {
+                $bwords[] = ucfirst($th);
+            } else {
+                $bwords[] = $th;
+            }
         }
-    );
 
-    foreach ($themeInfos as $dirName => $themeInfo) {
-        $text = sprintf(
-            $LANG04['theme_info'],
-            $themeInfo['theme_name'], $themeInfo['theme_version'], $themeInfo['theme_gl_version']
-        );
-        $themes[$text] = $dirName;
+        $themes[implode(' ', $bwords)] = $theme;
     }
 
     return $themes;
@@ -103,11 +103,17 @@ function configmanager_select_timezone_helper()
  */
 function configmanager_select_default_perm_cookie_timeout_helper()
 {
-    $retval = [];
+    global $_TABLES, $LANG_cookiecodes;
 
-    foreach (COM_getCookieCodes() as $row) {
-        list ($ccValue, $ccDesc) = $row;
-        $retval[$ccDesc] = $ccValue;
+    $retval = array();
+
+    $result = DB_query("SELECT cc_value,cc_descr FROM {$_TABLES['cookiecodes']}");
+    $num_values = DB_numRows($result);
+
+    for ($i = 0; $i < $num_values; $i++) {
+        list($cc_value, $cc_descr) = DB_fetchArray($result);
+        $cc_descr = $LANG_cookiecodes[$cc_value];
+        $retval[$cc_descr] = $cc_value;
     }
 
     return $retval;
@@ -122,13 +128,12 @@ function configmanager_select_advanced_editor_name_helper()
 {
     global $_CONF;
 
-    $editors = [];
+    $editors = array();
 
     // gets all installed Advanced Editors
-    $editorFiles = [];
+    $editorFiles = array();
     $fd = opendir($_CONF['path_editors']);
     clearstatcache();
-
     while (($dir = @readdir($fd)) == true) {
         if (is_dir($_CONF['path_editors'] . $dir) &&
             $dir <> '.' &&
@@ -154,8 +159,7 @@ function configmanager_select_advanced_editor_name_helper()
         }
         if (empty($name)) {
             $words = explode('_', $editor);
-            $bwords = [];
-
+            $bwords = array();
             foreach ($words as $th) {
                 if ((strtolower($th[0]) == $th[0]) &&
                     (strtolower($th[1]) == $th[1])
@@ -184,52 +188,7 @@ function custom_validation_copyrightyear($rule, $ruleParams)
 {
     $year = $ruleParams[0]['copyrightyear'];
 
-    return preg_match('/^\d{1,4}\s?\-?\-\d{0,4}$/', $year);
-}
-
-/**
- * Custom validation rule for a config option which is an array that if an element exists ir must contain at least some text
- *
- * @param string $rule       String of rule name
- * @param array  $ruleParams Parameter of validation
- * @return boolean Success
- */
-function custom_validation_arrayElementString($rule, $ruleParams)
-{
-    $ret = false;
-
-    // Make sure at element is not empty
-    foreach ($ruleParams[0] as $key => $value) {
-        if (!empty($value)) {
-            $ret = true;
-        }
-    }
-
-    return $ret;
-}
-
-/**
- * Custom validation rule for a config option which is an array that requires at least 1 element and that all elements contain at least some text
- *
- * @param string $rule       String of rule name
- * @param array  $ruleParams Parameter of validation
- * @return boolean Success
- */
-function custom_validation_arrayLeastOneElementString($rule, $ruleParams)
-{
-    $ret = false;
-
-    // Array in array so if count less than 2 then no elements in base rule
-    if (count($ruleParams) > 2) {
-        // Now make sure at element is not empty
-        foreach ($ruleParams[0] as $key => $value) {
-            if (!empty($value)) {
-                $ret = true;
-            }
-        }
-    }
-
-    return $ret;
+    return preg_match('/^\d{1,4}\s{0,1}\-{0,1}\s{0,1}\d{0,4}$/', $year);
 }
 
 /**
@@ -242,7 +201,6 @@ function custom_validation_arrayLeastOneElementString($rule, $ruleParams)
 function custom_validation_mail_settings_sendmail_path($rule, $ruleParams)
 {
     $ret = true;
-
     if (isset($ruleParams[2]['backend']) && $ruleParams[2]['backend'] == 'sendmail') {
         if (isset($ruleParams[0]['mail_settings[sendmail_path]']) &&
             empty($ruleParams[0]['mail_settings[sendmail_path]'])
@@ -266,7 +224,6 @@ function custom_validation_mail_settings_sendmail_path($rule, $ruleParams)
 function custom_validation_rdf_limit($rule, $ruleParams)
 {
     $ret = false;
-
     if (isset($ruleParams[0]['rdf_limit'])) {
         $ret = preg_match('/^[\d]+h?$/i', $ruleParams[0]['rdf_limit']);
     }
@@ -284,12 +241,11 @@ function custom_validation_rdf_limit($rule, $ruleParams)
 function custom_validation_path($rule, $ruleParams)
 {
     $ret = false;
-
     if (isset($ruleParams[0])) {
         foreach ($ruleParams[0] as $paramName => $paramValue) {
-            $ret = is_dir($ruleParams[0][$paramName]);
             break;
         }
+        $ret = is_dir($ruleParams[0][$paramName]);
     }
 
     return $ret;
@@ -305,12 +261,11 @@ function custom_validation_path($rule, $ruleParams)
 function custom_validation_file($rule, $ruleParams)
 {
     $ret = false;
-
     if (isset($ruleParams[0])) {
         foreach ($ruleParams[0] as $paramName => $paramValue) {
-            $ret = file_exists($ruleParams[0][$paramName]);
             break;
         }
+        $ret = file_exists($ruleParams[0][$paramName]);
     }
 
     return $ret;
@@ -350,7 +305,7 @@ function custom_validation_search_limits($rule, $ruleParams)
 }
 
 /**
- * Custom validation rule for number of search results
+ * Custom validation rule for number of searh results
  *
  * @param string $rule       String of rule name
  * @param array  $ruleParams Parameter of validation
@@ -428,8 +383,16 @@ function custom_validation_path_themes($rule, $ruleParams)
  */
 function custom_validation_path_to_mogrify($rule, $ruleParams)
 {
-    return isset($ruleParams[0]['path_to_mogrify']) &&
-        file_exists($ruleParams[0]['path_to_mogrify']);
+    global $_CONF;
+
+    $ret = false;
+    if (isset($ruleParams[0]['path_to_mogrify']) &&
+        file_exists($ruleParams[0]['path_to_mogrify'])
+    ) {
+        $ret = true;
+    }
+
+    return $ret;
 }
 
 /**
@@ -441,8 +404,16 @@ function custom_validation_path_to_mogrify($rule, $ruleParams)
  */
 function custom_validation_path_to_netpbm($rule, $ruleParams)
 {
-    return isset($ruleParams[0]['path_to_netpbm']) &&
-        is_dir($ruleParams[0]['path_to_netpbm']);
+    global $_CONF;
+
+    $ret = false;
+    if (isset($ruleParams[0]['path_to_netpbm']) &&
+        is_dir($ruleParams[0]['path_to_netpbm'])
+    ) {
+        $ret = true;
+    }
+
+    return $ret;
 }
 
 /**
@@ -458,7 +429,9 @@ function custom_validation_language($rule, $ruleParams)
 
     $ret = false;
     $languages = array_flip(MBYTE_languageList($_CONF['default_charset']));
-    if (isset($ruleParams[0]['language']) && in_array($ruleParams[0]['language'], $languages)) {
+    if (isset($ruleParams[0]['language']) &&
+        in_array($ruleParams[0]['language'], $languages)
+    ) {
         $ret = true;
     }
 
@@ -480,7 +453,9 @@ function custom_validation_timezone($rule, $ruleParams)
     $timezones = array_flip(TimeZoneConfig::listAvailableTimeZones());
 
     $ret = false;
-    if (isset($ruleParams[0]['timezone']) && in_array($ruleParams[0]['timezone'], $timezones)) {
+    if (isset($ruleParams[0]['timezone']) &&
+        in_array($ruleParams[0]['timezone'], $timezones)
+    ) {
         $ret = true;
     }
 
@@ -500,10 +475,10 @@ function custom_validation_noTags($rule, $ruleParams)
 
     if (isset($ruleParams[0])) {
         foreach ($ruleParams[0] as $paramName => $paramValue) {
-            if ($ruleParams[0][$paramName] == GLText::stripTags($ruleParams[0][$paramName])) {
-                $ret = true;
-            }
             break;
+        }
+        if ($ruleParams[0][$paramName] == GLText::stripTags($ruleParams[0][$paramName])) {
+            $ret = true;
         }
     }
 
@@ -523,10 +498,11 @@ function custom_validation_single_char($rule, $ruleParams)
 
     if (isset($ruleParams[0])) {
         foreach ($ruleParams[0] as $paramName => $paramValue) {
-            if (preg_match('/^[\s\w.,;\-]$/i', $paramValue)) {
-                $ret = true;
-            }
             break;
+        }
+
+        if (preg_match('/^[\s\w.,;\-]{1}$/i', $paramValue)) {
+            $ret = true;
         }
     }
 
@@ -588,24 +564,24 @@ if (!SEC_inGroup('Root')) {
         exit;
     }
 }
-$conf_group = Input::fPost('conf_group', $default_conf_group);
+$conf_group = Geeklog\Input::fPost('conf_group', $default_conf_group);
 
 if (array_key_exists('set_action', $_POST) && SEC_checkToken()) {
     if ($_POST['set_action'] == 'restore') {
         $config->restore_param(
-            Input::post('name'), $conf_group, Input::post('subgroup'), Input::post('tab')
+            Geeklog\Input::post('name'), $conf_group, Geeklog\Input::post('subgroup'), Geeklog\Input::post('tab')
         );
     } elseif ($_POST['set_action'] == 'unset') {
         $config->unset_param(
-            Input::post('name'), $conf_group, Input::post('subgroup'), Input::post('tab')
+            Geeklog\Input::post('name'), $conf_group, Geeklog\Input::post('subgroup'), Geeklog\Input::post('tab')
         );
     }
 
     // notify plugins when config item enabled or disabled
-    $config_item[] = Input::post('name');
+    $config_item[] = Geeklog\Input::post('name');
     PLG_configChange($conf_group, $config_item);
 
-    $subgroup = Input::fPost('subgroup', null);
+    $subgroup = Geeklog\Input::fPost('subgroup', null);
     $display = $config->get_ui($conf_group, $subgroup);
 } elseif (array_key_exists('form_submit', $_POST) && SEC_checkToken()) {
     $result = null;
@@ -628,22 +604,12 @@ if (array_key_exists('set_action', $_POST) && SEC_checkToken()) {
         }
     }
     //$display = $config->get_ui($conf_group, $_POST['sub_group'], $result);
-    $sub_group = Input::fPost('sub_group', '0');
+    $sub_group = Geeklog\Input::fPost('sub_group', '0');
     $display = $config->get_ui($conf_group, $sub_group, $result);
 } else {
     //$display = $config->get_ui($conf_group, array_key_exists('subgroup', $_POST)
     //                                       ?  $_POST['subgroup'] : null);
-    if ($conf_group === 'Core') {
-        require_once 'configuration_validation.php';
-    } else {
-        // Retrieve plugin config validation if found
-        $filename = $_CONF['path'] . 'plugins/' . $conf_group . '/configuration_validation.php';
-        if (file_exists($filename)) {
-            require_once $filename;
-        }
-    }
-
-    $subgroup = Input::fPost('subgroup', null);
+    $subgroup = Geeklog\Input::fPost('subgroup', null);
     $display = $config->get_ui($conf_group, $subgroup);
 }
 

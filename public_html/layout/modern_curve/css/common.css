@@ -93,9 +93,7 @@ form.basic fieldset{
 }
 
 form.basic legend {
- position: absolute;
- left: 0;
- clip: rect(1px, 1px, 1px, 1px);
+ display: none;
 }
 
 img {
@@ -157,6 +155,14 @@ iframe[width="100%"] {
 
 hr.separator {
   display: none;
+}
+
+.speech {
+  overflow: hidden;
+  position: absolute;
+  {left}: -999px;
+  width: 0;
+  height: 0;
 }
 
 

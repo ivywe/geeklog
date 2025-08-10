@@ -40,12 +40,13 @@ if (stripos($_SERVER['PHP_SELF'], basename(__FILE__)) !== false) {
 /**
 * include default config
 */
-require_once dirname( __DIR__) . '/install_defaults.php';
+require_once dirname(__FILE__) . DIRECTORY_SEPARATOR . '../install_defaults.php';
 
-global $_XMLSMAP_DEFAULT, $_TABLES;
+global $_XMLSMAP_DEFAULT;
 
-$DEFVALUES = [];
+$DEFVALUES = array();
 
 $DEFVALUES[] = "INSERT INTO {$_TABLES['vars']} (name, value) VALUES ('xmlsitemap_filename', '" . DB_escapeString($_XMLSMAP_DEFAULT['sitemap_file']) . "')";
 $DEFVALUES[] = "INSERT INTO {$_TABLES['vars']} (name, value) VALUES ('xmlsitemap_mobile', '" . DB_escapeString($_XMLSMAP_DEFAULT['mobile_sitemap_file']) . "')";
-$DEFVALUES[] = "INSERT INTO {$_TABLES['vars']} (name, value) VALUES ('xmlsitemap_news', '" . DB_escapeString($_XMLSMAP_DEFAULT['news_sitemap_file']) . "')";
+
+?>

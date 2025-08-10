@@ -10,7 +10,7 @@
 // | records. These settings are only used during the initial installation     |
 // | and not referenced any more once the plugin is installed.                 |
 // +---------------------------------------------------------------------------+
-// | Copyright (C) 2009-2020 by the following authors:                         |
+// | Copyright (C) 2009-2014 by the following authors:                         |
 // |                                                                           |
 // | Authors: Kenji ITO         - geeklog AT mystral-kk DOT net                |
 // |          Dirk Haun         - dirk AT haun-online DOT de                   |
@@ -51,59 +51,42 @@ if (stripos($_SERVER['PHP_SELF'], basename(__FILE__)) !== false) {
 */
 
 global $_XMLSMAP_DEFAULT;
-$_XMLSMAP_DEFAULT = [];
+$_XMLSMAP_DEFAULT = array();
 
 // XML sitemap names
 $_XMLSMAP_DEFAULT['sitemap_file']        = 'sitemap.xml';
 $_XMLSMAP_DEFAULT['mobile_sitemap_file'] = 'mobile_sitemap.xml';
-$_XMLSMAP_DEFAULT['news_sitemap_file']   = 'news_sitemap.xml';
-
-// Include homepage in sitemap (not news sitemap)
-$_XMLSMAP_DEFAULT['include_homepage'] = false;
 
 // Content types
-$_XMLSMAP_DEFAULT['types'] = ['article', 'calendar', 'polls', 'staticpages'];
+$_XMLSMAP_DEFAULT['types'] = array('article', 'calendar', 'polls', 'staticpages');
+
+// Plugins to exclude from sitemap
+$_XMLSMAP_DEFAULT['exclude'] = array('links');
 
 // Content types to include lastmod element for (last modification date)
-$_XMLSMAP_DEFAULT['lastmod'] = ['article', 'calendar', 'polls', 'staticpages'];
+$_XMLSMAP_DEFAULT['lastmod'] = array('article', 'calendar', 'polls', 'staticpages');
 
 // Priorities (must be between 0.0 and 1.0; default value is 0.5)
-$_XMLSMAP_DEFAULT['priorities'] = [
+$_XMLSMAP_DEFAULT['priorities'] = array(
     'article'     => 0.5,
     'calendar'    => 0.5,
     'polls'       => 0.5,
     'staticpages' => 0.5
-];
+);
 
 // Frequencies (must be one of 'always', 'hourly', 'daily', 'weekly',
 // 'monthly', 'yearly', 'never')
-$_XMLSMAP_DEFAULT['frequencies'] = [
+$_XMLSMAP_DEFAULT['frequencies'] = array(
     'article'     => 'daily',
     'calendar'    => 'daily',
     'polls'       => 'daily',
     'staticpages' => 'weekly'
-];
+);
 
 // Ping targets
 $_XMLSMAP_DEFAULT['ping_google'] = true;
-if (defined('GL_INSTALL_ACTIVE')) {
-	// $_XMLSMAP_DEFAULT['ping_bing'] Removed as of XML Sitemap Plugin 2.0.3 and Geeklog 2.2.2
-	// Need to keep though for upgrade procedures that are older and when this config was added or upgrade will break
-	$_XMLSMAP_DEFAULT['ping_bing']   = true; 
-}
-
-// IndexNow
-$_XMLSMAP_DEFAULT['indexnow'] = false;
-$_XMLSMAP_DEFAULT['indexnow_key'] = '';
-$_XMLSMAP_DEFAULT['indexnow_key_location'] = '';
-
-
-// News Sitemap settings
-// Array of article topics for news. If none then all topics.
-$_XMLSMAP_DEFAULT['news_sitemap_topics'] = [];
-
-// In seconds
-$_XMLSMAP_DEFAULT['news_sitemap_age'] = 2 * 24 * 3600;  // 2 days
+$_XMLSMAP_DEFAULT['ping_bing']   = true;
+$_XMLSMAP_DEFAULT['ping_ask']    = true;
 
 /**
 * Initialize XMLSitemap plugin configuration
@@ -128,10 +111,10 @@ function plugin_initconfig_xmlsitemap()
             0, 0, null, 10, true, $me, 0);
         $c->add('mobile_sitemap_file', $_XMLSMAP_DEFAULT['mobile_sitemap_file'],
             'text', 0, 0, null, 20, false, $me, 0);
-        $c->add('include_homepage', $_XMLSMAP_DEFAULT['include_homepage'],
-            'select', 0, 0, 1, 25, true, $me, 0);
         $c->add('types', $_XMLSMAP_DEFAULT['types'], '%text', 0, 0, null, 30,
             true, $me, 0);
+        $c->add('exclude', $_XMLSMAP_DEFAULT['exclude'], '%text', 0, 0, null,
+            40, true, $me, 0);
         $c->add('lastmod', $_XMLSMAP_DEFAULT['lastmod'], '%text', 0, 0, null,
             50, true, $me, 0);
 
@@ -152,23 +135,8 @@ function plugin_initconfig_xmlsitemap()
         $c->add('fs_ping', null, 'fieldset', 0, 3, null, 0, true, $me, 3);
         $c->add('ping_google', $_XMLSMAP_DEFAULT['ping_google'], 'select', 0,
             3, 1, 100, true, $me, 3);
-		
-		// IndexNow
-        $c->add('indexnow', $_XMLSMAP_DEFAULT['indexnow'], 'select', 0,
+        $c->add('ping_bing', $_XMLSMAP_DEFAULT['ping_bing'], 'select', 0,
             3, 1, 110, true, $me, 3);
-		$c->add('indexnow_key', $_XMLSMAP_DEFAULT['indexnow_key'], 'text', 0,
-            3, null, 111, true, $me, 3);			
-		$c->add('indexnow_key_location', $_XMLSMAP_DEFAULT['indexnow_key_location'], 'text', 0,
-            3, null, 112, true, $me, 3);			
-		
-        // News Sitemap
-        $c->add('tab_news', null, 'tab', 0, 4, null, 0, true, $me, 4);
-        $c->add('fs_news', null, 'fieldset', 0, 4, null, 0, true, $me, 4);
-        $c->add('news_sitemap_file', $_XMLSMAP_DEFAULT['news_sitemap_file'],
-            'text', 0, 4, null, 120, false, $me, 4);
-        $c->add('news_sitemap_topics', $_XMLSMAP_DEFAULT['news_sitemap_topics'], '%text', 0, 4, null, 130,
-            true, $me, 4);
-        $c->add('news_sitemap_age',$_XMLSMAP_DEFAULT['news_sitemap_age'], 'text', 0, 4, null, 140, true, $me, 4);
     }
 
     return true;

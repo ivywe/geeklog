@@ -89,7 +89,7 @@ CREATE TABLE {$_TABLES['comments']} (
   indent smallint NOT NULL default '0',
   name varchar(32) default NULL,
   uid smallint NOT NULL default '1',
-  seq INT NOT NULL DEFAULT 0,
+  ipaddress varchar(39) NOT NULL default '',
   PRIMARY KEY (cid)
 );
   CREATE INDEX {$_TABLES['comments']}_sid ON {$_TABLES['comments']}(sid);
@@ -110,7 +110,7 @@ CREATE TABLE {$_TABLES['commentsubmissions']} (
   uid smallint NOT NULL default '1',
   name varchar(32) default NULL,
   pid int NOT NULL default '0',
-  seq INT NOT NULL DEFAULT 0,
+  ipaddress varchar(39) NOT NULL,
   PRIMARY KEY (cid)
 )
 ";
@@ -127,6 +127,23 @@ CREATE TABLE {$_TABLES['conf_values']} (
   sort_order int default NULL,
   tab int default NULL,
   fieldset int default NULL
+)
+";
+
+$_SQL[] = "
+CREATE TABLE {$_TABLES['cookiecodes']} (
+  cc_value int NOT NULL default '0',
+  cc_descr varchar(20) NOT NULL default '',
+  PRIMARY KEY (cc_value)
+)
+";
+
+$_SQL[] = "
+CREATE TABLE {$_TABLES['dateformats']} (
+  dfid smallint NOT NULL default '0',
+  format varchar(32) default NULL,
+  description varchar(64) default NULL,
+  PRIMARY KEY (dfid)
 )
 ";
 
@@ -164,40 +181,22 @@ CREATE TABLE {$_TABLES['groups']} (
 ";
 
 $_SQL[] = "
-CREATE TABLE {$_TABLES['ip_addresses']} (
-  seq SERIAL,
-  ipaddress VARCHAR(39) NOT NULL DEFAULT '0.0.0.0',
-  created_at INT NOT NULL DEFAULT 0,
-  is_anonymized INT NOT NULL default 0,
-  PRIMARY KEY (seq)
-)
-";
-
-$_SQL[] = "
 CREATE TABLE {$_TABLES['language_items']} (
   id SERIAL NOT NULL,
-  var_name varchar(30) NOT NULL,
-  language varchar(30) NOT NULL,
-  name varchar(30) NOT NULL,
-  value text,
+  var_name VARCHAR(30) NOT NULL,
+  language VARCHAR(30) NOT NULL,
+  name VARCHAR(30) NOT NULL,
+  value VARCHAR(255) DEFAULT '' NOT NULL,
   PRIMARY KEY (id)
 )
 ";
 
-$_SQL[] ="
-CREATE TABLE {$_TABLES['likes']} (
-  lid SERIAL NOT NULL,
-  type varchar(30) NOT NULL,
-  subtype varchar(15) NOT NULL DEFAULT '',
-  id varchar(128) NOT NULL,
-  uid smallint NOT NULL,
-  seq INT NOT NULL DEFAULT 0,
-  action smallint NOT NULL,
-  created timestamp NOT NULL,
-  PRIMARY KEY (lid)
-);
-CREATE INDEX {$_TABLES['likes']}_type ON {$_TABLES['likes']} (type,subtype,id);
-CREATE INDEX {$_TABLES['likes']}type_2 ON {$_TABLES['likes']} (type,id);
+$_SQL[] = "
+CREATE TABLE {$_TABLES['maillist']} (
+  code SERIAL,
+  name varchar(32) default NULL,
+  PRIMARY KEY (code)
+)
 ";
 
 $_SQL[] = "
@@ -240,15 +239,17 @@ $_SQL[] = "CREATE TABLE {$_TABLES['routes']} (
 
 $_SQL[] = "
 CREATE TABLE {$_TABLES['sessions']} (
-  sess_id VARCHAR(190) NOT NULL default '',
+  sess_id int NOT NULL default '0',
   start_time int NOT NULL default '0',
-  seq INT NOT NULL default 0,
+  remote_ip varchar(39) NOT NULL default '',
   uid smallint NOT NULL default '1',
+  md5_sess_id varchar(128) default NULL,
   whos_online smallint NOT NULL default '1',
-  autologin_key_hash VARCHAR(190) NOT NULL DEFAULT '',
+  topic varchar(75) NOT NULL default '',
   PRIMARY KEY (sess_id)
 );
   CREATE INDEX {$_TABLES['sessions']}_start_time ON {$_TABLES['sessions']} (start_time);
+  CREATE INDEX {$_TABLES['sessions']}_remote_ip ON {$_TABLES['sessions']}(remote_ip);
 ";
 
 $_SQL[] = "
@@ -269,14 +270,12 @@ CREATE TABLE {$_TABLES['stories']} (
   uid smallint NOT NULL default '1',
   draft_flag smallint default '0',
   date timestamp NOT NULL default current_timestamp,
-  modified timestamp default NULL,
   title varchar(128) default NULL,
   page_title varchar(128) default NULL,
   introtext text,
   bodytext text,
   text_version smallint NOT NULL default '1',
   hits smallint NOT NULL default '0',
-  numpages smallint NOT NULL DEFAULT '1',
   numemails smallint NOT NULL default '0',
   comments smallint NOT NULL default '0',
   comment_expire timestamp default NULL,
@@ -285,7 +284,6 @@ CREATE TABLE {$_TABLES['stories']} (
   featured smallint NOT NULL default '0',
   show_topic_icon smallint NOT NULL default '1',
   commentcode smallint NOT NULL default '0',
-  structured_data_type varchar(40) NOT NULL DEFAULT '',
   trackbackcode smallint NOT NULL default '0',
   statuscode smallint NOT NULL default '0',
   expire timestamp default NULL,
@@ -366,21 +364,15 @@ CREATE TABLE {$_TABLES['tokens']} (
 )
 ";
 
-// Note: Subtype kept at 15 chars as max key length is approaching 1000 bytes for the primary key (for our minimum MySQL server requirements)
-// Other Keys needed to speed up SQL for items that do not use subtype
 $_SQL[] = "
 CREATE TABLE {$_TABLES['topic_assignments']} (
   tid varchar(75) NOT NULL,
   type varchar(30) NOT NULL,
-  subtype varchar(15) NOT NULL DEFAULT '',
   id varchar(128) NOT NULL,
   inherit smallint NOT NULL default '1',
   tdefault smallint NOT NULL default '0',
-  PRIMARY KEY (tid,type,subtype,id)
-);
-CREATE INDEX {$_TABLES['topic_assignments']}_tid ON {$_TABLES['topic_assignments']}(tid, type, id);
-CREATE INDEX {$_TABLES['topic_assignments']}_type ON {$_TABLES['topic_assignments']}(type, subtype, id);
-CREATE INDEX {$_TABLES['topic_assignments']}_type_2 ON {$_TABLES['topic_assignments']}(type, id);
+  PRIMARY KEY  (tid,type,id)
+)
 ";
 
 $_SQL[] = "
@@ -418,7 +410,7 @@ CREATE TABLE {$_TABLES['trackback']} (
   excerpt text,
   date timestamp default NULL,
   type varchar(30) NOT NULL default 'article',
-  seq INT NOT NULL DEFAULT 0,
+  ipaddress varchar(39) NOT NULL default '',
   PRIMARY KEY (cid)
 );
   CREATE INDEX {$_TABLES['trackback']}_sid ON {$_TABLES['trackback']}(sid);
@@ -427,41 +419,61 @@ CREATE TABLE {$_TABLES['trackback']} (
   CREATE INDEX {$_TABLES['trackback']}_date ON {$_TABLES['trackback']}(date);
 ";
 
-// Since Geeklog-2.2.2, $_TABLES['usercomment'], $_TABLES['userindex'], $_TABLES['userinfo'], and $_TABLES['userprefs']
-// tables are combined into $_TABLES['user_attributes'] table.
 $_SQL[] = "
-CREATE TABLE {$_TABLES['user_attributes']} (
-  uid SMALLINT NOT NULL DEFAULT 1,
-  commentmode VARCHAR(10) NOT NULL DEFAULT 'nested',
-  commentorder VARCHAR(4) NOT NULL DEFAULT 'ASC',
-  commentlimit SMALLINT NOT NULL DEFAULT 100,
-  etids TEXT NOT NULL,
-  noboxes SMALLINT NOT NULL DEFAULT 0,
-  maxstories SMALLINT NOT NULL DEFAULT 0,
-  about TEXT NOT NULL,
-  location VARCHAR(96) NOT NULL DEFAULT '',
-  pgpkey TEXT NOT NULL,
-  tokens SMALLINT NOT NULL DEFAULT 0,
-  lastgranted SMALLINT NOT NULL DEFAULT 0,
-  lastlogin VARCHAR(10) NOT NULL DEFAULT '0',
-  dfid SMALLINT NOT NULL DEFAULT 0,
-  advanced_editor SMALLINT NOT NULL DEFAULT 1,
-  tzid VARCHAR(125) NOT NULL DEFAULT '',
-  emailfromadmin SMALLINT NOT NULL DEFAULT 1,
-  emailfromuser SMALLINT NOT NULL DEFAULT 1,
-  showonline SMALLINT NOT NULL DEFAULT 1,
+CREATE TABLE {$_TABLES['usercomment']} (
+  uid smallint NOT NULL default '1',
+  commentmode varchar(10) NOT NULL default 'nested',
+  commentorder varchar(4) NOT NULL default 'ASC',
+  commentlimit smallint NOT NULL default '100',
   PRIMARY KEY (uid)
-);";
+)
+";
 
 $_SQL[] = "
-CREATE TABLE {$_TABLES['userautologin']} (
-  autologin_key_hash VARCHAR(190) NOT NULL DEFAULT '',
-  expiry_time int NOT NULL default '0',
+CREATE TABLE {$_TABLES['userindex']} (
   uid smallint NOT NULL default '1',
-  PRIMARY KEY (autologin_key_hash)
+  tids varchar(255) NOT NULL default '',
+  etids text,
+  aids varchar(255) NOT NULL default '0',
+  boxes varchar(255) NOT NULL default '0',
+  noboxes smallint NOT NULL default '0',
+  maxstories smallint default NULL,
+  PRIMARY KEY (uid)
 );
-  CREATE INDEX {$_TABLES['userautologin']}_expiry_time ON {$_TABLES['userautologin']} (expiry_time);
-  CREATE INDEX {$_TABLES['userautologin']}_uid ON {$_TABLES['userautologin']}(uid);
+  CREATE INDEX {$_TABLES['userindex']}_uid ON {$_TABLES['userindex']}(uid);
+  CREATE INDEX {$_TABLES['userindex']}_noboxes ON {$_TABLES['userindex']}(noboxes);
+  CREATE INDEX {$_TABLES['userindex']}_maxstories ON {$_TABLES['userindex']}(maxstories);
+";
+
+$_SQL[] = "
+CREATE TABLE {$_TABLES['userinfo']} (
+  uid smallint NOT NULL default '1',
+  about text,
+  location varchar(96) NOT NULL default '',
+  pgpkey text,
+  userspace varchar(255) NOT NULL default '',
+  tokens smallint NOT NULL default '0',
+  totalcomments smallint NOT NULL default '0',
+  lastgranted smallint NOT NULL default '0',
+  lastlogin VARCHAR(10) NOT NULL default '0',
+  PRIMARY KEY (uid)
+)
+";
+
+$_SQL[] = "
+CREATE TABLE {$_TABLES['userprefs']} (
+  uid smallint NOT NULL default '1',
+  noicons smallint NOT NULL default '0',
+  willing smallint NOT NULL default '1',
+  dfid smallint NOT NULL default '0',
+  advanced_editor smallint NOT NULL default '1',
+  tzid varchar(125) NOT NULL default '',
+  emailstories smallint NOT NULL default '1',
+  emailfromadmin smallint NOT NULL default '1',
+  emailfromuser smallint NOT NULL default '1',
+  showonline smallint NOT NULL default '1',
+  PRIMARY KEY (uid)
+)
 ";
 
 $_SQL[] = "
@@ -478,25 +490,24 @@ CREATE TABLE {$_TABLES['users']} (
   email varchar(96) default NULL,
   homepage varchar(96) default NULL,
   sig varchar(160) NOT NULL default '',
-  regdate timestamp NOT NULL default current_timestamp ,
+  regdate timestamp NOT NULL default NULL,
   photo varchar(128) DEFAULT NULL,
-  cookietimeout int default 28800,
+  cookietimeout int default '28800',
   theme varchar(64) default NULL,
   language varchar(64) default NULL,
   pwrequestid varchar(16) default NULL,
   emailconfirmid varchar(16) default NULL,
   emailtoconfirm varchar(96) default NULL,
-  status smallint NOT NULL default 1,
+  status smallint NOT NULL default '1',
   num_reminders smallint NOT NULL default 0,
-  invalidlogins SMALLINT NOT NULL DEFAULT 0,
-  lastinvalid int default NULL,
+  invalidlogins SMALLINT NOT NULL DEFAULT '0', 
+  lastinvalid int(10) unsigned default NULL, 
   twofactorauth_enabled SMALLINT NOT NULL DEFAULT 0,
   twofactorauth_secret VARCHAR(255) NOT NULL DEFAULT '',
-  postmode VARCHAR (10) NOT NULL DEFAULT 'plaintext',
   PRIMARY KEY (uid)
 );
   CREATE INDEX {$_TABLES['users']}_LOGIN ON {$_TABLES['users']}(uid,passwd,username);
-  CREATE UNIQUE INDEX {$_TABLES['users']}_username ON {$_TABLES['users']}(username);
+  CREATE INDEX {$_TABLES['users']}_username ON {$_TABLES['users']}(username);
   CREATE INDEX {$_TABLES['users']}_fullname ON {$_TABLES['users']}(fullname);
   CREATE INDEX {$_TABLES['users']}_email ON {$_TABLES['users']}(email);
   CREATE INDEX {$_TABLES['users']}_passwd ON {$_TABLES['users']}(passwd);
@@ -543,7 +554,6 @@ $_SQL[] = "CREATE OR REPLACE FUNCTION CURDATE() RETURNS date AS 'SELECT current_
 $_DATA[] = "INSERT INTO {$_TABLES['access']} (acc_ft_id, acc_grp_id) VALUES (1,3) ";
 $_DATA[] = "INSERT INTO {$_TABLES['access']} (acc_ft_id, acc_grp_id) VALUES (2,3) ";
 $_DATA[] = "INSERT INTO {$_TABLES['access']} (acc_ft_id, acc_grp_id) VALUES (4,3) ";
-$_DATA[] = "INSERT INTO {$_TABLES['access']} (acc_ft_id, acc_grp_id) VALUES (70,3) ";
 $_DATA[] = "INSERT INTO {$_TABLES['access']} (acc_ft_id, acc_grp_id) VALUES (5,9) ";
 $_DATA[] = "INSERT INTO {$_TABLES['access']} (acc_ft_id, acc_grp_id) VALUES (5,11) ";
 $_DATA[] = "INSERT INTO {$_TABLES['access']} (acc_ft_id, acc_grp_id) VALUES (6,9) ";
@@ -619,6 +629,35 @@ $_DATA[] = "INSERT INTO {$_TABLES['blocks']} (bid, is_enabled, name, type, title
 $_DATA[] = "INSERT INTO {$_TABLES['blocks']} (bid, is_enabled, name, type, title, blockorder, content, rdfurl, rdfupdated, onleft, phpblockfn, group_id, owner_id, perm_owner, perm_group, perm_members, perm_anon) VALUES ((SELECT NEXTVAL('{$_TABLES['blocks']}_bid_seq')),1,'whosonline_block','phpblock','Who''s Online',10,'','','epoch',0,'phpblock_whosonline',4,2,3,3,2,2) ";
 $_DATA[] = "INSERT INTO {$_TABLES['blocks']} (bid, is_enabled, name, type, title, blockorder, content, rdfurl, rdfupdated, onleft, phpblockfn, group_id, owner_id, perm_owner, perm_group, perm_members, perm_anon) VALUES ((SELECT NEXTVAL('{$_TABLES['blocks']}_bid_seq')),1,'older_stories','gldefault','Older Stories',40,'','','epoch',1,'',4,2,3,3,2,2) ";
 
+$_DATA[] = "INSERT INTO {$_TABLES['cookiecodes']} (cc_value, cc_descr) VALUES (0,'(don''t)') ";
+$_DATA[] = "INSERT INTO {$_TABLES['cookiecodes']} (cc_value, cc_descr) VALUES (3600,'1 Hour') ";
+$_DATA[] = "INSERT INTO {$_TABLES['cookiecodes']} (cc_value, cc_descr) VALUES (7200,'2 Hours') ";
+$_DATA[] = "INSERT INTO {$_TABLES['cookiecodes']} (cc_value, cc_descr) VALUES (10800,'3 Hours') ";
+$_DATA[] = "INSERT INTO {$_TABLES['cookiecodes']} (cc_value, cc_descr) VALUES (28800,'8 Hours') ";
+$_DATA[] = "INSERT INTO {$_TABLES['cookiecodes']} (cc_value, cc_descr) VALUES (86400,'1 Day') ";
+$_DATA[] = "INSERT INTO {$_TABLES['cookiecodes']} (cc_value, cc_descr) VALUES (604800,'1 Week') ";
+$_DATA[] = "INSERT INTO {$_TABLES['cookiecodes']} (cc_value, cc_descr) VALUES (2678400,'1 Month') ";
+
+$_DATA[] = "INSERT INTO {$_TABLES['dateformats']} (dfid, format, description) VALUES (0,'','System Default') ";
+$_DATA[] = "INSERT INTO {$_TABLES['dateformats']} (dfid, format, description) VALUES (1,'%A %B %d, %Y @%I:%M%p','Sunday March 21, 1999 @10:00PM') ";
+$_DATA[] = "INSERT INTO {$_TABLES['dateformats']} (dfid, format, description) VALUES (2,'%A %b %d, %Y @%H:%M','Sunday March 21, 1999 @22:00') ";
+$_DATA[] = "INSERT INTO {$_TABLES['dateformats']} (dfid, format, description) VALUES (4,'%A %b %d @%H:%M','Sunday March 21 @22:00') ";
+$_DATA[] = "INSERT INTO {$_TABLES['dateformats']} (dfid, format, description) VALUES (5,'%H:%M %d %B %Y','22:00 21 March 1999') ";
+$_DATA[] = "INSERT INTO {$_TABLES['dateformats']} (dfid, format, description) VALUES (6,'%H:%M %A %d %B %Y','22:00 Sunday 21 March 1999') ";
+$_DATA[] = "INSERT INTO {$_TABLES['dateformats']} (dfid, format, description) VALUES (7,'%I:%M%p - %A %B %d %Y','10:00PM -- Sunday March 21 1999') ";
+$_DATA[] = "INSERT INTO {$_TABLES['dateformats']} (dfid, format, description) VALUES (8,'%a %B %d, %I:%M%p','Sun March 21, 10:00PM') ";
+$_DATA[] = "INSERT INTO {$_TABLES['dateformats']} (dfid, format, description) VALUES (9,'%a %B %d, %H:%M','Sun March 21, 22:00') ";
+$_DATA[] = "INSERT INTO {$_TABLES['dateformats']} (dfid, format, description) VALUES (10,'%m-%d-%y %H:%M','3-21-99 22:00') ";
+$_DATA[] = "INSERT INTO {$_TABLES['dateformats']} (dfid, format, description) VALUES (11,'%d-%m-%y %H:%M','21-3-99 22:00') ";
+$_DATA[] = "INSERT INTO {$_TABLES['dateformats']} (dfid, format, description) VALUES (12,'%m-%d-%y %I:%M%p','3-21-99 10:00PM') ";
+$_DATA[] = "INSERT INTO {$_TABLES['dateformats']} (dfid, format, description) VALUES (13,'%I:%M%p  %B %e, %Y','10:00PM  March 21, 1999') ";
+$_DATA[] = "INSERT INTO {$_TABLES['dateformats']} (dfid, format, description) VALUES (14,'%a %b %d, ''%y %I:%M%p','Sun Mar 21, ''99 10:00PM') ";
+$_DATA[] = "INSERT INTO {$_TABLES['dateformats']} (dfid, format, description) VALUES (15,'Day %j, %I ish','Day 80, 10 ish') ";
+$_DATA[] = "INSERT INTO {$_TABLES['dateformats']} (dfid, format, description) VALUES (16,'%y-%m-%d %I:%M','99-03-21 10:00') ";
+$_DATA[] = "INSERT INTO {$_TABLES['dateformats']} (dfid, format, description) VALUES (17,'%d/%m/%y %H:%M','21/03/99 22:00') ";
+$_DATA[] = "INSERT INTO {$_TABLES['dateformats']} (dfid, format, description) VALUES (18,'%a %d %b %I:%M%p','Sun 21 Mar 10:00PM') ";
+$_DATA[] = "INSERT INTO {$_TABLES['dateformats']} (dfid, format, description) VALUES (19,'%Y-%m-%d %H:%M','1999-03-21 22:00') ";
+
 $_DATA[] = "INSERT INTO {$_TABLES['features']} (ft_id, ft_name, ft_descr, ft_gl_core) VALUES ((SELECT nextval('{$_TABLES['features']}_ft_id_seq')),'story.edit','Access to story editor',1) ";
 $_DATA[] = "INSERT INTO {$_TABLES['features']} (ft_id, ft_name, ft_descr, ft_gl_core) VALUES ((SELECT nextval('{$_TABLES['features']}_ft_id_seq')),'story.moderate','Ability to moderate pending stories',1) ";
 $_DATA[] = "INSERT INTO {$_TABLES['features']} (ft_id, ft_name, ft_descr, ft_gl_core) VALUES ((SELECT nextval('{$_TABLES['features']}_ft_id_seq')),'story.submit','May skip the story submission queue',1) ";
@@ -688,28 +727,36 @@ $_DATA[] = "INSERT INTO {$_TABLES['features']} (ft_id, ft_name, ft_descr, ft_gl_
 $_DATA[] = "INSERT INTO {$_TABLES['features']} (ft_id, ft_name, ft_descr, ft_gl_core) VALUES ((SELECT nextval('{$_TABLES['features']}_ft_id_seq')), 'config.Filemanager.tab_audios', 'Access to configure Filemanager Audios Settings', 0)";
 $_DATA[] = "INSERT INTO {$_TABLES['features']} (ft_id, ft_name, ft_descr, ft_gl_core) VALUES ((SELECT nextval('{$_TABLES['features']}_ft_id_seq')), 'language.edit', 'Can manage Language Settings', 1)";
 $_DATA[] = "INSERT INTO {$_TABLES['features']} (ft_id, ft_name, ft_descr, ft_gl_core) VALUES ((SELECT nextval('{$_TABLES['features']}_ft_id_seq')), 'theme.edit', 'Can manage Theme Settings', 1)";
-$_DATA[] = "INSERT INTO {$_TABLES['features']} (ft_id, ft_name, ft_descr, ft_gl_core) VALUES ((SELECT nextval('{$_TABLES['features']}_ft_id_seq')), 'structureddata.autotag', 'Can use the Structured Data Autotag', 1)";
 
-// Anonymous User (1) and Admin User (2) belongs to All Users (2)
 $_DATA[] = "INSERT INTO {$_TABLES['group_assignments']} (ug_main_grp_id, ug_uid, ug_grp_id) VALUES (2,1,NULL) ";
-$_DATA[] = "INSERT INTO {$_TABLES['group_assignments']} (ug_main_grp_id, ug_uid, ug_grp_id) VALUES (2,2,NULL) ";
-// Admin User (2) belongs to Logged-in Users (13)
-$_DATA[] = "INSERT INTO {$_TABLES['group_assignments']} (ug_main_grp_id, ug_uid, ug_grp_id) VALUES (13,2,NULL) ";
-// Admin User (2) belongs to everything so assign to Root Group (1)
-$_DATA[] = "INSERT INTO {$_TABLES['group_assignments']} (ug_main_grp_id, ug_uid, ug_grp_id) VALUES (1,2,NULL) ";
-// User Admin Group (9) belongs to Group Admin Group (11)
-$_DATA[] = "INSERT INTO {$_TABLES['group_assignments']} (ug_main_grp_id, ug_uid, ug_grp_id) VALUES (9,NULL,11) ";
-// Root Group Assignments - Belongs to every group except itself (1), All Users (2), Remote Users (7)
-// Remember any NEW GROUPS needs to be added to Root Group
+$_DATA[] = "INSERT INTO {$_TABLES['group_assignments']} (ug_main_grp_id, ug_uid, ug_grp_id) VALUES (2,NULL,1) ";
 $_DATA[] = "INSERT INTO {$_TABLES['group_assignments']} (ug_main_grp_id, ug_uid, ug_grp_id) VALUES (3,NULL,1) ";
 $_DATA[] = "INSERT INTO {$_TABLES['group_assignments']} (ug_main_grp_id, ug_uid, ug_grp_id) VALUES (4,NULL,1) ";
-$_DATA[] = "INSERT INTO {$_TABLES['group_assignments']} (ug_main_grp_id, ug_uid, ug_grp_id) VALUES (5,NULL,1) ";
 $_DATA[] = "INSERT INTO {$_TABLES['group_assignments']} (ug_main_grp_id, ug_uid, ug_grp_id) VALUES (6,NULL,1) ";
-$_DATA[] = "INSERT INTO {$_TABLES['group_assignments']} (ug_main_grp_id, ug_uid, ug_grp_id) VALUES (8,NULL,1) ";
 $_DATA[] = "INSERT INTO {$_TABLES['group_assignments']} (ug_main_grp_id, ug_uid, ug_grp_id) VALUES (9,NULL,1) ";
 $_DATA[] = "INSERT INTO {$_TABLES['group_assignments']} (ug_main_grp_id, ug_uid, ug_grp_id) VALUES (10,NULL,1) ";
 $_DATA[] = "INSERT INTO {$_TABLES['group_assignments']} (ug_main_grp_id, ug_uid, ug_grp_id) VALUES (11,NULL,1) ";
+$_DATA[] = "INSERT INTO {$_TABLES['group_assignments']} (ug_main_grp_id, ug_uid, ug_grp_id) VALUES (13,2,NULL) ";
+$_DATA[] = "INSERT INTO {$_TABLES['group_assignments']} (ug_main_grp_id, ug_uid, ug_grp_id) VALUES (12,2,NULL) ";
+$_DATA[] = "INSERT INTO {$_TABLES['group_assignments']} (ug_main_grp_id, ug_uid, ug_grp_id) VALUES (11,2,NULL) ";
+$_DATA[] = "INSERT INTO {$_TABLES['group_assignments']} (ug_main_grp_id, ug_uid, ug_grp_id) VALUES (2,NULL,12) ";
+$_DATA[] = "INSERT INTO {$_TABLES['group_assignments']} (ug_main_grp_id, ug_uid, ug_grp_id) VALUES (2,NULL,10) ";
+$_DATA[] = "INSERT INTO {$_TABLES['group_assignments']} (ug_main_grp_id, ug_uid, ug_grp_id) VALUES (2,NULL,9) ";
+$_DATA[] = "INSERT INTO {$_TABLES['group_assignments']} (ug_main_grp_id, ug_uid, ug_grp_id) VALUES (2,NULL,6) ";
+$_DATA[] = "INSERT INTO {$_TABLES['group_assignments']} (ug_main_grp_id, ug_uid, ug_grp_id) VALUES (2,NULL,4) ";
+$_DATA[] = "INSERT INTO {$_TABLES['group_assignments']} (ug_main_grp_id, ug_uid, ug_grp_id) VALUES (2,NULL,3) ";
 $_DATA[] = "INSERT INTO {$_TABLES['group_assignments']} (ug_main_grp_id, ug_uid, ug_grp_id) VALUES (12,NULL,1) ";
+$_DATA[] = "INSERT INTO {$_TABLES['group_assignments']} (ug_main_grp_id, ug_uid, ug_grp_id) VALUES (9,NULL,11) ";
+$_DATA[] = "INSERT INTO {$_TABLES['group_assignments']} (ug_main_grp_id, ug_uid, ug_grp_id) VALUES (2,NULL,11) ";
+$_DATA[] = "INSERT INTO {$_TABLES['group_assignments']} (ug_main_grp_id, ug_uid, ug_grp_id) VALUES (10,2,NULL) ";
+$_DATA[] = "INSERT INTO {$_TABLES['group_assignments']} (ug_main_grp_id, ug_uid, ug_grp_id) VALUES (9,2,NULL) ";
+$_DATA[] = "INSERT INTO {$_TABLES['group_assignments']} (ug_main_grp_id, ug_uid, ug_grp_id) VALUES (6,2,NULL) ";
+$_DATA[] = "INSERT INTO {$_TABLES['group_assignments']} (ug_main_grp_id, ug_uid, ug_grp_id) VALUES (4,2,NULL) ";
+$_DATA[] = "INSERT INTO {$_TABLES['group_assignments']} (ug_main_grp_id, ug_uid, ug_grp_id) VALUES (3,2,NULL) ";
+$_DATA[] = "INSERT INTO {$_TABLES['group_assignments']} (ug_main_grp_id, ug_uid, ug_grp_id) VALUES (2,2,NULL) ";
+$_DATA[] = "INSERT INTO {$_TABLES['group_assignments']} (ug_main_grp_id, ug_uid, ug_grp_id) VALUES (1,2,NULL) ";
+$_DATA[] = "INSERT INTO {$_TABLES['group_assignments']} (ug_main_grp_id, ug_uid, ug_grp_id) VALUES (5,NULL,1) ";
+$_DATA[] = "INSERT INTO {$_TABLES['group_assignments']} (ug_main_grp_id, ug_uid, ug_grp_id) VALUES (8,NULL,1) ";
 $_DATA[] = "INSERT INTO {$_TABLES['group_assignments']} (ug_main_grp_id, ug_uid, ug_grp_id) VALUES (14,NULL,1) ";
 $_DATA[] = "INSERT INTO {$_TABLES['group_assignments']} (ug_main_grp_id, ug_uid, ug_grp_id) VALUES (15,NULL,1) ";
 $_DATA[] = "INSERT INTO {$_TABLES['group_assignments']} (ug_main_grp_id, ug_uid, ug_grp_id) VALUES (16,NULL,1) ";
@@ -738,20 +785,22 @@ $_DATA[] = "INSERT INTO {$_TABLES['groups']} (grp_id, grp_name, grp_descr, grp_g
 $_DATA[] = "INSERT INTO {$_TABLES['groups']} (grp_id, grp_name, grp_descr, grp_gl_core) VALUES ((SELECT nextval('{$_TABLES['groups']}_grp_id_seq')), 'Language Admin', 'Has full access to language', 1);";
 $_DATA[] = "INSERT INTO {$_TABLES['groups']} (grp_id, grp_name, grp_descr, grp_gl_core) VALUES ((SELECT nextval('{$_TABLES['groups']}_grp_id_seq')), 'Theme Admin', 'Has full access to themes', 1);";
 
+$_DATA[] = "INSERT INTO {$_TABLES['maillist']} (code, name) VALUES ((SELECT nextval('{$_TABLES['maillist']}_code_seq')),'Don''t Email') ";
+$_DATA[] = "INSERT INTO {$_TABLES['maillist']} (code, name) VALUES ((SELECT nextval('{$_TABLES['maillist']}_code_seq')),'Email Headlines Each Night') ";
+
 $_DATA[] = "INSERT INTO {$_TABLES['pingservice']} (pid, name, site_url, ping_url, method, is_enabled) VALUES ((SELECT nextval('{$_TABLES['pingservice']}_pid_seq')), 'Ping-O-Matic', 'http://pingomatic.com/', 'http://rpc.pingomatic.com/', 'weblogUpdates.ping', 1)";
 
 $_DATA[] = "INSERT INTO {$_TABLES['routes']} (method, rule, route, priority) VALUES (1, '/article/@sid', '/article.php?story=@sid', 100)";
 $_DATA[] = "INSERT INTO {$_TABLES['routes']} (method, rule, route, priority) VALUES (1, '/article/@sid/print', '/article.php?story=@sid&mode=print', 110)";
-$_DATA[] = "INSERT INTO {$_TABLES['routes']} (method, rule, route, priority) VALUES (1, '/article/@sid/@page', '/article.php?story=@sid&page=@page', 120)";
-$_DATA[] = "INSERT INTO {$_TABLES['routes']} (method, rule, route, priority) VALUES (1, '/topic/@topic', '/index.php?topic=@topic', 130)";
-$_DATA[] = "INSERT INTO {$_TABLES['routes']} (method, rule, route, priority) VALUES (1, '/topic/@topic/@page', '/index.php?topic=@topic&page=@page', 140)";
-$_DATA[] = "INSERT INTO {$_TABLES['routes']} (method, rule, route, priority) VALUES (1, '/archives/@topic/@year/@month', '/directory.php?topic=@topic&year=@year&month=@month', 150)";
-$_DATA[] = "INSERT INTO {$_TABLES['routes']} (method, rule, route, priority) VALUES (1, '/page/@page', '/staticpages/index.php?page=@page', 160)";
-$_DATA[] = "INSERT INTO {$_TABLES['routes']} (method, rule, route, priority) VALUES (1, '/page/@page/print', '/staticpages/index.php?page=@page&disp_mode=print', 170)";
-$_DATA[] = "INSERT INTO {$_TABLES['routes']} (method, rule, route, priority) VALUES (1, '/links/portal/@item', '/links/portal.php?what=link&item=@item', 180)";
-$_DATA[] = "INSERT INTO {$_TABLES['routes']} (method, rule, route, priority) VALUES (1, '/links/category/@cat', '/links/index.php?category=@cat', 190)";
+$_DATA[] = "INSERT INTO {$_TABLES['routes']} (method, rule, route, priority) VALUES (1, '/topic/@topic', '/index.php?topic=@topic', 120)";
+$_DATA[] = "INSERT INTO {$_TABLES['routes']} (method, rule, route, priority) VALUES (1, '/topic/@topic/@page', '/index.php?topic=@topic&page=@page', 130)";
+$_DATA[] = "INSERT INTO {$_TABLES['routes']} (method, rule, route, priority) VALUES (1, '/archives/@topic/@year/@month', '/directory.php?topic=@topic&year=@year&month=@month', 140)";
+$_DATA[] = "INSERT INTO {$_TABLES['routes']} (method, rule, route, priority) VALUES (1, '/page/@page', '/staticpages/index.php?page=@page', 150)";
+$_DATA[] = "INSERT INTO {$_TABLES['routes']} (method, rule, route, priority) VALUES (1, '/page/@page/print', '/staticpages/index.php?page=@page&disp_mode=print', 160)";
+$_DATA[] = "INSERT INTO {$_TABLES['routes']} (method, rule, route, priority) VALUES (1, '/links/portal/@item', '/links/portal.php?what=link&item=@item', 147)";
+$_DATA[] = "INSERT INTO {$_TABLES['routes']} (method, rule, route, priority) VALUES (1, '/links/category/@cat', '/links/index.php?category=@cat', 180)";
 
-$_DATA[] = "INSERT INTO {$_TABLES['stories']} (sid, uid, draft_flag, date, title, introtext, bodytext, hits, numemails, comments, related, featured, commentcode, structured_data_type, statuscode, postmode, frontpage, owner_id, group_id, perm_owner, perm_group, perm_members, perm_anon) VALUES ('welcome',2,0,NOW(),'Welcome to Geeklog!','<p>Welcome and let me be the first to congratulate you on installing Geeklog. Please take the time to read everything in the <a href=\"docs/english/index.html\">docs directory</a>. Geeklog now has enhanced, user-based security.  You should thoroughly understand how these work before you run a production Geeklog Site.</p>\r<p>To log into your new Geeklog site, please use this account:</p>\r<p>Username: <b>Admin</b><br />\rPassword: <b>password</b></p><p><b>And don''t forget to <a href=\"usersettings.php\">change your password</a> after logging in!</b></p>','',100,1,0,'',1,0,'core-article',0,'html',1,2,3,3,2,2,2) ";
+$_DATA[] = "INSERT INTO {$_TABLES['stories']} (sid, uid, draft_flag, date, title, introtext, bodytext, hits, numemails, comments, related, featured, commentcode, statuscode, postmode, frontpage, owner_id, group_id, perm_owner, perm_group, perm_members, perm_anon) VALUES ('welcome',2,0,NOW(),'Welcome to Geeklog!','<p>Welcome and let me be the first to congratulate you on installing Geeklog. Please take the time to read everything in the <a href=\"docs/english/index.html\">docs directory</a>. Geeklog now has enhanced, user-based security.  You should thoroughly understand how these work before you run a production Geeklog Site.</p>\r<p>To log into your new Geeklog site, please use this account:</p>\r<p>Username: <b>Admin</b><br />\rPassword: <b>password</b></p><p><b>And don''t forget to <a href=\"usersettings.php\">change your password</a> after logging in!</b></p>','',100,1,0,'',1,0,0,'html',1,2,3,3,2,2,2) ";
 
 $_DATA[] = "INSERT INTO {$_TABLES['storysubmission']} (sid, uid, title, introtext, date, postmode) VALUES ('security-reminder',2,'Are you secure?','<p>This is a reminder to secure your site once you have Geeklog up and running. What you should do:</p>\r\r<ol>\r<li>Change the default password for the Admin account.</li>\r<li>Remove the install directory (you won''t need it any more).</li>\r</ol>',NOW(),'html') ";
 
@@ -770,17 +819,16 @@ $_DATA[] = "INSERT INTO {$_TABLES['topic_assignments']} (tid, type, id, inherit,
 $_DATA[] = "INSERT INTO {$_TABLES['topics']} (tid, topic, imageurl, meta_description, meta_keywords, sortnum, limitnews, group_id, owner_id, perm_owner, perm_group, perm_members, perm_anon) VALUES ('General','General News','/images/topics/topic_news.png','A topic that contains general news related posts.','News, Post, Information',1,10,6,2,3,2,2,2)";
 $_DATA[] = "INSERT INTO {$_TABLES['topics']} (tid, topic, imageurl, meta_description, meta_keywords, sortnum, limitnews, group_id, owner_id, perm_owner, perm_group, perm_members, perm_anon) VALUES ('Geeklog','Geeklog','/images/topics/topic_gl.png','A topic that contains posts about Geeklog.','Geeklog, Posts, Information',2,10,6,2,3,2,2,2)";
 
-// For guest user
-$_DATA[] = "INSERT INTO {$_TABLES['user_attributes']} 
-    (uid, etids, about, pgpkey, advanced_editor, emailfromadmin, emailfromuser) 
-    VALUES (1, '', '', '', 0, 0, 0) 
-";
+$_DATA[] = "INSERT INTO {$_TABLES['usercomment']} (uid, commentmode, commentorder, commentlimit) VALUES (2,'nested','ASC',100) ";
 
-// For Root user
-$_DATA[] = "INSERT INTO {$_TABLES['user_attributes']} 
-    (uid, etids, about, pgpkey, advanced_editor, emailfromadmin, emailfromuser) 
-    VALUES (2, '', '', '', 1, 1, 1) 
-";
+$_DATA[] = "INSERT INTO {$_TABLES['userindex']} (uid, tids, etids, aids, boxes, noboxes, maxstories) VALUES (1,'','-','0','0',0,0) ";
+$_DATA[] = "INSERT INTO {$_TABLES['userindex']} (uid, tids, etids, aids, boxes, noboxes, maxstories) VALUES (2,'','','0','0',0,0) ";
+
+$_DATA[] = "INSERT INTO {$_TABLES['userinfo']} (uid, about, pgpkey, userspace, tokens, totalcomments, lastgranted) VALUES (1,NULL,NULL,'',0,0,0) ";
+$_DATA[] = "INSERT INTO {$_TABLES['userinfo']} (uid, about, pgpkey, userspace, tokens, totalcomments, lastgranted) VALUES (2,NULL,NULL,'',0,0,0) ";
+
+$_DATA[] = "INSERT INTO {$_TABLES['userprefs']} (uid, noicons, willing, dfid, tzid, emailstories) VALUES (1,0,0,0,'',0) ";
+$_DATA[] = "INSERT INTO {$_TABLES['userprefs']} (uid, noicons, willing, dfid, tzid, emailstories) VALUES (2,0,1,0,'',1) ";
 
 #
 # Dumping data for table 'users'

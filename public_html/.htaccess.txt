@@ -1,9 +1,9 @@
 ##
 # Geeklog .htaccess file for Apache Web Servers
-#
+#     
 # - URL Routing Rule
 # - Security and Optimizing Rules
-#
+# 
 # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! IMPORTANT !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # !!                                                                       !!
 # !!  If you get an Internal Server Error 500 or a blank page when trying  !!
@@ -11,9 +11,8 @@
 # !!                                                                       !!
 # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-## Disable directory listings and multi views
+## No directory listings
 IndexIgnore *
-Options -Indexes -MultiViews
 
 ## URL Routing
 <IfModule mod_rewrite.c>
@@ -22,11 +21,5 @@ Options -Indexes -MultiViews
     # Directs all Geeklog requests through the site index file
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteCond %{REQUEST_FILENAME} !-d
-	# For web servers that use PHP FastCGI implementation
     RewriteRule ^(.*)$ /index.php/$1 [L]
-    # For web servers that use PHP-FPM implementation and have issues (if used, comment out line above)
-    # RewriteRule ^(.*)$ /index.php?/$1 [L]	
 </IfModule>
-
-## Redirect 404 error to Geeklog error page
-ErrorDocument 404 /404.php

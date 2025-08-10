@@ -2,7 +2,7 @@
 
 /* Reminder: always indent with 4 spaces (no tabs). */
 // +---------------------------------------------------------------------------+
-// | Polls Plugin 2.2                                                          |
+// | Polls Plugin 2.1                                                          |
 // +---------------------------------------------------------------------------+
 // | autoinstall.php                                                           |
 // |                                                                           |
@@ -51,8 +51,8 @@ function plugin_autoinstall_polls($pi_name)
     $info = array(
         'pi_name'         => $pi_name,
         'pi_display_name' => $pi_display_name,
-        'pi_version'      => '2.2.1',
-        'pi_gl_version'   => '2.2.2',
+        'pi_version'      => '2.1.9',
+        'pi_gl_version'   => '2.1.1',
         'pi_homepage'     => 'https://www.geeklog.net/'
     );
 
@@ -110,6 +110,7 @@ function plugin_load_configuration_polls($pi_name)
 
     $base_path = $_CONF['path'] . 'plugins/' . $pi_name . '/';
 
+    require_once $_CONF['path_system'] . 'classes/config.class.php';
     require_once $base_path . 'install_defaults.php';
 
     return plugin_initconfig_polls();

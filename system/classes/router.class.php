@@ -57,8 +57,6 @@ class Router
 
     // Default priority
     const DEFAULT_PRIORITY = 100;
-    
-    private static $route = '';
 
     /**
      * @var bool
@@ -74,15 +72,6 @@ class Router
     {
         self::$debug = (bool) $switch;
     }
-    
-    /**
-     * Store converted route so we can grab any variables later
-     *
-     */    
-    public static function getRoute()
-    {
-        return self::$route;
-    }    
 
     /**
      * Act as a proxy
@@ -155,17 +144,12 @@ class Router
             return false;
         }
 
-        // Get $_SERVER['PATH_INFO']
-        $pathInfo = Url::getPathInfo($_CONF['site_url']);
-        if (empty($pathInfo) || ($pathInfo === '/')) {
+        // $_SERVER['PATH_INFO'] is unavailable
+        if (!isset($_SERVER['PATH_INFO']) || empty($_SERVER['PATH_INFO'])) {
             return false;
         }
 
-        $pathInfo = COM_applyBasicFilter($pathInfo);
-        // Note: For URL Routing with no "Index.php" and when Geeklog site url has a sub directory the rules in the Route Manager
-        // need to be updated to include the sub directory in the rule part only (not the route).
-        // At some point we should look into striping the sub directory from the pathinfo for this case only instead of having the Admins do 
-        // this extra step so that the path and rule will match when needed below in the loop
+        $pathInfo = COM_applyBasicFilter($_SERVER['PATH_INFO']);
 
         if (self::$debug) {
             COM_errorLog(__METHOD__ . ': PATH_INFO = ' . $pathInfo);
@@ -214,7 +198,7 @@ class Router
             $route = $A['route'];
 
             // HTTP response code since v2.2.0
-            $responseCode = isset($A['status_code']) ? (int) $A['status_code'] : self::DEFAULT_STATUS_CODE;
+            $responseCode = isset($A['response_code']) ? (int) $A['response_code'] : self::DEFAULT_STATUS_CODE;
 
             // Try simple comparison without placeholders
             if (strcasecmp($rule, $pathInfo) === 0) {
@@ -225,16 +209,7 @@ class Router
                 }
 
                 if ($responseCode === 200) {
-                    self::$route = $route; // Store converted route for later to retrieve URL variables
-                    $path = preg_replace('/\?.*/', '', $A['route']);
-                    // If returning to where router dispatch is called from (like for topic routing), then just return
-                    if ($path == '/index.php') {
-                        return;
-                    } else {
-                        // Let's load in the required file
-                        require_once $_CONF['path_html'] . $path;
-                    }
-                    //self::proxy($route); // old way that used a redirect which causes the page to basically load twice. See issue #945
+                    self::proxy($route);
                     die();
                 } else {
                     header('Location: ' . $route, $responseCode);
@@ -291,16 +266,7 @@ class Router
                 }
 
                 if ($responseCode === 200) {
-                    self::$route = $route; // Store converted route for later to retrieve URL variables
-                    $path = preg_replace('/\?.*/', '', $A['route']);
-                    // If returning to where router dispatch is called from (like for topic routing), then just return
-                    if ($path == '/index.php') {
-                        return;
-                    } else {
-                        // Lets load in the required file
-                        require_once $_CONF['path_html'] . $path;
-                    }
-                    //self::proxy($route); // old way that used a redirect which causes the page to basically load twice. See issue #945
+                    self::proxy($route);
                     die();
                 } else {
                     header('Location: ' . $route, $responseCode);
@@ -376,10 +342,6 @@ class Router
 
             // Try simple comparison without placeholders
             if (strcasecmp($route, $url) === 0) {
-                if ((int) $A['status_code'] !== 200) {
-                    continue;
-                }
-
                 $retval = $rule;
                 $retval = str_replace('&', '&amp;', $retval);
 

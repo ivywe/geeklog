@@ -8,7 +8,7 @@
 // |                                                                           |
 // | Geeklog class to include javascript, javascript files and css files.      |
 // +---------------------------------------------------------------------------+
-// | Copyright (C) 2000-2021 by the following authors:                         |
+// | Copyright (C) 2000-2018 by the following authors:                         |
 // |                                                                           |
 // | Authors: Tom Homer, tomhomer AT gmail DOT com                             |
 // |          Kenji ITO, mystralkk AT gmail DOT com                            |
@@ -32,40 +32,31 @@
 
 namespace Geeklog;
 
-use Exception;
 use JSMin\JSMin;
-use JSMin\UnterminatedRegExpException;
-use JSMin\UnterminatedStringException;
 use MatthiasMullie\Minify;
-use Mobile_Detect;
 
-/**
- * Class Resource
- *
- * @package Geeklog
- */
 class Resource
 {
     const DEFAULT_CACHE_LIFESPAN = 604800; // 1 week
 
     const JS_TAG_TEMPLATE = '<script type="text/javascript" src="%s"></script>';
-    const EXTERNAL_JS_TAG_TEMPLATE = '<script type="text/javascript" src="%s"%s%s></script>';
+    const EXTERNAL_JS_TAG_TEMPLATE = '<script type="text/javascript" src="%s" async defer></script>';
 
     // Default theme
     const DEFAULT_THEME = 'denim';
 
     // Local library versions
-    const JQUERY_VERSION = '3.6.0';
+    const JQUERY_VERSION = '3.3.1';
     const JQUERY_PRIORITY = -5000;
 
-    const JQUERY_UI_VERSION = '1.13.0';
+    const JQUERY_UI_VERSION = '1.12.1';
     const JQUERY_UI_THEME = 'redmond';
     const JQUERY_UI_PRIORITY = -4000;
 
     const UIKIT_VERSION = '2.27.5';
     const UIKIT_PRIORITY = -3000;
 
-    const UIKIT3_VERSION = '3.10.0';
+    const UIKIT3_VERSION = '3.0.0-beta.42';
     const UIKIT3_PRIORITY = -3000;
 
     /**
@@ -73,11 +64,9 @@ class Resource
      */
 
     // JQuery & JQuery UI
-    //
-    // Note: URLs are now hard-coded with version numbers to include an SRI hash
-    const JQUERY_CDN = '<script src="https://code.jquery.com/jquery-3.6.0.min.js" integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>';
-    const JQUERY_UI_CDN = '<script src="https://code.jquery.com/ui/1.13.0/jquery-ui.min.js" integrity="sha256-hlKLmzaRlE8SCJC1Kw8zoUbU8BxA+8kR3gseuKfMjxA=" crossorigin="anonymous"></script>';
-    const JQUERY_UI_CSS_CDN = '<link rel="stylesheet" href="https://code.jquery.com/ui/%s/themes/%s/jquery-ui.css">';
+    const JQUERY_CDN = 'https://ajax.googleapis.com/ajax/libs/jquery/%s/jquery.min.js';
+    const JQUERY_UI_CDN = 'https://ajax.googleapis.com/ajax/libs/jqueryui/%s/jquery-ui.min.js';
+    const JQUERY_UI_CSS_CDN = 'https://ajax.googleapis.com/ajax/libs/jqueryui/%s/themes/%s/jquery-ui.css';
 
     // UIkit v2
     const UIKIT_CDN = 'https://cdnjs.cloudflare.com/ajax/libs/uikit/%s/js/uikit.min.js';
@@ -85,9 +74,8 @@ class Resource
 
     // UIkit v3
     const UIKIT3_CDN = 'https://cdnjs.cloudflare.com/ajax/libs/uikit/%s/js/uikit.min.js';
-    const UIKIT3_ICONS_CDN = 'https://cdnjs.cloudflare.com/ajax/libs/uikit/%s/js/uikit-icons.min.js';
+    const UIKIT3_CDN2 = 'https://cdnjs.cloudflare.com/ajax/libs/uikit/%s/js/uikit-icons.min.js';
     const UIKIT3_CSS_CDN = 'https://cdnjs.cloudflare.com/ajax/libs/uikit/%s/css/uikit.min.css';
-    const UIKIT3_RTL_CSS_CDN = 'https://cdnjs.cloudflare.com/ajax/libs/uikit/%s/css/uikit-rtl.min.css';
 
     /**
      * Debug mode
@@ -119,29 +107,45 @@ class Resource
     /**
      * @var string
      */
-    private $theme;
+    private $theme = self::DEFAULT_THEME;
 
     /**
      * @var bool to check if compatible with Modern Curve theme
      */
-    private $compatibleWithMC;
+    private $compatibleWithMC = false;
 
     /**
      * @var array
      */
-    private $libraryLocations = [
-        // jQuery
+    private $libraryLocations = array(
         'jquery'                          => '/vendor/jquery/jquery.min.js',
-
-        // jQuery UI and addons
         'jquery-ui'                       => '/vendor/jquery-ui/jquery-ui.min.js',
-        'jquery-ui-i18n'                  => '/vendor/jquery-ui/jquery-ui-i18n.min.js',
-        'jquery-ui-slideraccess'          => '/vendor/jquery-ui/jquery-ui-slideraccess.min.js',
-        'jquery-ui-timepicker-addon'      => '/vendor/jquery-ui/jquery-ui-timepicker-addon.min.js',
-        'jquery-ui-timepicker-addon-i18n' => '/vendor/jquery-ui/jquery-ui-timepicker-addon-i18n.min.js',
-        'jquery-ui-dialogoptions'         => '/vendor/jquery-ui/jquery-ui-dialogoptions.js', // Used to make jquery help dialogs responsive. Found at https://github.com/jasonday/jQuery-UI-Dialog-extended
-
-        // UIkit
+        'jquery-ui-i18n'                  => '/javascript/jquery_ui/jquery-ui-i18n.min.js',
+        'jquery-ui-slideraccess'          => '/javascript/jquery_ui/jquery-ui-slideraccess.min.js',
+        'jquery-ui-timepicker-addon'      => '/javascript/jquery_ui/jquery-ui-timepicker-addon.min.js',
+        'jquery-ui-timepicker-addon-i18n' => '/javascript/jquery_ui/jquery-ui-timepicker-addon-i18n.min.js',
+        'admin.configuration'             => '/javascript/admin.configuration.js',
+        'admin.topic'                     => '/javascript/admin.topic.js',
+        'advanced_editor'                 => '/javascript/advanced_editor.js',
+        'comment'                         => '/javascript/comment.js',
+        'common'                          => '/javascript/common.js',
+        'datepicker'                      => '/javascript/datepicker.js',
+        'datetimepicker'                  => '/javascript/datetimepicker.js',
+        'dbadmin'                         => '/javascript/dbadmin.js',
+        'dbbackup'                        => '/javascript/dbbackup.js',
+        'dialog_help'                     => '/javascript/dialog_help.js',
+        'fix_tooltip'                     => '/javascript/fix_tooltip.js',
+        'login'                           => '/javascript/login.js',
+        'moveuser'                        => '/javascript/moveuser.js',
+        'postmode_control'                => '/javascript/postmode_control.js',
+        'profile_editor'                  => '/javascript/profile_editor.js',
+        'story_editor'                    => '/javascript/story_editor.js',
+        'storyeditor_advanced'            => '/javascript/storyeditor_advanced.js',
+        'submitcomment_adveditor'         => '/javascript/submitcomment_adveitor.js',
+        'submitstory_adveditor'           => '/javascript/submitstory_adveditor',
+        'title_2_id'                      => '/javascript/title_2_id.js',
+        'topic_control'                   => '/javascript/topic_control.js',
+        'uikit_modifier'                  => '/javascript/uikit_modifier.js',
         'uikit'                           => '/vendor/uikit/js/uikit.min.js',
         'uikit.accordion'                 => '/vendor/uikit/js/components/accordion.min.js',
         'uikit.autocomplete'              => '/vendor/uikit/js/components/autocomplete.min.js',
@@ -166,36 +170,9 @@ class Resource
         'uikit.timepicker'                => '/vendor/uikit/js/components/timepicker.min.js',
         'uikit.tooltip'                   => '/vendor/uikit/js/components/tooltip.min.js',
         'uikit.upload'                    => '/vendor/uikit/js/components/upload.min.js',
-
-        // UIkit3
         'uikit3'                          => '/vendor/uikit3/js/uikit.min.js',
         'uikit3-icons'                    => '/vendor/uikit3/js/uikit-icons.min.js',
-
-        // Geeklog
-        'admin.configuration'             => '/javascript/admin.configuration.js',
-        'admin.topic'                     => '/javascript/admin.topic.js',
-        'advanced_editor'                 => '/javascript/advanced_editor.js',
-        'comment'                         => '/javascript/comment.js',
-        'common'                          => '/javascript/common.js',
-        'datepicker'                      => '/javascript/datepicker.js',
-        'datetimepicker'                  => '/javascript/datetimepicker.js',
-        'dbadmin'                         => '/javascript/dbadmin.js',
-        'dbbackup'                        => '/javascript/dbbackup.js',
-        'dialog_help'                     => '/javascript/dialog_help.js',
-        'fix_tooltip'                     => '/javascript/fix_tooltip.js',
-        'login'                           => '/javascript/login.js',
-        'moveuser'                        => '/javascript/moveuser.js',
-        'postmode_control'                => '/javascript/postmode_control.js',
-        'profile_editor'                  => '/javascript/profile_editor.js',
-        'story_editor'                    => '/javascript/story_editor.js',
-        'storyeditor_advanced'            => '/javascript/storyeditor_advanced.js',
-        'submitcomment_adveditor'         => '/javascript/submitcomment_adveitor.js',
-        'submitstory_adveditor'           => '/javascript/submitstory_adveditor',
-        'title_2_id'                      => '/javascript/title_2_id.js',
-        'topic_control'                   => '/javascript/topic_control.js',
-        'uikit_modifier'                  => '/javascript/uikit_modifier.js',
-        'uikit3_modifier'                 => '/javascript/uikit3_modifier.js',
-    ];
+    );
 
     /**
      * @var array a copy of $_CONF
@@ -207,56 +184,56 @@ class Resource
      *
      * @var array
      */
-    private $cssBlocks = [];
+    private $cssBlocks = array();
 
     /**
      * Array of local CSS files
      *
      * @var array
      */
-    private $localCssFiles = [];
+    private $localCssFiles = array();
 
     /**
      * Array of external CSS URIs
      *
      * @var array
      */
-    private $externalCssFiles = [];
+    private $externalCssFiles = array();
 
     /**
      * Array of JavaScript code to write between <script> and </script> tags
      *
      * @var array
      */
-    private $jsBlocks = [
-        'header' => [],
-        'footer' => [],
-    ];
+    private $jsBlocks = array(
+        'header' => array(),
+        'footer' => array(),
+    );
 
     /**
      * Array of local JavaScript files
      *
      * @var array
      */
-    private $localJsFiles = [
-        'header' => [],
-        'footer' => [],
-    ];
+    private $localJsFiles = array(
+        'header' => array(),
+        'footer' => array(),
+    );
 
     /**
      * Array of external JavaScript URIs
      *
      * @var array
      */
-    private $externalJsFiles = [
-        'header' => [],
-        'footer' => [],
-    ];
+    private $externalJsFiles = array(
+        'header' => array(),
+        'footer' => array(),
+    );
 
     /**
      * @var array
      */
-    private $lang = [];
+    private $lang = array();
 
     /**
      * @var bool
@@ -270,7 +247,9 @@ class Resource
      */
     public function __construct(array $config)
     {
-        if (COM_isEnableDeveloperModeLog('resource')) {
+        if (isset($config['developer_mode'], $config['developer_mode_log']['resource']) &&
+            $config['developer_mode'] &&
+            $config['developer_mode_log']['resource']) {
             $this->setDebug(true);
         }
 
@@ -348,7 +327,7 @@ class Resource
      */
     private function checkCssAttributes(array $attributes)
     {
-        $retval = [];
+        $retval = array();
 
         foreach ($attributes as $key => $value) {
             $key = strtolower($key);
@@ -394,7 +373,7 @@ class Resource
     public function setJavaScriptLibrary($name, $isFooter = true)
     {
         global $LANG_DIRECTION;
-
+        
         // Sometimes it matters the order the libraries are submitted by Geeklog
         // Example jquery-ui-timepicker-addon must be before jquery-ui-timepicker-addon-i18n
         // Since the sort happens later and libraries which have the same priority may get shuffled within the priority
@@ -466,11 +445,11 @@ class Resource
                 break;
 
             default:
-                $this->localJsFiles[$position][] = [
+                $this->localJsFiles[$position][] = array(
                     'file'     => $this->libraryLocations[$name],
                     'priority' => $library_priority,
-                ];
-
+                );
+                
                 $library_priority = $library_priority + 1;
 
                 // In case of a UIkit component, add a suitable CSS file
@@ -482,7 +461,7 @@ class Resource
                     list (, $componentName) = explode('.', $name, 2);
                     $dir = (isset($LANG_DIRECTION) && ($LANG_DIRECTION === 'rtl')) ? 'css_rtl' : 'css';
                     $cssPath = '/vendor/uikit/' . $dir . '/components/' . $componentName . '.min.css';
-                    $this->setCssFile($name, $cssPath, true, []);
+                    $this->setCssFile($name, $cssPath, true, array());
                 }
 
                 break;
@@ -519,15 +498,13 @@ class Resource
     /**
      * Set JavaScript file to load
      *
-     * @param  string $name        (not used)
-     * @param  string $file        relative to public_html (must start with '/')
+     * @param  string $name (not used)
+     * @param  string $file relative to public_html (must start with '/')
      * @param  bool   $isFooter
      * @param  int    $priority
-     * @param  bool   $isDefer     whether to set "defer" property for external files
-     * @param  array  $attributes  additional attributes for script tag
      * @return bool
      */
-    public function setJavaScriptFile($name, $file, $isFooter = true, $priority = 100, $isDefer = true, array $attributes = [])
+    public function setJavaScriptFile($name, $file, $isFooter = true, $priority = 100)
     {
         if ($this->isHeaderSet && !$isFooter) {
             return false;
@@ -535,23 +512,19 @@ class Resource
 
         $position = $isFooter ? 'footer' : 'header';
 
-        if ($this->isExternal($file) && array_search($file, array_column($this->externalJsFiles[$position], 'file')) == 0) {
-            $this->externalJsFiles[$position][] = [
-                'file'       => $file,
-                'priority'   => (int) $priority,
-                'isDefer'    => (bool) $isDefer,
-                'attributes' => $attributes,
-            ];
+        if ($this->isExternal($file)) {
+            $this->externalJsFiles[$position][] = array(
+                'file'     => $file,
+                'priority' => $priority,
+            );
 
             return true;
         } else {
-            // See if file exists and has not already been added (could happen on multiple calls of the same function by different plugins)
-            if ($this->exists($this->config['path_html'] . $file) && array_search($file, array_column($this->localJsFiles[$position], 'file')) == 0) {
-                $this->localJsFiles[$position][] = [
-                    'file'       => $file,
-                    'priority'   => (int) $priority,
-                    'attributes' => $attributes,
-                ];
+            if ($this->exists($this->config['path_html'] . $file)) {
+                $this->localJsFiles[$position][] = array(
+                    'file'     => $file,
+                    'priority' => $priority,
+                );
 
                 return true;
             } else {
@@ -584,7 +557,7 @@ class Resource
      * @param  string $type     (not used)
      * @return bool
      */
-    public function setCssFile($name, $file, $constant = true, $attributes = [], $priority = 100, $type = '')
+    public function setCssFile($name, $file, $constant = true, $attributes = array(), $priority = 100, $type = '')
     {
         if ($this->isHeaderSet) {
             return false;
@@ -592,25 +565,25 @@ class Resource
 
         $attributes = $this->checkCssAttributes($attributes);
 
-        if ($this->isExternal($file) && array_search($file, array_column($this->localJsFiles, 'file')) == 0) {
-            $this->externalCssFiles[] = [
+        if ($this->isExternal($file)) {
+            $this->externalCssFiles[] = array(
                 'file'       => $file,
                 'attributes' => $attributes,
                 'priority'   => $priority,
                 'type'       => $type,
-            ];
+            );
 
             return true;
         } else {
             if ($this->exists($this->config['path_html'] . $file)) {
                 // enabled overwriting information by using the same name
-                $this->localCssFiles[$name] = [
+                $this->localCssFiles[$name] = array(
                     'name'       => $name,
                     'file'       => $file,
                     'attributes' => $attributes,
                     'priority'   => $priority,
                     'type'       => $type,
-                ];
+                );
 
                 return true;
             } else {
@@ -639,7 +612,7 @@ class Resource
     /**
      * Make a key for caching based on contents
      *
-     * @param  string $contents
+     * @param  array $contents
      * @return string
      */
     private function makeCacheKey($contents)
@@ -672,7 +645,7 @@ class Resource
      * @param  array  $attributes
      * @return string
      */
-    private function buildLinkTag($href, array $attributes = [])
+    private function buildLinkTag($href, array $attributes = array())
     {
         if (empty($attributes)) {
             $attributes['rel'] = 'stylesheet';
@@ -727,37 +700,40 @@ class Resource
     {
         global $LANG_DIRECTION;
 
-        // While debugging or when caching is disabled, we just output
-        // <link rel="stylesheet" href="some-file-location"> tags
         if ($this->debug || !Cache::isEnabled()) {
             $retval = '';
 
             foreach ($files as $file) {
-                $retval .= $this->buildLinkTag($this->config['site_url'] . $file['file'], []) . PHP_EOL;
+                $retval .= $this->buildLinkTag($this->config['site_url'] . $file['file'], array()) . PHP_EOL;
             }
 
             return $retval;
         }
 
-        // Calculate cache key
-        $key = '';
-
-        foreach ($files as $file) {
-            $key .= $file['file'] . '|';
-        }
-        $key = $this->makeCacheKey($key);
-
-        // See if cached data already exists
-        $data = Cache::get($key, null);
-        if ($data !== null) {
-            // Such (already minified) data exists
-            return $this->buildLinkTag($this->config['site_url'] . '/r.php?k=' . $key, []);
-        }
-
+        $isUseMinify = false;
         $min = new Minify\CSS();
         $contents = '';
-        $relativePaths = [];
+        $relativePaths = array();
+/*
+        // Concatenate all CSS files
+        foreach ($files as $file) {
+            if (preg_match('@min\.css$@', $file['file'])) {
+                $chunk = @file_get_contents($this->config['path_html'] . $file['file']);
 
+                if ($chunk !== false) {
+                    $relativePaths[] = $file['file'];
+                    $contents .= $chunk . PHP_EOL;
+                }
+            } else {
+                $min->add($this->config['path_html'] . $file['file']);
+                $isUseMinify = true;
+            }
+        }
+
+        if ($isUseMinify) {
+            $contents .= $min->execute($this->config['path_html']);
+        }
+*/
         // Concatenate all CSS files
         foreach ($files as $file) {
             // even if the target file is a minified css, relative paths need to be rewritten
@@ -778,22 +754,24 @@ class Resource
             $right = 'right';
         }
 
-        if ($this->isCompatibleWithModernCurveTheme()) {
-            $search  = ['{left}', '{right}', '../images/',  './images/'];
-            $replace = [$left,    $right,    './images/',  '../images/'];
+        if ($this->getCompatibilityWithMC()) {
+            $search  = array('{left}', '{right}', '../images/',  './images/');
+            $replace = array($left,    $right,    './images/',  '../images/');
             $contents = str_replace($search, $replace, $contents);
         }
 
         // Unify line ends
-        $contents = str_replace(["\r\n", "\r"], "\n", $contents);
-        $data = [
+        $contents = str_replace(array("\r\n", "\r"), "\n", $contents);
+
+        $key = $this->makeCacheKey($contents);
+        $data = array(
             'createdAt' => microtime(true),
             'data'      => $contents,
             'paths'     => $relativePaths,
             'type'      => 'c',
-        ];
+        );
         Cache::set($key, $data);
-        $retval = $this->buildLinkTag($this->config['site_url'] . '/r.php?k=' . $key, []);
+        $retval = $this->buildLinkTag($this->config['site_url'] . '/r.php?k=' . $key, array());
 
         return $retval;
     }
@@ -820,15 +798,8 @@ class Resource
                 $data = @file_get_contents($path);
 
                 if ($data !== false) {
-                    try {
-                        // Workaround
-                        $oldErrorReporting = error_reporting();
-                        error_reporting($oldErrorReporting & !E_DEPRECATED);
-                        $data = JSMin::minify($data);
-                        error_reporting($oldErrorReporting);
-                        $retval .= $data . PHP_EOL;
-                    } catch (Exception $e) {
-                    }
+                    $data = JSMin::minify($data);
+                    $retval .= $data . PHP_EOL;
                 }
             }
         }
@@ -846,7 +817,7 @@ class Resource
     private function makeFileServerTag(array $files, $isCss = true)
     {
         if ($this->debug) {
-            $temp = [];
+            $temp = array();
             foreach ($files as $file) {
                 $temp[] = $file['file'];
             }
@@ -856,11 +827,11 @@ class Resource
             $this->log($entry);
         }
 
-        usort($files, ['Geeklog\\Resource', 'comparePriority']);
+        usort($files, array('Geeklog\\Resource', 'comparePriority'));
 
         if ($isCss) {
             // Make an item with 'name' property being 'theme' the top of the list to load the theme CSS first
-            $temp = [];
+            $temp = array();
 
             foreach ($files as $file) {
                 if (isset($file['name']) && ($file['name'] === 'theme')) {
@@ -877,10 +848,10 @@ class Resource
 
         // Minify JavaScript
         $retval = '';
-        $excludedFiles = '';
+        $excludedfiles = '';
 
         // *******************************
-        // Exclude files for advanced editor
+        // Exclude files for advanced editor 
         // Since they wouldn't work in displaced locations (ie in the new resource file and location)
         // Also include them after the resource file
 
@@ -891,19 +862,19 @@ class Resource
             str_replace('\\', '/', $this->config['path_editors'])
         );
         $temp = $files;
-        $files = [];
+        $files = array();
 
         foreach ($temp as $file) {
             if (stripos($file['file'], $editorPath) === 0) {
-                $excludedFiles .= sprintf(self::JS_TAG_TEMPLATE, $this->config['site_url'] . $file['file']) . PHP_EOL;
+                $excludedfiles .= sprintf(self::JS_TAG_TEMPLATE, $this->config['site_url'] . $file['file']) . PHP_EOL;
             } else {
                 $files[] = $file;
             }
         }
         // *******************************
 
-        $absolutePaths = [];
-        $relativePaths = [];
+        $absolutePaths = array();
+        $relativePaths = array();
         $success = false;
 
         foreach ($files as $file) {
@@ -922,12 +893,12 @@ class Resource
 
         if (!$success && !$this->debug) {
             // Cached data are missing or stale
-            $data = [
+            $data = array(
                 'createdAt' => microtime(true),
                 'data'      => $this->minifyJS($absolutePaths),
                 'paths'     => $relativePaths,
                 'type'      => 'j',
-            ];
+            );
             $success = Cache::set($key, $data, 0);
         }
 
@@ -942,9 +913,9 @@ class Resource
                 $retval .= sprintf(self::JS_TAG_TEMPLATE, $this->config['site_url'] . $file['file']) . PHP_EOL;
             }
         }
-
-        // Add excluded files at the end
-        $retval .= $excludedFiles;
+        
+        // Add excluded files at the end 
+        $retval .= $excludedfiles;
 
         return $retval;
     }
@@ -1005,7 +976,10 @@ class Resource
         if ((!$isFooter && ($this->jQueryPosition === 'header')) ||
             ($isFooter && ($this->jQueryPosition === 'footer'))) {
             if ($this->config['cdn_hosted']) {
-                $retval .= self::JQUERY_CDN;
+                $retval .= sprintf(
+                    self::JS_TAG_TEMPLATE,
+                    sprintf(self::JQUERY_CDN, self::JQUERY_VERSION)
+                );
             } else {
                 $retval .= sprintf(
                     self::JS_TAG_TEMPLATE,
@@ -1020,8 +994,10 @@ class Resource
         if ((!$isFooter && ($this->jQueryUIPosition === 'header')) ||
             ($isFooter && ($this->jQueryUIPosition === 'footer'))) {
             if ($this->config['cdn_hosted']) {
-                $retval .= sprintf(self::JQUERY_UI_CSS_CDN, self::JQUERY_UI_VERSION, self::JQUERY_UI_THEME)
-                    . self::JQUERY_UI_CDN;
+                $retval .= sprintf(
+                    self::JS_TAG_TEMPLATE,
+                    sprintf(self::JQUERY_UI_CDN, self::JQUERY_UI_VERSION)
+                );
             } else {
                 $retval .= sprintf(
                     self::JS_TAG_TEMPLATE,
@@ -1034,7 +1010,7 @@ class Resource
 
         // UIkit
         if ((!$isFooter && ($this->UIkitPosition === 'header')) ||
-            ($isFooter && ($this->UIkitPosition === 'footer'))) {
+            ($isFooter && ($this->UIkitPosition === 'footer'))) {        
             if ($this->config['cdn_hosted']) {
                 $retval .= sprintf(
                     self::JS_TAG_TEMPLATE,
@@ -1052,7 +1028,7 @@ class Resource
 
         // UIkit3
         if ((!$isFooter && ($this->UIkit3Position === 'header')) ||
-            ($isFooter && ($this->UIkit3Position === 'footer'))) {
+            ($isFooter && ($this->UIkit3Position === 'footer'))) {          
             if ($this->config['cdn_hosted']) {
                 $retval .= sprintf(
                     self::JS_TAG_TEMPLATE,
@@ -1060,7 +1036,7 @@ class Resource
                 );
                 $retval .= sprintf(
                     self::JS_TAG_TEMPLATE,
-                    sprintf(self::UIKIT3_ICONS_CDN, self::UIKIT3_VERSION)
+                    sprintf(self::UIKIT3_CDN2, self::UIKIT3_VERSION)
                 );
             } else {
                 $retval .= sprintf(
@@ -1075,29 +1051,6 @@ class Resource
             }
 
             $retval .= PHP_EOL;
-        }
-
-        return $retval;
-    }
-
-    /**
-     * Format attributes for script tag
-     *
-     * @param  array  $attributes
-     * @return string
-     */
-    private function formatAttributes(array $attributes = [])
-    {
-        $retval = '';
-
-        if (count($attributes) > 0) {
-            foreach ($attributes as $key => $value) {
-                $retval .= sprintf(
-                    ' %s="%s"',
-                    htmlspecialchars($key, ENT_QUOTES, 'utf-8'),
-                    htmlspecialchars($value, ENT_QUOTES, 'utf-8')
-                );
-            }
         }
 
         return $retval;
@@ -1121,7 +1074,7 @@ class Resource
 
         // 1. External CSS files
         if (count($this->externalCssFiles) > 0) {
-            usort($this->externalCssFiles, ['\\Geeklog\\Resource', 'comparePriority']);
+            usort($this->externalCssFiles, array('\\Geeklog\\Resource', 'comparePriority'));
 
             foreach ($this->externalCssFiles as $cssFile) {
                 $retval .= $this->buildLinkTag($cssFile['file'], $cssFile['attributes']) . PHP_EOL;
@@ -1129,35 +1082,35 @@ class Resource
         }
 
         // 2. System CSS files
-        $cssFiles = [];
+        $cssFiles = array();
 
         if (!empty($this->jQueryUIPosition)) {
-            $cssFiles = [
-                [
+            $cssFiles = array(
+                array(
                     'file'     => '/vendor/jquery-ui/jquery-ui.min.css',
                     'priority' => self::JQUERY_UI_PRIORITY,
-                ],
-                [
+                ),
+                array(
                     'file'     => '/vendor/jquery-ui/jquery-ui.structure.min.css',
                     'priority' => self::JQUERY_UI_PRIORITY + 10,
-                ],
-                [
+                ),
+                array(
                     'file'     => '/vendor/jquery-ui/jquery-ui.theme.min.css',
                     'priority' => self::JQUERY_UI_PRIORITY + 20,
-                ],
-                [
+                ),
+                array(
                     'file'     => '/layout/' . $this->config['theme'] . '/jquery_ui/jquery-ui.geeklog.css',
                     'priority' => self::JQUERY_UI_PRIORITY + 30,
-                ],
-            ];
+                ),
+            );
         } elseif ($this->UIkit3Position && !isset($this->localCssFiles['uikit3'])) {
             $cssFileName = (isset($LANG_DIRECTION) && ($LANG_DIRECTION === 'rtl')) ? 'uikit-rtl' : 'uikit';
-            $cssFiles = [
-                [
+            $cssFiles = array(
+                array(
                     'file'     => '/vendor/uikit3/css/' . $cssFileName . '.min.css',
                     'priority' => self::UIKIT3_PRIORITY,
-                ],
-            ];
+                ),
+            );
         }
 
         // 3. Local CSS files
@@ -1183,22 +1136,16 @@ class Resource
 
         // 6. External JavaScript files
         if (count($this->externalJsFiles['header']) > 0) {
-            usort($this->externalJsFiles['header'], ['\\Geeklog\\Resource', 'comparePriority']);
+            usort($this->externalJsFiles['header'], array('\\Geeklog\\Resource', 'comparePriority'));
 
             foreach ($this->externalJsFiles['header'] as $jsFile) {
-                $defer = isset($jsFile['isDefer']) && $jsFile['isDefer'] ? ' defer' : '';
-                $attributes = '';
-                if (isset($jsFile['attributes'])) {
-                    $attributes = $this->formatAttributes($jsFile['attributes']);
-                }
-
-                $retval .= sprintf(self::EXTERNAL_JS_TAG_TEMPLATE, $jsFile['file'], $defer, $attributes) . PHP_EOL;
+                $retval .= sprintf(self::EXTERNAL_JS_TAG_TEMPLATE, $jsFile['file']) . PHP_EOL;
             }
         }
 
         // 7. JavaScript variables
         $iso639Code = COM_getLangIso639Code();
-        $lang = [
+        $lang = array(
             'iso639Code'          => $iso639Code,
             'tooltip_loading'     => $MESSAGE[116],
             'tooltip_not_found'   => $MESSAGE[117],
@@ -1206,25 +1153,26 @@ class Resource
             'tabs_more'           => $MESSAGE[119],
             'confirm_delete'      => $MESSAGE[76],
             'confirm_send'        => $MESSAGE[120],
-        ];
+        );
         if (!empty($this->lang)) {
             $lang = array_merge($lang, $this->lang);
         }
 
-        $detect = new Mobile_Detect;
-        $device = [
+        $detect = new \Mobile_Detect;
+        $device = array(
             'isMobile' => $detect->isMobile(),
             'isTablet' => $detect->isTablet(),
-        ];
+        );
 
-        $src = [
+        $src = array(
             'site_url'       => $this->config['site_url'],
+            'site_admin_url' => $this->config['site_admin_url'],
             'layout_url'     => $this->config['layout_url'],
             'xhtml'          => XHTML,
             'lang'           => $lang,
             'device'         => $device,
             'theme_options'  => $this->config['theme_options'],
-        ];
+        );
         $str = $this->arrayToJavaScriptObject($src);
 
         // Strip '{' and '}' from both ends of $str
@@ -1264,16 +1212,10 @@ class Resource
 
         // 2. External JavaScript files
         if (count($this->externalJsFiles['footer']) > 0) {
-            usort($this->externalJsFiles['footer'], ['\\Geeklog\\Resource', 'comparePriority']);
+            usort($this->externalJsFiles['footer'], array('\\Geeklog\\Resource', 'comparePriority'));
 
             foreach ($this->externalJsFiles['footer'] as $jsFile) {
-                $defer = isset($jsFile['isDefer']) && $jsFile['isDefer'] ? ' defer' : '';
-                $attributes = '';
-                if (isset($jsFile['attributes'])) {
-                    $attributes = $this->formatAttributes($jsFile['attributes']);
-                }
-
-                $retval .= sprintf(self::EXTERNAL_JS_TAG_TEMPLATE, $jsFile['file'], $defer, $attributes) . PHP_EOL;
+                $retval .= sprintf(self::EXTERNAL_JS_TAG_TEMPLATE, $jsFile['file']) . PHP_EOL;
             }
         }
 
@@ -1286,7 +1228,7 @@ class Resource
         if (count($this->jsBlocks['footer']) > 0) {
             $code = implode(PHP_EOL, $this->jsBlocks['footer']);
 
-            if (!$this->debug && (stripos(COM_getCurrentURL(), 'configuration.php') === false)) {
+            if (!$this->debug) {
                 $code = JSMin::minify($code);
             }
 
@@ -1301,7 +1243,7 @@ class Resource
      *
      * @return bool
      */
-    public function isCompatibleWithModernCurveTheme()
+    public function getCompatibilityWithMC()
     {
         return $this->compatibleWithMC;
     }

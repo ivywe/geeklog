@@ -12,7 +12,6 @@
 
   <ul class="navi" {hide_if_preview}>
     <li>{reply_option}</li>
-    <li>{likes_control}</li>
     <li>{parent_link}</li>
     <li>{delete_option}</li>
     <li class="permlink"><a href="{site_url}/comment.php?mode=view&amp;cid={cid}" rel="bookmark">{lang_permlink}</a></li>
@@ -21,7 +20,7 @@
 
 <!-- BEGIN comment_signature -->
 <div class="comment-sig">
-    {signature_divider_html}
+    ---<br{xhtml}>
     {user_signature}
 </div>
 <!-- END comment_signature -->

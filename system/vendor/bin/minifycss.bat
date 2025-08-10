@@ -1,5 +1,4 @@
 @ECHO OFF
 setlocal DISABLEDELAYEDEXPANSION
-SET BIN_TARGET=%~dp0/minifycss
-SET COMPOSER_RUNTIME_BIN_DIR=%~dp0
+SET BIN_TARGET=%~dp0/../matthiasmullie/minify/bin/minifycss
 php "%BIN_TARGET%" %*

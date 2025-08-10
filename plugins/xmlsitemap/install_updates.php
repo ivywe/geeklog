@@ -4,6 +4,8 @@ function xmlsitemap_update_ConfValues_1_0_0()
 {
     global $_CONF;
 
+    require_once $_CONF['path_system'] . 'classes/config.class.php';
+
     $c = config::get_instance();
     $me = 'xmlsitemap';
 
@@ -19,7 +21,8 @@ function xmlsitemap_update_ConfValues_1_0_1()
 {
     global $_CONF, $_XMLSMAP_DEFAULT;
 
-    require_once __DIR__ . '/install_defaults.php';
+    require_once $_CONF['path_system'] . 'classes/config.class.php';
+    require_once $_CONF['path'] . 'plugins/xmlsitemap/install_defaults.php';
 
     $c = config::get_instance();
     $me = 'xmlsitemap';
@@ -35,58 +38,4 @@ function xmlsitemap_update_ConfValues_1_0_1()
         3, 1, 100, true, $me, 3);
     $c->add('ping_bing', $_XMLSMAP_DEFAULT['ping_bing'], 'select', 0,
         3, 1, 110, true, $me, 3);
-		
-	return true;
-}
-
-function xmlsitemap_update_ConfValues_2_0_2()
-{
-    global $_CONF, $_XMLSMAP_DEFAULT;
-
-    require_once __DIR__ . '/install_defaults.php';
-
-    $c = config::get_instance();
-    $me = 'xmlsitemap';
-
-    // News Sitemap
-    $c->add('tab_news', null, 'tab', 0, 4, null, 0, true, $me, 4);
-    $c->add('fs_news', null, 'fieldset', 0, 4, null, 0, true, $me, 4);
-    $c->add('news_sitemap_file', $_XMLSMAP_DEFAULT['news_sitemap_file'],
-        'text', 0, 4, null, 120, false, $me, 4);
-    $c->add('news_sitemap_topics', $_XMLSMAP_DEFAULT['news_sitemap_topics'], '%text', 0, 4, null, 130,
-        true, $me, 4);
-    $c->add('news_sitemap_age',$_XMLSMAP_DEFAULT['news_sitemap_age'],'text',0,4,NULL,140,TRUE, $me, 4);
-
-    // Add homepage to sitemap
-    $c->add('include_homepage', $_XMLSMAP_DEFAULT['include_homepage'],
-        'select', 0, 0, 1, 25, true, $me, 0);
-		
-	return true;
-}
-
-function xmlsitemap_update_ConfValues_2_0_3()
-{
-    global $_CONF, $_XMLSMAP_DEFAULT;
-
-    require_once __DIR__ . '/install_defaults.php';
-
-    $c = config::get_instance();
-    $me = 'xmlsitemap';
-
-    // Drop $_XMLSMAP_CONF['exclude']
-    $c->del('exclude', $me);
-	
-	// Drop $_XMLSMAP_CONF['ping_bing']
-	$c->del('ping_bing', $me);
-	
-	// IndexNow
-	$c->add('indexnow', $_XMLSMAP_DEFAULT['indexnow'], 'select', 0,
-		3, 1, 110, true, $me, 3);
-	$c->add('indexnow_key', $_XMLSMAP_DEFAULT['indexnow_key'], 'text', 0,
-		3, null, 111, true, $me, 3);			
-	$c->add('indexnow_key_location', $_XMLSMAP_DEFAULT['indexnow_key_location'], 'text', 0,
-		3, null, 112, true, $me, 3);			
-	
-	
-	return true;
 }

@@ -50,13 +50,10 @@
  *
  */
 
-// Geeklog common function library. If VERSION set then lib-common already loaded. Check required for URL Routing functionality
-if (!defined('VERSION')) {
-    require_once '../lib-common.php';
-}
-
-// Required to declare global variables for URL Routing functionality (as scope changes)
 global $_CONF, $_PLUGINS, $_TABLES;
+
+// Geeklog common function library
+require_once '../lib-common.php';
 
 if (!in_array('links', $_PLUGINS)) {
     COM_handle404();
@@ -88,8 +85,7 @@ if ($what === 'link') {
 }
 
 if (empty($url)) {
-    COM_handle404($_CONF['site_url'] . '/links/index.php');
-	exit;
+    $url = $_CONF['site_url'];
 }
 
 header('HTTP/1.1 301 Moved');

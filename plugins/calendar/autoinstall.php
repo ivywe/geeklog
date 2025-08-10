@@ -8,7 +8,7 @@
 // |                                                                           |
 // | This file provides helper functions for the automatic plugin install.     |
 // +---------------------------------------------------------------------------+
-// | Copyright (C) 2008-2020 by the following authors:                         |
+// | Copyright (C) 2008-2010 by the following authors:                         |
 // |                                                                           |
 // | Authors: Dirk Haun         - dirk AT haun-online DOT de                   |
 // +---------------------------------------------------------------------------+
@@ -30,12 +30,10 @@
 // +---------------------------------------------------------------------------+
 
 /**
- * Calendar plugin automatic plugin install
- *
- * @package Calendar
- * @param   string  $pi_name
- * @return  array
- */
+* Calendar plugin automatic plugin install
+*
+* @package Calendar
+*/
 
 function plugin_autoinstall_calendar($pi_name)
 {
@@ -46,8 +44,8 @@ function plugin_autoinstall_calendar($pi_name)
     $info = array(
         'pi_name'         => $pi_name,
         'pi_display_name' => $pi_display_name,
-        'pi_version'      => '1.1.9',
-        'pi_gl_version'   => '2.2.2',
+        'pi_version'      => '1.1.6',
+        'pi_gl_version'   => '2.1.1',
         'pi_homepage'     => 'https://www.geeklog.net/'
     );
 
@@ -98,6 +96,7 @@ function plugin_load_configuration_calendar($pi_name)
 
     $base_path = $_CONF['path'] . 'plugins/' . $pi_name . '/';
 
+    require_once $_CONF['path_system'] . 'classes/config.class.php';
     require_once $base_path . 'install_defaults.php';
 
     return plugin_initconfig_calendar();
@@ -152,3 +151,5 @@ function plugin_compatible_with_this_version_calendar($pi_name)
 
     return true;
 }
+
+?>

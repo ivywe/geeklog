@@ -49,8 +49,8 @@ $LANG01 = array(
     2 => 'המאמר המלא',
     3 => 'תגובות',
     4 => 'עריכה',
-    5 => 'Contributed by: %s on %s',
-    6 => 'Last modified on %s',
+    5 => '',
+    6 => '',
     7 => '',
     8 => '',
     9 => 'פונקציות ניהול',
@@ -188,9 +188,6 @@ $LANG01 = array(
     141 => 'An Error Occurred',
     142 => 'Unfortunately, an error has occurred rendering this page. Please try again later.',
     143 => 'Comment (%d)',
-    144 => 'Parse Error.  An error occurred while parsing PHP code.',
-    'loginform' => "<a href=\"{$_CONF['site_url']}/users.php\">Login Here</a>",
-    'remoteloginoptions' => 'Remote Login Options',
     'facebook' => 'כניסה בעזרת פייסבוק',
     'twitter' => 'כניסה בעזרת טוויטר',
     'linkedin' => 'כניסה בעזרת לינקדאין',
@@ -201,14 +198,7 @@ $LANG01 = array(
     'ctl' => 'Clear Cache',
     'ok' => 'OK',
     'filemanager' => 'File Manager',
-    'error_invalid_password' => 'Error, invalid password for username',
-    'error_filemanager_disabled' => 'Filemanager is disabled',
-    'terms_of_use' => 'Terms of Use',
-    'terms_of_service' => 'Terms of Service',
-    'privacy_policy' => 'Privacy Policy',
-    'about_cookies' => 'About Cookies',
-    'parse_php_error' => 'There was an error parsing your PHP code: %s',
-    'error_title' => 'An Error Occurred'
+    'error_invalid_password' => 'Error, invalid password for username'
 );
 
 ###############################################################################
@@ -220,7 +210,7 @@ $LANG03 = array(
     3 => 'יציאה מהמערכת',
     4 => 'יצירת חשבון',
     5 => 'שם משתמש',
-    6 => 'This site requires you to be logged in to post a comment. If you have an account already (or need to create one), please <a href="%s">login here</a>.',
+    6 => 'אתר זה דורש הזדהות במערכת כדי לכתוב תגובה, נא הזדהו. אם אין ברשותכם חשבון הינכם יכולים להשתמש בטופס שלהלן כדי ליצור אחד.',
     7 => 'תגובתכם האחרונה הייתה לפני ',
     8 => " שניות. אתר זה דורש לפחות {$_CONF['commentspeedlimit']} שניות בין תגובות",
     9 => 'תגובה',
@@ -238,7 +228,6 @@ $LANG03 = array(
     21 => 'נא לקרוא את התגובות שנכתבו לפניכם בכדי לא לחזור על דברים שכבר נאמרו.',
     22 => 'השתמש בכותרת שתתאר בבירור את נושא התגובה שלך.',
     23 => 'האימייל שלך *לא* יוצג לגולשים באתר',
-    'instr_line6' => 'When logged in as a user your comments will be linked to your account and you can specify if you would like notifications of any replies.',
     24 => 'משתמש אנונימי',
     25 => 'האם הנכם בטוחים שברצונכם לדווח על תגובה זו למנהלי האתר?',
     26 => '%s דיווח/ה על התגובה הפוגענית הבאה:',
@@ -269,14 +258,7 @@ $LANG03 = array(
     105 => 'IP Address',
     106 => 'Perform bulk action on comments and comment submissions including approval, deleting, and banning of user or IP address.',
     'record_edit' => 'Record user and time of edit?',
-    'ban_plugin_ban_ip' => 'Ban this IP address with the Ban plugin',
-    'num_comments' => '%s Comment(s)',
-    'anon_user_name' => '%s (Anonymous User)',
-    'comments_closed_msg' => 'Comments are closed and no new posts are allowed.',
-    'read_comment' => 'Read the full comment at',
-    'comment_for' => 'The above comment is for the following item',
-    'comment_page_title' => 'Comments for %s',
-    'comments' => 'Comments'
+    'ban_plugin_ban_ip' => 'Ban this IP address with the Ban plugin'
 );
 
 ###############################################################################
@@ -298,7 +280,6 @@ $LANG04 = array(
     13 => 'שילחו באימייל את הלקט הלילי',
     14 => 'סיסמה זו נוצרה בצורה רנדומלית, אולם מומלץ לשנות אותה מוקדם ככל האפשר. על מנת לעשות זאת, היכנסו לחשבונכם והקלידו על מאפייני החשבון בתפריט אפשרויות המשתמש.',
     15 => "יצירת חשבונך ב-\n{$_CONF['site_name']}\n הושלמה בהצלחה! כעת, על-מנת להשתמש בו עליך להכניס בכניסה את שם המשתמש שלך ואת הסיסמה שקיבלת כאן. מומלץ לשמור את האימייל הזה במקום נגיש כדי להקל עליך בכניסות עתידיות לחשבונך.",
-    'email_convert_remote' => "Your {$_CONF['site_name']} remote account has been converted to a local account. To continue to use your account, you must login using the information below. Please save this mail for further reference.",
     16 => 'פרטי חשבונך',
     17 => 'החשבון לא קיים',
     18 => 'כתובת האימייל שהוקלדה לא נראית תקינה',
@@ -323,11 +304,22 @@ $LANG04 = array(
     37 => 'מצורפת לתגובות שלכם',
     38 => 'הכל על עצמך! כולם יכולים לקרוא זאת',
     39 => 'מפתח ה-PGP הפומבי שלך',
+    40 => 'ללא הצגת אייקוני נושאים',
+    41 => 'מוכן להיות moderator',
     42 => 'פורמט תאריך',
     43 => 'מקסימום מאמרים',
+    44 => 'ללא קוביות מידע',
+    45 => 'מאפייני תצוגה של',
+    46 => 'ללא פריטים של',
+    47 => 'הגדרת קוביית מידע של חדשות עבור',
     48 => 'נושאים',
+    49 => 'ללא האייקון המופיע לצד המאמר',
+    50 => 'בטלו את הסימון אם אינכם מעוניינים בפונקציה זו',
+    51 => 'יופיעו מאמרים בלבד ללא הקוביות בצדדים',
     52 => 'ברירת המחדל היא',
     53 => 'קבלו את מאמרי היום כל לילה',
+    54 => 'סמנו את הנושאים והכותבים שאינכם מעוניין לראות.',
+    55 => 'אם תשאירו את כולם לא מסומנים, הכוונה היא שהנכם מעוניינים בבחירת ברירת המחדל של קוביות המידע. אם תחלו לבחור קוביות, זיכרו לבחור כל מה שתרצו לראות מפני שבחירת ברירת המחדל כבר לא תהיה רלבנטית. פריטים שנבחרים כברירת מחדל מסומנים בהדגשה.',
     56 => 'כותבים',
     57 => 'אופן תצוגה',
     58 => 'סדר מיון',
@@ -342,7 +334,6 @@ $LANG04 = array(
     67 => 'חבר/ה חדש/ה מאז',
     68 => 'המערכת תזכור אותי עד',
     69 => 'לכמה זמן הנכם מעוניינים שהמערכת תזכור אתכם לאחר שתיכנסו אליה?',
-    'cookietimeout_tooltip' => 'This site will remember you are logged in from the device you are currently using regardless of if your account has been logged out automatically due to no activity. Accounts are logged out after being inactive for %s seconds (this is called the "User Session Timeout"). When "Remember Me For" is set for your account it will include the time you select here PLUS the "User Session timeout".',
     70 => "התאימו אישית את מראה האתר ואת התוכן של {$_CONF['site_name']}",
     71 => "אחת מהאפשרויות של אתר {$_CONF['site_name']} היא שהנכם יכולים להתאים אישית את התוכן שאתם מקבלים ולשנות את המראה הכללי של האתר. על מנת ליהנות מיתרונות אלו, עליכם <a href=\"{$_CONF['site_url']}/users.php?mode=new\" rel=\"nofollow\">להירשם</a> ב-{$_CONF['site_name']}. האם אתם כבר רשומים? אם כן, השתמשו בטופס הכניסה והתחברו!",
     72 => 'מראה האתר',
@@ -362,7 +353,6 @@ $LANG04 = array(
     86 => 'מיצאו כל מה שנכתב על ידי',
     87 => 'שם המשתמש שלך הוא',
     88 => "מישהו (יתכן שאתם) ביקש סיסמה חדשה לחשבונכם \n\"%s\"\n ב-\n{$_CONF['site_name']}.\n\n אם הנכם אכן מעוניינים לעשות פעולה זו, אנא ליחצו על הלינק הבא:\n\n",
-    'user_password_action_msg' => 'If you really want this action to be taken, please click on the following link:',
     89 => "אם אינכם מעוניין שפעולה זו תתרחש, פשוט התעלמו מהודעה זו והבקשה תבוטל (סיסמתכם תישאר ללא שינוי).\n\n",
     90 => 'הכניסו את סיסמתכם החדשה בדף זה. אנא שימו לב שסיסמתכם הישנה תישאר בתוקף עד שתשלחו טופס זה.',
     91 => 'קיבעו סיסמה חדשה',
@@ -391,8 +381,8 @@ $LANG04 = array(
     115 => 'חשבונכם נוטרל, אינכם יכולים להיכנס למערכת. אנא צרו קשר עם אחד המנהלים.',
     116 => 'החשבון מחכה להפעלה',
     117 => 'חשבונכם כרגע מחכה להפעלה על ידי מנהל. לא תוכלו להיכנס למערכת עד שחשבונכם יאושר.',
-    118 => '',
-    119 => '',
+    118 => "חשבונכם ב-{$_CONF['site_name']} הופעל עכשיו על ידי מנהל. תוכלו עכשיו להיכנס לאתר בכתובת שלהלן על ידי שימוש בשם המשתמש (<username>) ובסיסמה שנשלחו אליכם מוקדם יותר באימייל.",
+    119 => 'אם שכחתם את הסיסמה שלכם, תוכלו לבקש אחת חדשה בכתובת הבאה:',
     120 => 'החשבון הופעל',
     121 => 'שירות',
     122 => 'מצטערים, אפשרות הרשמת משתמשים חדשים מנוטרלת',
@@ -409,20 +399,26 @@ $LANG04 = array(
     133 => 'תצוגת תגובות',
     134 => 'אפשרויות תגובות',
     135 => '<li>מצב ברירת המחדל לאיך יוצגו תגובות</li><li>סדר ברירת המחדל להצגת תגובות</li><li>הגדירו מספר מקסימלי של תגובות להצגה - ברירת המחדל היא 100</li>',
+    136 => 'הוציאו נושאים וכותבים',
+    137 => 'סננו תוכן מאמרים',
     138 => 'הגדרות שונות',
     139 => 'מראה ושפה',
     140 => '<li>אם תסמנו את ללא אייקוני נושא, אז לא יוצגו אייקוני נושא במאמרים</li><li>אם תסמנו את ללא קוביות מידע, אז יוצגו רק תפריט הניהול, תפריט המשתמש ונושאים<li>קיבעו את המספר המקסימלי של מאמרים שיוצגו בכל דף</li><li>קיבעו את הנושא העיצובי, איזור הזמן ופורמט הזמן המועדפים עליכם</li>',
     141 => 'הגדרות פרטיות',
     142 => 'הגדרת ברירת המחדל היא לאפשר למשתמשים ולמנהלים לשלוח הודעות אימייל למשתמשי האתר ולהציג אותם כמחוברים למערכת. נטרלו אפשרויות אלה כדי להגן על פרטיותכם.',
+    143 => 'סננו תוכן קוביות מידע',
+    144 => 'הצגת והחבאת קוביות מידע',
     145 => 'הפרופיל הציבורי שלך',
     146 => 'סיסמה וכתובת אימייל',
     147 => 'שדות ססמה לחשבונות לא מרוחקים בלבד. עירכו את ססמת החשבון, כתובת האימייל ופונקציות הזיהוי האוטומטי שלכם. תצטרכו להכניס פעמיים את אותה הססמה או כתובת אימייל למען הוידוא.',
     148 => 'מידע משתמש',
     149 => "שנו את מידע המשתמש שלכם שיוצג למשתמשים אחרים.<ul><li>החתימה שלכם תתווסף לכל תגובה או הודעה בפורום שתכתבו\n</li><li>הביוגרפיה שלכם היא תקציר מסכם של עצמכם בשביל לחלוק בו</li><li>\nחלקו את מפתח ה-PHP שלכם</li></ul>",
     150 => '',
+    151 => 'Blocks',
     156 => 'מחיקת החשבון',
     157 => 'אפשרות מחיקה',
     158 => 'איזור זמן',
+    159 => 'הודעת אימייל זו נוצרה אוטומטית. אנא אל תענו לה.',
     160 => '(מקסימום %d x %d פיקסלים, %d bytes; %s)',
     161 => 'יותאם למטה',
     162 => 'לא יותאם',
@@ -434,11 +430,8 @@ $LANG04 = array(
     168 => 'הנכם יכולים גם להיכנס עם אחד משירותי הזיהוי המרוחקים הבאים',
     169 => 'User has updated his/her profile',
     170 => "Admin at {$_CONF['site_name']} changed the password of your account as follows.  Please save this mail for further reference.",
-    171 => 'Post mode for "Signature" and "Bio".',
     'user_login' => 'User Login',
     'user_login_message' => 'Please login below. You must enter both a username and password.',
-    'user_remote_login_desc_long' => 'Click on one of the button(s) below to login and/or register via an account you have on another supported remote service. Please note, you must have an account on the remote service. If you are creating a new account on this website, then the remote service may ask you to give this website permissions to access information like your name, email address, and profile photo.',
-    'remote_register_instructions' => "<strong>Please note:</strong> To register and create an account via Remote Login, please visit the <a href=\"{$_CONF['site_url']}/users.php\" rel=\"nofollow\">User Login</a>.",
     'user_logged_in_message' => "You are already logged in. Whould you like to <a href=\"{$_CONF['site_url']}/users.php?mode=logout\" rel=\"nofollow\">logout</a>?",
     'user_max_login_attempts' => 'Max Login Attempts and Speed Limit Reached',
     'tfa_two_factor_auth' => 'Two Factor Authentication',
@@ -465,14 +458,12 @@ $LANG04 = array(
     'enter_new_email' => 'Enter New Email',
     'desc_new_email_status' => 'You are required to enter a new email address for your account. You can enter a new email for your account below. <em>Please note you will not be able to do anything with your account until your email is updated and verified.</em>',
     'email_msg_email_status_1' => "You have updated your email address for your account \"%s\" on {$_CONF['site_name']}, <{$_CONF['site_url']}>.\n\nPlease click on the following link to verify this email address:\n\n",
-    'email_msg_verify' => 'Please click on the following link to verify this email address:',
     'email_msg_email_status_2' => "If you do not verify this email address and you log into your account you will be required to enter a new email address and go through this email verification process again.\n\n",
     'email_verify' => 'New Email to be Verified',
     'email_verify_delete' => 'Delete email to be verified',
     'email_verify_msg' => "You have previously updated your email address for your account but it still needs to be verified. Please check your email account for an email from {$_CONF['site_name']} that contains a verification link. Once you click on that link your new email address will be verified and your account will be updated to use it.<br" . XHTML . "><br" . XHTML . ">If you wish you may update the new email to be verified with the email fields above or you can delete it.",
     'remove_account_msg' => 'To remove your account from our database, enter your current password into the above "Current Password", check the checkbox next to "Delete Option" below and click on "Save" . Please note that any articles and comments you posted under this account will <strong>not</strong> be deleted but show up as being posted by "Anonymous".',
-    'remove_remote_account_msg' => 'To remove your remote account from our database, check the checkbox next to "Delete Option" below and click on "Save" . Please note that any articles and comments you posted under this account will <strong>not</strong> be deleted but show up as being posted by "Anonymous".',
-    'theme_info' => '%1$s %2$s (requires Geeklog %3$s)'
+    'remove_remote_account_msg' => 'To remove your remote account from our database, check the checkbox next to "Delete Option" below and click on "Save" . Please note that any articles and comments you posted under this account will <strong>not</strong> be deleted but show up as being posted by "Anonymous".'
 );
 
 ###############################################################################
@@ -499,8 +490,7 @@ $LANG05 = array(
     5 => 'הבא',
     6 => 'הקודם',
     7 => 'הראשון',
-    8 => 'האחרון',
-    9 => 'Page navigation'
+    8 => 'האחרון'
 );
 
 ###############################################################################
@@ -550,9 +540,7 @@ $LANG08 = array(
     41 => 'This user doesn\'t exist.',
     42 => 'This users email address doesn\'t exist. This most likely means is is an OAuth user account.',
     43 => 'This users email address is invalid.',
-    44 => 'This users status is set to something other than Active or New Password therefore the email address is assumed bad.',
-    45 => "This is a message sent from {$_CONF['site_name']} by %s. Any replies will need to be sent to the email address: %s",
-    46 => "To unsubscribe from the Daily Digest, login to {$_CONF['site_name']} at {$_CONF['site_url']}. Then visit the user settings page at {$_CONF['site_url']}/usersettings.php and view the Content Tab. You can then unsubscribe to the Daily Digest by deselecting all topics and saving your profile."
+    44 => 'This users status is set to something other than Active or New Password therefore the email address is assumed bad.'
 );
 
 ###############################################################################
@@ -642,8 +630,8 @@ $LANG10 = array(
     1 => 'סטטיסטיקת האתר',
     2 => 'סך הכל כניסות למערכת',
     3 => 'מאמרים (תגובות) במערכת',
-    4 => 'Site Statistic',
-    5 => "Overall Site Statistics for {$_CONF['site_name']}",
+    4 => '',
+    5 => '',
     6 => '',
     7 => 'עשרת המאמרים הנצפים ביותר',
     8 => 'כותרת המאמר',
@@ -669,9 +657,7 @@ $LANG10 = array(
     28 => '',
     29 => '',
     30 => 'צפיות',
-    31 => '',
-    32 => 'Top Ten Liked Articles',
-    33 => 'No liked articles found.'
+    31 => ''
 );
 
 ###############################################################################
@@ -748,66 +734,6 @@ $LANG12 = array(
 );
 
 ###############################################################################
-# LIKES feature since Geeklog 2.2.1
-
-$LANG_LIKES = array(
-    'like' => 'Like',
-    'unlike' => 'Unlike',
-    'dislike' => 'Dislike',
-    'undislike' => 'Undislike',
-    'likes' => 'Likes',
-    'unlikes' => 'Unlikes',
-    'dislikes' => 'Dislikes',
-    'undislikes' => 'Undislikes',
-    'i_like_this' => 'I like this',
-    'i_dislike_this' => 'I dislike this',
-    'thanks_for_action' => 'Thanks for voting!',
-    'likes_speedlimit' => 'You last used the Likes system on an item %s seconds ago. This site requires at least %s seconds between using the Likes system',
-    'likes_ip_error' => 'Your IP address has already performed this Likes action.',
-    'likes_uid_error' => 'Your User account has already performed this Likes action.',
-    'own_item_error' => 'Either you own the item or do not have permission to Like/Dislike it.',
-    'liked_by' => 'Liked by:',
-    'disliked_by' => 'Disliked by:',
-    'num_anon_users' => '<br' . XHTML . '>%s Anonymous Users',
-    'one_anon_users' => '<br' . XHTML . '>1 Anonymous User',
-    'num_more_users' => '<br' . XHTML . '>+%s more Users',
-    'username_in_likes_list' => '<br' . XHTML . '>%s',
-    'autotag_desc_likes_block' => "[likes_block:aid action:aid wrapper:wid class:likes-autotag type: subtype: time:604800 max:10 cache:3600 line:1 length:20]\n	- Displays the Likes block. No attributes are required. If attribute not specified then default in configuration used. \n	- action = 1 (likes only), 2 (dislikes only), or 3 (both) \n	- wrapper = 0 (no wrapper), 1 (block wrapper with title), div wrapper with css class), or both\n	- class = Specifies the css class used by the div wrapper if enabled else default likes-autotag will be used \n	- type = Either empty (for all types) or include 1 supported like type. For example 'article' or 'comment'\n	- subtype = Specify a sub type of type if needed\n	- time = Display items that are this many seconds old. 0 will display all items\n	- max = Maximum number of items to display\n	- cache = Cached for no longer than this many seconds. If 0 caching is disabled\n	- line = Display likes icons on new line\n	- length = Trim item title length to this many characters",
-    'num_likes_in_time_limit' => 'The last number of Likes this item received within the time specified.',
-    'num_dislikes_in_time_limit' => 'The last number of Dislikes this item received within the time specified.',
-    'num_likes_total' => 'The total number of Likes this item has received.',
-    'num_dislikes_total' => 'The total number of Dislikes this item has received.',
-    'likes_time_span' => 'Most Likes in the last %t %s',
-    'dislikes_time_span' => 'Most Dislikes in the last %t %s',
-    'all_time_span' => 'Most engaging in the last %t %s',
-    'whats_liked' => 'Whats Liked',
-    'whats_recently_liked' => 'Whats Recently Liked',
-    'whats_disliked' => 'Whats Disliked',
-    'whats_recently_disliked' => 'Whats Recently Disliked',
-    'whats_popular' => 'Whats Popular',
-    'whats_recently_popular' => 'Whats Recently Popular',
-    'whats_liked_type' => 'Liked %s',
-    'whats_recently_liked_type' => 'Recently Liked %s',
-    'whats_disliked_type' => 'Disliked %s',
-    'whats_recently_disliked_type' => 'Recently Disliked %s',
-    'whats_popular_type' => 'Popular %s',
-    'whats_recently_popular_type' => 'Recently Popular %s',
-    'no_liked_items_in_time_limit' => 'There have been no Likes during the time specified.',
-    'no_disliked_items_in_time_limit' => 'There have been no Dislikes during the time specified.',
-    'no_action_items_in_time_limit' => 'There have been no Likes or Dislikes during the time specified.',
-    'no_liked_items' => 'There are no Liked items.',
-    'no_disliked_items' => 'There are no Disliked items.',
-    'no_action_items' => 'There are no Liked or Disliked items.',
-    'last_num_likes_by' => 'Last %s Likes and Dislikes by %s',
-    'msg_no_likes' => 'No likes or dislikes found by user.',
-    'total_num_likes' => 'Total number of likes and dislikes:',
-    'title_liked' => '%s Liked on ',
-    'title_disliked' => '%s Disliked on ',
-    'articles' => 'Articles',
-    'comments' => 'Comments'
-);
-
-###############################################################################
 # ADMIN PHRASES - These are file phrases used in admin scripts
 ###############################################################################
 
@@ -870,13 +796,15 @@ $LANG_ENVCHECK = array(
     'database_pgsql_req_version' => 'Geeklog requires Postgresql version 9.1.7 or newer.',
     'database_dms' => 'Database Management System',
     'database_dms_notes' => 'Failed to determine Database Management System. Geeklog requires either MySQL or Postgresql',
-    'php_req_version' => 'Geeklog requires PHP version 5.6.4 or newer.',
+    'php_req_version' => 'Geeklog requires PHP version 5.2.0 or newer.',
     'php_settings' => 'PHP Settings',
     'php_version' => 'PHP Version',
     'php_warning' => 'If any of the items below are marked in <span class="no">red</span>, you may encounter problems with your Geeklog site.  Check with your hosting provider for information on changing any of these PHP settings.',
     'post_max_size' => 'Geeklog allows you to upload plugins, images, and files. You should allow at least 8M for the maximum post size.',
     'recheck' => 'Recheck Environment',
     'recommended' => 'Recommended',
+    'register_globals' => 'If PHP\'s <strong>register_globals</strong> is enabled, it can create security issues.',
+    'safe_mode' => 'If PHP\'s <strong>safe_mode</strong> is enabled, some functions of Geeklog may not work correctly. Specifically the Media Gallery plugin.',
     'setting' => 'Setting',
     'unable_mkdir' => 'Unable to create directory',
     'upload_max_filesize' => 'Geeklog allows you to upload plugins, images, and files. You should allow at least 8M for the upload size.',
@@ -895,22 +823,7 @@ $LANG_ENVCHECK = array(
     'showhide_phpinfo' => 'Show/Hide Full PHP Info',
     'view_online' => 'Click here %s to view online',
     'no_new_items' => 'No New Items',
-    'max_execution_time' => 'Geeklog recommends the PHP default value of 30 seconds as a minimum, but plugin uploads and other operations may take longer than this depending upon your hosting environment.  If safe_mode (above) is Off, you may be able to increase this by modifying the value of <b>max_execution_time</b> in your php.ini file.',
-    'phpinfo_disabled' => 'In order to view the current php settings, you will have to contact your host and enable access to the phpinfo() function.'
-);
-
-###############################################################################
-# For Demo Mode (since v2.2.1)
-
-$LANG_DEMO = array(
-    'header' => 'Header',
-    'subject' => 'Subject:',
-    'to' => 'To:',
-    'from' => 'From:',
-    'priority' => 'Priority:',
-    'body' => 'Body',
-    'notice' => 'Notice',
-    'emails_disabled_msg' => 'Please note sending emails is disabled in Demo mode. An email which would have been sent was:'
+    'max_execution_time' => 'Geeklog recommends the PHP default value of 30 seconds as a minimum, but plugin uploads and other operations may take longer than this depending upon your hosting environment.  If safe_mode (above) is Off, you may be able to increase this by modifying the value of <b>max_execution_time</b> in your php.ini file.'
 );
 
 ###############################################################################
@@ -924,8 +837,7 @@ $LANG20 = array(
     5 => 'סיסמה',
     6 => 'כל נסיונות הגישה לאיזורים הניהוליים של אתר זה נרשמים ביומן ונבדקים.<br' . XHTML . '>עמוד זה נועד לשימושם של אנשים מאושרים בלבד.',
     7 => 'כניסה למערכת',
-    8 => 'Login',
-    9 => 'This page is for the use of authorized personnel only. Please note all access to administrative portions of this web site are logged and reviewed.'
+    8 => 'Login'
 );
 
 ###############################################################################
@@ -1180,9 +1092,6 @@ $LANG27 = array(
     39 => 'רק בדף הבית',
     40 => 'שיוך לנושא אחד או יותר. ',
     41 => "אם יבחר \"כולם\" אז הפריט יופיע עבור כל הנושאים. אם יבחר \"רק בדף הבית\" אז הפריט יופיע רק בדף \n\nהבית. אחרת עליכם לבחור לפחות נושא אחד אליו ישויך הפריט. ",
-    'topic_control_select_topics' => 'Else you must select at least one topic to assign the item to. ',
-    'topic_control_select_topics_disabled' => 'Else you must select at least one topic you have edit access for, to assign the item to (text is darker). ',
-    'topic_control_no_topics' => 'Unfortunately you do not have edit access to any topics so none can be selected. ',
     42 => 'ירושה כוללת את רשימת הנושאים ששויכו. אם הנושא נבחר אז הפריט יעבור בירושה לנושא שמעליו. עליכם תחילה לשמור את הפריט לפני שמשהו יירשם בתיבת הירושה. ',
     43 => 'ברירת המחדל כוללת את רשימת הנושאים ששויכו. זהו נושא ברירת המחדל שישמש כדי להציג את הפריט אם הנושא הממשי שהמשתמש נמצא בו לא נמצא. ',
     44 => 'ירושה',
@@ -1206,11 +1115,7 @@ $LANG27 = array(
     'topics:' => 'Topics:',
     'filed_under:' => 'Filed under:',
     'topic_title' => 'Topic Title',
-    'topic_title_desc' => 'Used as the page title for the topic. If empty the topic name will be used.',
-    'move_topic_up' => 'Move topic up the sort order',
-    'move_topic_down' => 'Move topic down in the sort order',
-    'topics_edit_access_select' => 'You can only select topics you have Edit access to you (text is darker).',
-    'topics_edit_access_listed' => 'Only topics with Edit access are listed.'
+    'topic_title_desc' => 'Used as the page title for the topic. If empty the topic name will be used.'
 );
 
 ###############################################################################
@@ -1263,7 +1168,6 @@ $LANG28 = array(
     44 => 'מחכה לאישור',
     45 => 'פעיל',
     46 => 'סטאטוס משתמש',
-    'user_status_desc' => "An explanation of all possible user statuses: <ul>\n\n        <li><strong>Awaiting Activation</strong> - New account awaiting user to login. Email has been sent but not verified. This is only set for a new account and is an automated status (Admins cannot set accounts to this status manually)</li>\n\n        <li><strong>Awaiting Authorization</strong> - New account awaiting moderator approval in the User Submission Queue. When User Submission approved, user will be sent email with password. This is only set for a new account and is an automated status (Admins cannot set accounts to this status manually)</li>\n\n        <li><strong>Active</strong> - This is an Active account.</li>\n\n        <li><strong>Banned</strong> -  This Account is banned/disabled. Username is crossed out on the site for any content they have submitted, User cannot login, emails to account is disabled, and profile cannot be viewed by any user except Admins.</li>\n\n        <li><strong>Locked</strong> - This Account is locked. User cannot login, emails to account is disabled, but profile can still be viewed by all.</li>\n\n        <li><strong>New Email Required</strong> - Emails to account is disabled. When user logs in again they must submit new email address and verify before access to rest of the website (under this user account). Status stays the same until email is verified. If \"Require User Email\" config option true then any users who login (includes remote accounts) that do not have an email address will automatically switch to this status.</li>\n\n        <li><strong>New Password Required</strong> -  When the user logs in they must submit a new password before access to rest of website (under this user account). This is only for regular accounts and not remote accounts.</li>\n\n        </ul>\n\n    ",
     47 => 'עריכה',
     48 => 'הציגו קבוצות ניהול',
     49 => 'קבוצת ניהול',
@@ -1310,11 +1214,6 @@ $LANG28 = array(
     90 => 'הוסיפו את השינוי של "קבוצת ברירת מחדל" לחשבונות משתמשים קיימים',
     91 => 'Send password to user',
     92 => 'Only for new users or when changing password for existing user.',
-    'convert_remote' => 'Check here to convert from remote to a local account',
-    'convert_remote_desc' => 'When a remote account is converted to a local account, a password will be automatically generated. If the account does not have a confirmed email address, the account will be locked after it is converted since the user will have no way of retrieving the password. Once converted and if the account is active and has an email address the user will be emailed the password or they can request the password by using the forget password link from the Login page. For user accounts that do not have an active status and valid email you will have to manually notify the user of the account change and how to login.',
-    'contributed' => 'Contributed',
-    'na' => 'NA',
-    'nothing' => 'Nothing',
     'autotag_desc_user' => '[user: id alternate title] - הציגו קישור למשתמש תוך שימוש בשם המשתמש בתור הכותרת. ניתן לציין כותרת אלטרנטיבית אך זו לא חובה.',
     'USER_ACCOUNT_LOCKED' => 'Locked',
     'USER_ACCOUNT_NEW_EMAIL' => 'New Email Required',
@@ -1391,14 +1290,7 @@ $LANG31 = array(
     24 => 'אין הצלחות',
     25 => '-- ביחרו קבוצה --',
     26 => 'אנא מלאו את כל השדות בטופס וביחרו קבוצת משתמשים מתיבת הבחירה.',
-    27 => 'The following template variables are available in <strong>Subject</strong> and <strong>Message</strong>: {uid}, {username}, {fullname}, {email}, {homepage}, {theme}, {language}, {location}, {lastgranted}, {lastlogin}, {site_url}, {site_name}, {site_slogan}, {owner_name}, {copyrightyear}, {site_mail}, {noreply_mail}',
-    'email_divider' => '------------------------------------------------------------',
-    'email_divider_html' => '<hr' . XHTML . '>',
-    'sig_divider' => '---',
-    'sig_divider_html' => '---<br' . XHTML . '>',
-    'email_footer_msg_noreply' => 'The address used to send this email is not monitored. Please do not reply to this email.',
-    'email_footer_msg_content' => 'If content from the website is displayed in this email, there may be layout changes which result in formatting issues.',
-    'ip_address_email' => 'IP address that initiated email:'
+    27 => 'The following template variables are available in <strong>Subject</strong> and <strong>Message</strong>: {uid}, {username}, {fullname}, {email}, {homepage}, {theme}, {language}, {location}, {lastgranted}, {lastlogin}, {site_url}, {site_name}, {site_slogan}, {owner_name}, {copyrightyear}, {site_mail}, {noreply_mail}'
 );
 
 ###############################################################################
@@ -1419,7 +1311,6 @@ $LANG32 = array(
     12 => 'שום שם של plugin לא ניתן ל-plugineditor()',
     13 => 'מרכז מידע Plugins',
     14 => 'Plugins שהוסרו',
-    'installed_plugins' => 'Installed Plugins',
     15 => 'מרכז הניהול',
     16 => 'שם ה-Plugin',
     17 => 'גירסת ה-Plugin',
@@ -1475,10 +1366,6 @@ $LANG32 = array(
     67 => 'הספרייה "%s" אינה ניתנת לכתיבה.',
     68 => 'אין לכם את ההרשאות הנחוצות להתקנת plugins.',
     69 => 'אין לכם את ההרשאות הנחוצות להעלאת plugins.',
-    'delete' => 'Delete',
-    'delete_plugin' => 'Delete Plugin and all of its files?',
-    'click_to_delete_msg' => 'Click to Delete this Plugin files',
-    'really_delete_msg' => 'Really Delete %s Plugin files?',
     99 => 'התרחשה שגיאה לא ידועה',
     100 => 'אישור.',
     101 => 'הקובץ שהועלה עובר את הוראת upload_max_filesize directive ב-php.ini.',
@@ -1544,8 +1431,7 @@ $LANG33 = array(
     52 => 'שגיאה: שם הקובץ כבר קיים',
     53 => 'כל המאמרים של העמוד הראשי',
     54 => 'אנא ביחרו איזה סוג הזנה יש ליצור.',
-    55 => 'מאמרים',
-    'num_articles' => '%s Article(s)'
+    55 => 'מאמרים'
 );
 
 ###############################################################################
@@ -1560,8 +1446,6 @@ $LANG_LANG = array(
     'language' => 'Language',
     'name' => 'Name',
     'var_name' => 'Var Name',
-    'name_tip' => 'Required just for language arrays.',
-    'var_name_tip' => 'Can be a regular variable or array. Do not include the dollar sign at the beginning of the variable/array name.',
     'value' => 'Value'
 );
 
@@ -1629,7 +1513,7 @@ $MESSAGE = array(
     28 => 'ה-plugin נשמר בהצלחה',
     29 => 'מצטערים, אין לכם גישה לעמוד ניהול זה. אנא שימו לב שכל הנסיונות לגשת ליכולות לא מורשות נרשמות ביומן',
     30 => 'הגישה לא אושרה',
-    31 => 'Sorry, This feature is not supported by the  database server this website is using.  Please note that all attempts to access unsupported features are logged.',
+    31 => '',
     32 => '',
     33 => '',
     34 => '',
@@ -1726,17 +1610,13 @@ $MESSAGE = array(
     151 => 'Failed to delete some files and directories used during the installation.  Please remove them manually.',
     152 => 'All the files and directories used during the installation are left as they are.  It is dangerous to keep them on the server, so please don\'t forget to remove them manually.',
     153 => 'You last emailed an article %1$d seconds ago.  This site requires at least %2$d seconds between emailing articles.',
-    160 => 'The plugin files was successfully deleted.',
-    161 => 'The archive includes a file whose name includes an unsafe character.',
     400 => 'לא כל השדות הנדרשים עברו וידוא',
     401 => 'אנא הכניסו שם מלא',
     500 => 'The Template Cache has been successfully cleared.',
     501 => 'A verification message has been sent to your email address. Please click on the link in the email to confirm your email address and update your account. If you log into your account again before you verify your email address you will be asked again for a email address.<br' . XHTML . '><br' . XHTML . '>Please note you have now been successfully logged out so you can complete this verification.',
     502 => 'Your request for a new email has expired. Please try again below.',
     503 => 'Your email has been successfully verified.',
-    504 => 'Passwords must have a minimum of 8 characters and contain at least 1 number and 1 letter. Passwords are case sensitive.',
-    505 => "Warning - The current theme {$_CONF['theme']} v{$_CONF['theme_gl_version']} is not 100% compatible with this version of Geeklog (v2.2.1) and you will have issues using this site. The required minimum theme Geeklog version is v{$_CONF['min_theme_gl_version']}.",
-    506 => "Warning - The current theme {$_CONF['theme']} (version not known) is not 100% compatible with this version of Geeklog (v2.2.1) and you will have issues using this site. The required minimum theme Geeklog version is v{$_CONF['min_theme_gl_version']}."
+    504 => 'Passwords must have a minimum of 8 characters and contain at least 1 number and 1 letter. Passwords are case sensitive.'
 );
 
 ###############################################################################
@@ -1816,11 +1696,9 @@ $LANG_ACCESS = array(
 $LANG_DB_BACKUP = array(
     'database_admin' => 'Database Administration',
     'last_ten_backups' => 'גיבויי מאגר מידע',
-    'site_db_backup' => "{$_CONF['site_name']} Database Backup",
     'create_backup' => 'Backup Database',
     'do_backup' => 'צרו גיבוי',
     'backup_successful' => 'גיבוי מאגר המידע עבר בהצלחה.',
-    'backup_error' => 'Error performing database backup.',
     'db_explanation' => 'כדי ליצור גיבוי חדש של המערכת, ליחצו על הכפתור שלעיל. ליחצו על שם הקובץ כדי להוריד את הגיבוי.',
     'backup_instructions' => 'To create a new backup of your site database, select the "Do Backup" button below. This will backup all current Geeklog tables. You can download a copy of the backup from the main Database Administration Screen.',
     'zero_size' => 'הגיבוי נכשל. גודל הקובץ היה 0 bytes',
@@ -1871,8 +1749,7 @@ $LANG_DB_BACKUP = array(
     'disable_purge' => '("0" to disable purging.)',
     'use_gzip' => 'Use GZip if available',
     'configure' => 'Configure',
-    'config_instructions' => 'Select any tables you wish to exclude from the backup. Other options can be found in the Geeklog Configuration under the Database tab.',
-    'config_successful' => 'Tables to Backup list was saved successfully.'
+    'config_instructions' => 'Select any tables you wish to exclude from the backup. Other options can be found in the Geeklog Configuration under the Database tab.'
 );
 
 ###############################################################################
@@ -2080,24 +1957,6 @@ $LANG_MONTH = array(
 );
 
 ###############################################################################
-# Short Month names
-
-$LANG_MONTH_SHORT = array(
-    1 => 'Jan',
-    2 => 'Feb',
-    3 => 'Mar',
-    4 => 'Apr',
-    5 => 'May',
-    6 => 'Jun',
-    7 => 'Jul',
-    8 => 'Aug',
-    9 => 'Sep',
-    10 => 'Oct',
-    11 => 'Nov',
-    12 => 'Decr'
-);
-
-###############################################################################
 # Weekdays
 
 $LANG_WEEK = array(
@@ -2108,27 +1967,6 @@ $LANG_WEEK = array(
     5 => 'חמישי',
     6 => 'שישי',
     7 => 'שבת'
-);
-
-###############################################################################
-# Short Weekday Names
-
-$LANG_WEEK_SHORT = array(
-    1 => 'Sun',
-    2 => 'Mon',
-    3 => 'Tue',
-    4 => 'Wed',
-    5 => 'Thu',
-    6 => 'Fri',
-    7 => 'Sat'
-);
-
-###############################################################################
-# AM/PM
-
-$LANG_AMPM = array(
-    'am_pm' => array('am' => 'am', 'pm' => 'pm'),
-    'AM_PM' => array('am' => 'AM', 'pm' => 'PM')
 );
 
 ###############################################################################
@@ -2177,7 +2015,6 @@ $LANG_ADMIN = array(
     'token_expired' => 'כרטיס הביטחון לפעולה זו פג. נא אמתו מחדש כדי להמשיך.',
     'reauth_msg' => 'כרטיס הביטחון לפעולה זו פג. אם ברצונכם להמשיך בפעולה זו, נא אמתו מחדש להלן. כך יובטח ששינויים שהרגע ביצעתם לא יאבדו.',
     'token_expired_remote_user' => 'The security token for this operation has expired. Since you are a remote user you cannot re-authenticate, so you have lost your changes.',
-    'token_re_authentication_error' => 'There was an error after your account was re-authenticated. It is unclear if the operation you were performing was executed or not.',
     'authenticate' => 'אימות',
     'approve' => 'Approve',
     'device' => 'Device',
@@ -2187,8 +2024,7 @@ $LANG_ADMIN = array(
     'for_computer' => 'For Computer',
     'all' => 'All',
     'mobile' => 'Mobile',
-    'computer' => 'Computer',
-    'edit_access_only' => 'Edit Access Only'
+    'computer' => 'Computer'
 );
 
 # Localisation of the texts for the various drop-down menus that are actually
@@ -2254,19 +2090,6 @@ $LANG_trackbackcodes = array(
     -1 => 'ניטרול הפניות'
 );
 
-$LANG_structureddatatypes = array(
-    'none' => 'None',
-    'core-webpage' => 'WebPage',
-    'core-article' => 'Article',
-    'core-newsarticle' => 'NewsArticle',
-    'core-blogposting' => 'BlogPosting'
-);
-
-$LANG_STRUCT_DATA = array(
-    'lang_structured_data_type' => 'Structured Data Type',
-    'autotag_desc_structureddata' => '[structureddata:schema_property]Property Value[/structureddata] - Adds a property to the structured data of the content that the autotag is embedded in.'
-);
-
 ###############################################################################
 # Localization of the Admin Configuration UI
 
@@ -2303,7 +2126,6 @@ $LANG_confignames['Core'] = array(
     'mail_charset' => 'Email Character Set',
     'site_name' => 'שם האתר',
     'site_slogan' => 'סלוגן',
-    'path_site_logo' => 'Site Logo',
     'owner_name' => 'שם הבעלים',
     'microsummary_short' => 'מיקרו-סיכום',
     'path_log' => 'לוג',
@@ -2328,7 +2150,6 @@ $LANG_confignames['Core'] = array(
     'allow_user_themes' => 'איפשור בחירת נושאים עיצוביים למשתמשים',
     'allow_user_language' => 'איפשור בחירת שפה למשתמשים',
     'switchlang_homepage' => 'Switch Language Block Redirects to Homepage',
-    'new_item_set_current_lang' => 'Add Current Language Id to New Item',
     'allow_user_photo' => 'איפשור תמונות של משתמשים',
     'allow_username_change' => 'איפשור שינוי שם משתמש',
     'allow_account_delete' => 'איפשור מחיקות משתמשים',
@@ -2457,8 +2278,6 @@ $LANG_confignames['Core'] = array(
     'page_break_comments' => 'תגובות במאמרים רבי עמודים',
     'article_image_align' => 'כיוון אייקון נושא',
     'show_topic_icon' => 'הצגת אייקון נושא?',
-    'structured_data_type_default' => 'Structured Data Type Default',
-    'structured_data_article_topic' => 'Structured Data of Articles in Topics',
     'draft_flag' => 'ברירת המחדל של מצב טיוטה',
     'frontpage' => 'ברירת המחדל של הצגה בדף ראשי',
     'hide_no_news_msg' => 'החבאת הודעת "אין חדשות"?',
@@ -2503,10 +2322,8 @@ $LANG_confignames['Core'] = array(
     'max_photo_width' => 'רוחב התמונה המקסימלי?',
     'max_photo_height' => 'אורך התמונה המקסימלי?',
     'max_photo_size' => 'גודל התמונה המקסימלי?',
-    'generate_user_icon' => 'Generate User Icon automatically?',
     'use_gravatar' => 'שימוש ב-Gravatar?',
     'gravatar_rating' => 'דירוג צפייה לפי Gravatar',
-    'gravatar_identicon' => 'Gravatar Identicon',
     'force_photo_width' => 'חיוב רוחב תמונה',
     'default_photo' => 'תמונת ברירת המחדל',
     'commentspeedlimit' => 'הגבלת מהירות תגובות',
@@ -2517,26 +2334,6 @@ $LANG_confignames['Core'] = array(
     'comment_edit' => 'איפשור עריכת תגובות?',
     'comment_edittime' => 'זמן עריכת תגובות (בשניות)',
     'commentsubmission' => 'תור להגשת תגובות',
-    'likes_enabled' => 'Likes Enabled',
-    'likes_articles' => 'Article Likes',
-    'likes_comments' => 'Comment Likes',
-    'likes_speedlimit' => 'Likes Speed Limit',
-    'likes_users_listed' => 'User Listed',
-    'likes_block_cache_time' => 'Cache Time',
-    'likes_block_include_time' => 'Include Time',
-    'likes_block_max_items' => 'Max Items Listed',
-    'likes_block_displayed_actions' => 'Displayed Actions',
-    'likes_block_title_trim_length' => 'Title Trim Length',
-    'likes_block_likes_new_line' => 'Likes on New Line',
-    'likes_block_type' => 'Type',
-    'likes_block_subtype' => 'Sub Type',
-    'likes_block_enable' => 'Enabled',
-    'likes_block_isleft' => 'Display Block on Left',
-    'likes_block_order' => 'Block Order',
-    'likes_block_topic_option' => 'Topic Options',
-    'likes_block_topic' => 'Topic',
-    'likes_block_group_id' => 'Group',
-    'likes_block_permissions' => 'Permissions',
     'passwordspeedlimit' => 'הגבלת מהירות סיסמאות',
     'login_attempts' => 'הכמות המקסימלית של נסיונות הזדהות',
     'login_speedlimit' => 'הגבלת מהירות הזדהות',
@@ -2598,8 +2395,6 @@ $LANG_confignames['Core'] = array(
     'autotag_permissions_related_topics' => '[related_topics: ] Permissions',
     'autotag_permissions_related_items' => '[related_items: ] Permissions',
     'autotag_permissions_block' => '[block: ] Permissions',
-    'autotag_permissions_structureddata' => '[structureddata: ] Permissions',
-    'autotag_permissions_likes_block' => '[likes_block: ] Permissions',
     'multiple_breadcrumbs' => 'הצגת מיקומים מרובים',
     'disable_breadcrumbs_topics' => 'ניטרול הצגת מיקום של נושאים',
     'disable_breadcrumbs_articles' => 'ניטרול הצגת מיקום של מאמרים',
@@ -2616,20 +2411,21 @@ $LANG_confignames['Core'] = array(
     'filemanager_logger' => 'Enable logger?',
     'filemanager_show_thumbs' => 'Show thumbnails?',
     'filemanager_generate_thumbnails' => 'Generate thumbnails?',
+    'filemanager_upload_restrictions' => 'Allowed file extensions',
     'filemanager_upload_overwrite' => 'Overwrite existing file?',
+    'filemanager_upload_images_only' => 'Upload images only?',
     'filemanager_upload_file_size_limit' => 'Upload file size limit (MiB)',
+    'filemanager_unallowed_files' => 'Unallowed files',
+    'filemanager_unallowed_dirs' => 'Unallowed directories',
+    'filemanager_unallowed_files_regexp' => 'Regular expression for unallowed files',
+    'filemanager_unallowed_dirs_regexp' => 'Regular expression for unallowed directories',
     'filemanager_images_ext' => 'Image file extensions',
     'filemanager_show_video_player' => 'Show video player?',
     'filemanager_videos_ext' => 'Video file extensions',
     'filemanager_videos_player_width' => 'Video player width (px)',
     'filemanager_videos_player_height' => 'Video player height (px)',
     'filemanager_show_audio_player' => 'Show audio player?',
-    'filemanager_audios_ext' => 'Audio file extensions',
-    'cookie_consent' => 'Enable Cookie Consent',
-    'terms_of_use_link' => 'Terms of Use Link',
-    'privacy_policy_link' => 'Privacy Policy Link',
-    'about_cookies_link' => 'About Cookies Consent Link',
-    'ip_anonymization' => 'IP Anonymization'
+    'filemanager_audios_ext' => 'Audio file extensions'
 );
 
 $LANG_configsubgroups['Core'] = array(
@@ -2680,9 +2476,6 @@ $LANG_fs['Core'] = array(
     'fs_userphoto' => 'תמונות',
     'fs_gravatar' => 'Gravatar',
     'fs_comments' => 'תגובות',
-    'fs_likes' => 'Likes',
-    'fs_likes_block_settings' => 'Block Settings',
-    'fs_likes_block_permissions' => 'Block Permissions',
     'fs_htmlfilter' => 'פילטר HTML',
     'fs_censoring' => 'צנזורה',
     'fs_iplookup' => 'חיפוש IP',
@@ -2734,7 +2527,6 @@ $LANG_tab['Core'] = array(
     'tab_userphoto' => 'תמונות',
     'tab_gravatar' => 'Gravatar',
     'tab_comments' => 'תגובות',
-    'tab_likes' => 'Likes',
     'tab_htmlfilter' => 'סינון HTML',
     'tab_censoring' => 'צנזורה',
     'tab_iplookup' => 'חיפוש IP',
@@ -2787,14 +2579,7 @@ $LANG_configselects['Core'] = array(
     35 => array('default' => 'default', 'Name (asc)' => 'NAME_ASC', 'Name (desc)' => 'NAME_DESC', 'Type (asc)' => 'TYPE_ASC', 'Type (desc)' => 'TYPE_DESC', 'Modified (asc)' => 'MODIFIED_ASC', 'Modified (desc)' => 'MODIFIED_DESC'),
     36 => array('False' => 'false', 'Frontpage only' => 'frontpage', 'Frontpage and Topics' => 'frontpage_topics'),
     37 => array('Disabled' => 0, 'Enabled (with "index.php")' => 1, 'Enabled (without "index.php")' => 2),
-    38 => array('Mystery Man' => 'mm', 'Identicon' => 'identicon', 'MonsterId' => 'monsterid', 'WAvatar' => 'wavatar', 'Retro' => 'retro'),
-    39 => array('None' => '', 'WebPage' => 'core-webpage', 'Article' => 'core-article', 'NewsArticle' => 'core-newsarticle', 'BlogPosting' => 'core-blogposting'),
-    40 => array('False' => 0, 'Users and Anonymous' => 1, 'Users Only' => 2),
-    41 => array('False' => 0, 'Likes and Dislikes' => 1, 'Likes Only' => 2),
-    42 => array('None' => 0, 'Use individual Article Settings' => 1),
-    43 => array('All' => 'all', 'Homepage Only' => 'homeonly', 'Select Topics' => 'selectedtopics'),
-    44 => array('No access' => 0, 'Read-Only' => 2),
-    46 => array('Likes and Dislikes' => 3, 'Likes Only' => 1, 'Dislikes Only' => 2)
+    38 => array('Mystery Man' => 'mm', 'Identicon' => 'identicon', 'MonsterId' => 'monsterid', 'WAvatar' => 'wavatar', 'Retro' => 'retro')
 );
 
 ###############################################################################
@@ -2804,7 +2589,6 @@ $LANG_VALIDATION = array(
     'default' => 'שדה זה מכיל ערך שגוי',
     'notEmpty' => 'שדה זה לא יכול להיות ריק',
     'alphaNumeric' => 'שדה זה חייב להיות עם אותיות ומספרים',
-    'alphaNumericOrEmpty' => 'This field must be alpha numeric or empty',
     'between' => 'שדה זה חייב להיות בטווח המצוין',
     'blank' => 'שדה זה חייב להיות ריק',
     'comparison' => 'שדה זה לא תואם את תהליך ההשוואה',
@@ -2844,8 +2628,6 @@ $LANG_VALIDATION = array(
     'timezone' => 'איזור זמן שגוי',
     'single_char' => 'שדה חייב להיות תו בודד',
     'page_navigation_max_pages' => 'שדה זה חייב להיות בטווח 2 - 21',
-    'hash' => 'שדה זה להיות בפונקציית קידוד הנתמכת על ידי גרסת ה-PHP שלכם',
-    'config_setting_lang_array' => 'Each element requires a unique language shortcut (\'en\', \'de\', etc.) and the corresponding field must contain a value',
-    'config_setting_lang_array_element_req' => 'Requires at least one element. Each element requires a unique language shortcut (\'en\', \'de\', etc.) and the corresponding field must contain a value'
+    'hash' => 'שדה זה להיות בפונקציית קידוד הנתמכת על ידי גרסת ה-PHP שלכם'
 );
 

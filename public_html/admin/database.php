@@ -2,13 +2,13 @@
 
 /* Reminder: always indent with 4 spaces (no tabs). */
 // +---------------------------------------------------------------------------+
-// | Geeklog 2.2                                                               |
+// | Geeklog 2.1                                                               |
 // +---------------------------------------------------------------------------+
 // | database.php                                                              |
 // |                                                                           |
 // | Geeklog database backup administration page.                              |
 // +---------------------------------------------------------------------------+
-// | Copyright (C) 2015-2020 by the following authors:                         |
+// | Copyright (C) 2015-2016 by the following authors:                         |
 // |                                                                           |
 // | Mark R. Evans          mark AT glfusion DOT org                           |
 // |                                                                           |
@@ -36,159 +36,151 @@
 // |                                                                           |
 // +---------------------------------------------------------------------------+
 
-global $_DB_dbms, $_TABLES, $_USER, $LANG01;
-
 require_once '../lib-common.php';
 require_once 'auth.inc.php';
 
+// Currently, database feature is supported with MySQL only
+if ($_DB_dbms !== 'mysql') {
+    COM_redirect($_CONF['site_url']);
+}
+
+require_once $_CONF['path'] . 'system/classes/dbbackup.class.php';
+
+$display = '';
+$page = '';
+
 // If user isn't a root user, bail.
 if (!SEC_inGroup('Root')) {
-    $display = COM_showMessageText($MESSAGE[29], $MESSAGE[30]);
-    $display = COM_createHTMLDocument($display, ['pagetitle' => $LANG_DB_BACKUP['database_admin']]);
+    $display .= COM_showMessageText($MESSAGE[29], $MESSAGE[30]);
+    $display = COM_createHTMLDocument($display, array('pagetitle' => $LANG_DB_BACKUP['database_admin']));
     COM_accessLog("User {$_USER['username']} tried to illegally access the database backup screen.");
     COM_output($display);
     exit;
 }
 
-// Currently, database feature is supported with MySQL only
-if ($_DB_dbms !== 'mysql') {
-    $display = COM_showMessageText($MESSAGE[31], $MESSAGE[30]);
-    $display = COM_createHTMLDocument($display, array('pagetitle' => $MESSAGE[30]));
-    if (isset($_USER['username'])) {
-        $username = $_USER['username'];
-    } else {
-        $username = '';
-    }
-    COM_errorLog("Someone has tried to access the Geeklog Development Database Upgrade Routine which is not supported by our {$_DB_dbms} database server .  User id: {$_USER['uid']}, Username: $username, IP: " . $_SERVER['REMOTE_ADDR'],1);
-    COM_output($display);
-    exit;
-}
-
 require_once $_CONF['path_system'] . 'lib-admin.php';
-require_once $_CONF['path_system'] . 'classes/dbbackup.class.php';
 
-$display = '';
-$page = '';
+/**
+ * Sort backup files with newest first, oldest last.
+ * For use with usort() function.
+ * This is needed because the sort order of the backup files, coming from the
+ * 'readdir' function, might not be that way.
+ */
+function DBADMIN_compareBackupFiles($pFileA, $pFileB)
+{
+    global $_CONF;
+
+    $lFiletimeA = @filemtime($_CONF['backup_path'] . $pFileA);
+    $lFiletimeB = @filemtime($_CONF['backup_path'] . $pFileB);
+    if ($lFiletimeA == $lFiletimeB) {
+        return 0;
+    }
+
+    return ($lFiletimeA > $lFiletimeB) ? -1 : 1;
+}
 
 /**
  * List all backups, i.e. all files ending in .sql
  *
- * @return string  HTML for the list of files or an error when not writable
+ * @return   string      HTML for the list of files or an error when not writable
  */
 function DBADMIN_list()
 {
-    global $_CONF, $_IMAGE_TYPE, $LANG08, $LANG_ADMIN, $LANG_DB_BACKUP;
+    global $_CONF, $_TABLES, $_IMAGE_TYPE, $LANG08, $LANG_ADMIN, $LANG_DB_BACKUP;
 
     $retval = '';
 
     if (is_writable($_CONF['backup_path'])) {
-        $backups = [];
-
-        foreach (scandir($_CONF['backup_path']) as $file) {
-            if (preg_match('/\.sql(\.gz)?$/i', $file)) {
+        $backups = array();
+        $fd = opendir($_CONF['backup_path']);
+        $index = 0;
+        while ((false !== ($file = @readdir($fd)))) {
+            if ($file <> '.' && $file <> '..' && $file <> 'CVS' &&
+                preg_match('/\.sql(\.gz)?$/i', $file)
+            ) {
+                $index++;
+                clearstatcache();
                 $backups[] = $file;
             }
         }
 
-        usort(
-            $backups,
-            function ($pFileA, $pFileB) {
-                global $_CONF;
+        usort($backups, 'DBADMIN_compareBackupFiles');
 
-                $lFileTimeA = @filemtime($_CONF['backup_path'] . $pFileA);
-                $lFileTimeB = @filemtime($_CONF['backup_path'] . $pFileB);
-                if ($lFileTimeA == $lFileTimeB) {
-                    return 0;
-                }
-
-                return ($lFileTimeA > $lFileTimeB) ? -1 : 1;
-            }
-        );
-
-        $data_arr = [];
+        $data_arr = array();
         $thisUrl = $_CONF['site_admin_url'] . '/database.php';
         $diskIconUrl = $_CONF['layout_url'] . '/images/admin/disk.' . $_IMAGE_TYPE;
         $attr['title'] = $LANG_DB_BACKUP['download'];
         $alt = $LANG_DB_BACKUP['download'];
-        $numBackUps = count($backups);
-
-        foreach ($backups as $backup) {
-            $downloadUrl = $thisUrl . '?download=x&amp;file=' . urlencode($backup);
-            $downloadLink = COM_createLink(COM_createImage($diskIconUrl, $alt, $attr), $downloadUrl, $attr)
-                . '&nbsp;&nbsp;'
-                . COM_createLink($backup, $downloadUrl, $attr);
-            $backupFileSize = COM_numberFormat(filesize($_CONF['backup_path'] . $backup))
-                . ' <strong>' . $LANG_DB_BACKUP['bytes'] . '</strong>';
-            $data_arr[] = [
-                'file'     => $downloadLink,
-                'size'     => $backupFileSize,
-                'filename' => $backup,
-            ];
+        $num_backups = count($backups);
+        for ($i = 0; $i < $num_backups; $i++) {
+            $downloadUrl = $thisUrl . '?download=x&amp;file='
+                . urlencode($backups[$i]);
+            $downloadLink = COM_createLink(COM_createImage($diskIconUrl, $alt, $attr), $downloadUrl, $attr);
+            $downloadLink .= '&nbsp;&nbsp;';
+            $downloadLink .= COM_createLink($backups[$i], $downloadUrl, $attr);
+            $backupfile = $_CONF['backup_path'] . $backups[$i];
+            $backupfilesize = COM_numberFormat(filesize($backupfile))
+                . ' <b>' . $LANG_DB_BACKUP['bytes'] . '</b>';
+            $data_arr[$i] = array('file'     => $downloadLink,
+                                  'size'     => $backupfilesize,
+                                  'filename' => $backups[$i]);
         }
 
-        $menu_arr = [
-            [
-                'url'  => $_CONF['site_admin_url'] . '/database.php?backupdb=x',
-                'text' => $LANG_DB_BACKUP['create_backup'],
-            ],
-            [
-                'url'  => $_CONF['site_admin_url'] . '/database.php?optimize=x',
-                'text' => $LANG_DB_BACKUP['optimize_menu'],
-            ],
-        ];
+        $token = SEC_createToken();
 
-        if (DBADMIN_checkForInnoDBStatus()) {
-            if (DBADMIN_supported_engine('MyISAM')) {
-                $menu_arr[] = [
-                    'url'  => $_CONF['site_admin_url'] . '/database.php?myisam=x',
-                    'text' => $LANG_DB_BACKUP['convert_myisam_menu'],
-                ];
-            }
-        } else {
-            if (DBADMIN_supported_engine('InnoDB')) {
-                $menu_arr[] = [
-                    'url'  => $_CONF['site_admin_url'] . '/database.php?innodb=x',
-                    'text' => $LANG_DB_BACKUP['convert_menu'],
-                ];
-            }
+        $menu_arr = array();
+
+        $allInnoDB = DBADMIN_innodbStatus();
+
+
+        $menu_arr[] = array('url'  => $_CONF['site_admin_url'] . '/database.php?backupdb=x',
+                            'text' => $LANG_DB_BACKUP['create_backup']);
+
+
+        $menu_arr[] = array('url'  => $_CONF['site_admin_url'] . '/database.php?optimize=x',
+                            'text' => $LANG_DB_BACKUP['optimize_menu']);
+
+        if (!$allInnoDB && DBADMIN_supported_engine('InnoDB')) {
+            $menu_arr[] = array('url'  => $_CONF['site_admin_url'] . '/database.php?innodb=x',
+                                'text' => $LANG_DB_BACKUP['convert_menu']);
+        }
+        if ($allInnoDB && DBADMIN_supported_engine('MyISAM')) {
+            $menu_arr[] = array('url'  => $_CONF['site_admin_url'] . '/database.php?myisam=x',
+                                'text' => $LANG_DB_BACKUP['convert_myisam_menu']);
         }
 
-        $menu_arr[] = [
-            'url'  => $_CONF['site_admin_url'] . '/database.php?config=x',
-            'text' => $LANG_DB_BACKUP['configure'],
-        ];
-        $menu_arr[] = [
-            'url'  => $_CONF['site_admin_url'],
-            'text' => $LANG_ADMIN['admin_home'],
-        ];
+        $menu_arr[] = array('url'  => $_CONF['site_admin_url'] . '/database.php?config=x',
+                            'text' => $LANG_DB_BACKUP['configure']);
+
+        $menu_arr[] = array('url'  => $_CONF['site_admin_url'],
+                            'text' => $LANG_ADMIN['admin_home']);
+
 
         $retval .= COM_startBlock($LANG_DB_BACKUP['database_admin'], '',
             COM_getBlockTemplate('_admin_block', 'header'));
         $retval .= ADMIN_createMenu(
             $menu_arr,
             "<p>{$LANG_DB_BACKUP['db_explanation']}</p>" .
-            '<p>' . sprintf($LANG_DB_BACKUP['total_number'], $numBackUps) . '</p>',
+            '<p>' . sprintf($LANG_DB_BACKUP['total_number'], $index) . '</p>',
             $_CONF['layout_url'] . '/images/icons/database.' . $_IMAGE_TYPE
         );
 
-        $header_arr = [      // display 'text' and use table field 'field'
-            ['text' => $LANG_DB_BACKUP['backup_file'], 'field' => 'file'],
-            ['text' => $LANG_DB_BACKUP['size'], 'field' => 'size'],
-        ];
-        $text_arr = ['form_url' => $thisUrl];
-        $form_arr = ['bottom' => '', 'top' => ''];
-        if ($numBackUps > 0) {
+        $header_arr = array(      // display 'text' and use table field 'field'
+            array('text' => $LANG_DB_BACKUP['backup_file'], 'field' => 'file'),
+            array('text' => $LANG_DB_BACKUP['size'], 'field' => 'size'),
+        );
+
+        $text_arr = array(
+            'form_url' => $thisUrl,
+        );
+        $form_arr = array('bottom' => '', 'top' => '');
+        if ($num_backups > 0) {
             $form_arr['bottom'] = '<input type="hidden" name="delete" value="x">'
                 . '<input type="hidden" name="' . CSRF_TOKEN
-                . '" value="' . SEC_createToken() . '">' . LB;
+                . '" value="' . $token . '">' . LB;
         }
-
-        $options = [
-            'chkdelete'  => true,
-            'chkminimum' => 0,
-            'chkfield'   => 'filename',
-        ];
-
+        $options = array('chkdelete' => true, 'chkminimum' => 0,
+                         'chkfield'  => 'filename');
         $retval .= ADMIN_simpleList('', $header_arr, $text_arr, $data_arr,
             $options, $form_arr);
         $retval .= COM_endBlock(COM_getBlockTemplate('_admin_block', 'footer'));
@@ -203,33 +195,33 @@ function DBADMIN_list()
     return $retval;
 }
 
-/**
- * Prepare for backing up tables via ajax
- */
 function DBADMIN_backupAjax()
 {
-    if (!COM_isAjax()) {
-        die();
-    }
+    global $_CONF, $_DB_name;
 
-    $retval = [];
+    if (!COM_isAjax()) die();
+
+    $retval = array();
     $errorCode = 0;
 
     $backup = new dbBackup();
+
     $backup_filename = $backup->getBackupFilename();
 
-    if (!$backup->initBackup()) {
+    $rc = $backup->initBackup();
+    if ($rc === false) {
         COM_errorLog("DBADMIN error - unable to initialize backup");
         $errorCode = 1;
         $retval['statusMessage'] = 'Unable to initialize backup - see error.log for details';
     }
 
-    $tableList = [];
+    $tableList = array();
+
     $rowCount = 0;
 
-    $backupTables = $backup->getTableList();
-    if (is_array($backupTables)) {
-        foreach ($backupTables as $index => $value) {
+    $backup_tables = $backup->getTableList();
+    if (is_array($backup_tables)) {
+        foreach ($backup_tables AS $index => $value) {
             $tableList[] = $value;
             $rowCount += DB_count($value);
         }
@@ -241,54 +233,43 @@ function DBADMIN_backupAjax()
     $retval['totalrows'] = $rowCount;
     $retval['statusMessage'] = 'Initialization Successful';
 
-    $return['json'] = json_encode($retval);
+    $return["json"] = json_encode($retval);
 
     echo json_encode($return);
     exit;
 }
 
-/**
- * Finish Backing up tables via ajax
- */
 function DBADMIN_backupCompleteAjax()
 {
-    if (!COM_isAjax()) {
-        die();
-    }
+    if (!COM_isAjax()) die();
 
-    $retval = [];
-
+    $retval = array();
     $filename = Geeklog\Input::post('backup_filename', '');
+
     if (!empty($filename)) {
         $filename = COM_sanitizeFilename($filename, true);
     }
-
     $backup = new dbBackup();
     $backup->setBackupFilename($filename);
     $backup->completeBackup();
     $backup->save_backup_time();
-    $backup->purge();
+    $backup->Purge();
     $retval['errorCode'] = 0;
-    $return['json'] = json_encode($retval);
+    $return["json"] = json_encode($retval);
     echo json_encode($return);
     exit;
 }
 
-/**
- * Back up a table via ajax
- */
 function DBADMIN_backupTableAjax()
 {
-    global $_CONF;
+    global $_VARS;
 
-    if (!COM_isAjax()) {
-        die();
-    }
+    if (!COM_isAjax()) die();
 
-    $retval = [];
+    $retval = array();
 
-    if (!isset($_CONF['dbdump_tables_only'])) {
-        $_CONF['dbdump_tables_only'] = 0;
+    if (!isset($_VARS['_dbback_allstructs'])) {
+        $_VARS['_dbback_allstructs'] = 0;
     }
 
     $filename = Geeklog\Input::post('backup_filename', '');
@@ -301,32 +282,32 @@ function DBADMIN_backupTableAjax()
 
     $backup = new dbBackup();
     $backup->setBackupFilename($filename);
-    list ($rc, $sessionCounter, $recordCounter) = $backup->backupTable($table, $_CONF['dbdump_tables_only'], $start);
+    list($rc, $sessionCounter, $recordCounter) = $backup->backupTable($table, $_VARS['_dbback_allstructs'], $start);
 
     switch ($rc) {
-        case 1:
+        case 1 :
             $retval['errorCode'] = 2;
             $retval['startrecord'] = $recordCounter;
             $retval['processed'] = $sessionCounter;
-            $return['json'] = json_encode($retval);
+            $return["json"] = json_encode($retval);
             echo json_encode($return);
             exit;
-
-        case -2:
+        case -2 :
             // serious error
             $retval['errorCode'] = 3;
-            $return['json'] = json_encode($retval);
+            $return["json"] = json_encode($retval);
             echo json_encode($return);
             exit;
-
-        default:
+        default :
             $retval['errorCode'] = 0;
             $retval['processed'] = $sessionCounter;
-            $return['json'] = json_encode($retval);
+            $return["json"] = json_encode($retval);
             echo json_encode($return);
             exit;
     }
+    exit;
 }
+
 
 /**
  * Prepare to backup
@@ -340,40 +321,34 @@ function DBADMIN_backupPrompt()
     $retval = '';
 
     if (is_writable($_CONF['backup_path'])) {
+
         $T = COM_newTemplate(CTL_core_templatePath($_CONF['path_layout'] . 'admin/dbadmin'));
         $T->set_file('page', 'dbbackup.thtml');
 
-        $lastRun = DB_getItem($_TABLES['vars'], 'UNIX_TIMESTAMP(value)', "name = 'db_backup_lastrun'");
-        $allInnoDB = DBADMIN_checkForInnoDBStatus();
-        $menu_arr = [
-            [
-                'url'  => $_CONF['site_admin_url'] . '/database.php',
-                'text' => $LANG_DB_BACKUP['database_admin'],
-            ],
-            [
-                'url'  => $_CONF['site_admin_url'] . '/database.php?optimize=x',
-                'text' => $LANG_DB_BACKUP['optimize_menu'],
-            ],
+        $lastrun = DB_getItem($_TABLES['vars'], 'UNIX_TIMESTAMP(value)',
+            "name = 'db_backup_lastrun'");
 
-        ];
+        $menu_arr = array();
+
+        $allInnoDB = DBADMIN_innodbStatus();
+
+        $menu_arr[] = array('url'  => $_CONF['site_admin_url'] . '/database.php',
+                            'text' => $LANG_DB_BACKUP['database_admin']);
+
+        $menu_arr[] = array('url'  => $_CONF['site_admin_url'] . '/database.php?optimize=x',
+                            'text' => $LANG_DB_BACKUP['optimize_menu']);
 
         if (!$allInnoDB && DBADMIN_supported_engine('InnoDB')) {
-            $menu_arr[] = [
-                'url'  => $_CONF['site_admin_url'] . '/database.php?innodb=x',
-                'text' => $LANG_DB_BACKUP['convert_menu'],
-            ];
+            $menu_arr[] = array('url'  => $_CONF['site_admin_url'] . '/database.php?innodb=x',
+                                'text' => $LANG_DB_BACKUP['convert_menu']);
         }
         if ($allInnoDB && DBADMIN_supported_engine('MyISAM')) {
-            $menu_arr[] = [
-                'url'  => $_CONF['site_admin_url'] . '/database.php?myisam=x',
-                'text' => $LANG_DB_BACKUP['convert_myisam_menu'],
-            ];
+            $menu_arr[] = array('url'  => $_CONF['site_admin_url'] . '/database.php?myisam=x',
+                                'text' => $LANG_DB_BACKUP['convert_myisam_menu']);
         }
 
-        $menu_arr[] = [
-            'url'  => $_CONF['site_admin_url'],
-            'text' => $LANG_ADMIN['admin_home'],
-        ];
+        $menu_arr[] = array('url'  => $_CONF['site_admin_url'],
+                            'text' => $LANG_ADMIN['admin_home']);
 
         $T->set_var('start_block', COM_startBlock($LANG_DB_BACKUP['database_admin'], '',
             COM_getBlockTemplate('_admin_block', 'header')));
@@ -384,25 +359,23 @@ function DBADMIN_backupPrompt()
             $_CONF['layout_url'] . '/images/icons/database.' . $_IMAGE_TYPE
         ));
 
-        $T->set_var([
-            'end_block'           => COM_endBlock(COM_getBlockTemplate('_admin_block', 'footer')),
-            'security_token'      => SEC_createToken(),
-            'security_token_name' => CSRF_TOKEN,
-        ]);
 
-        if (!empty($lastRun)) {
-            $last = COM_getUserDateTimeFormat($lastRun);
-            $T->set_var([
-                'lang_last_backup' => $LANG_DB_BACKUP['latest_backup'],
-                'last_backup'      => $last[0],
-            ]);
+        $T->set_var('end_block', COM_endBlock(COM_getBlockTemplate('_admin_block', 'footer')));
+
+        $T->set_var('security_token', SEC_createToken());
+        $T->set_var('security_token_name', CSRF_TOKEN);
+
+        if (!empty($lastrun)) {
+            $last = COM_getUserDateTimeFormat($lastrun);
+            $T->set_var('lang_last_backup', $LANG_DB_BACKUP['latest_backup']);
+            $T->set_var('last_backup', $last[0]);
         }
 
-		if (isset($_CONF['dbdump_tables_only']) && $_CONF['dbdump_tables_only']) {
-			$T->set_var('struct_warning', $LANG_DB_BACKUP['backup_warning']);
-		}
+        if (isset($_VARS['_dbback_allstructs']) && $_VARS['_dbback_allstructs']) {
+            $T->set_var('struct_warning', $LANG_DB_BACKUP['backup_warning']);
+        }
 
-        $T->set_var([
+        $T->set_var(array(
             'action'                   => 'backup',
             'lang_backingup'           => $LANG_DB_BACKUP['backingup'],
             'lang_backup'              => $LANG_DB_BACKUP['do_backup'],
@@ -412,7 +385,7 @@ function DBADMIN_backupPrompt()
             'lang_backup_instructions' => $LANG_DB_BACKUP['backup_instructions'],
             'lang_title'               => $LANG_DB_BACKUP['backup_title'],
             'lang_ok'                  => $LANG01['ok'],
-        ]);
+        ));
 
         $T->parse('output', 'page');
         $retval .= $T->finish($T->get_var('output'));
@@ -427,35 +400,34 @@ function DBADMIN_backupPrompt()
     return $retval;
 }
 
+
 /**
  * Perform database backup
  *
- * @return string  HTML success or error message
+ * @return   string      HTML success or error message
  */
 function DBADMIN_backup()
 {
-	global $LANG_DB_BACKUP, $LANG01;
-	
-    $page = '';
-	
-	$backup = new dbBackup();
-    if ($backup->performBackUp()) {
-		$page .= COM_showMessageText($LANG_DB_BACKUP['backup_successful']);
-	} else {
-		$page .= COM_showMessageText($LANG_DB_BACKUP['backup_error'], $LANG01['error_title']);
-	}
-	$backup->purge();
+    global $_CONF, $LANG08, $LANG_DB_BACKUP, $MESSAGE, $_IMAGE_TYPE,
+           $_DB_host, $_DB_name, $_DB_user, $_DB_pass;
 
-	$page .= DBADMIN_list();
-	
-    return $page;
+    $retval = '';
+
+    $backup = new dbBackup();
+    $backup->perform_backup();
+    $backup->Purge();
+
+    $retval .= DBADMIN_list();
+
+    return $retval;
 }
 
 /**
  * Download a backup file
  *
- * @param  string  $file  Filename (without the path)
- * @note   Filename should have been sanitized and checked before calling this.
+ * @param    string $file Filename (without the path)
+ * @return   void
+ * @note     Filename should have been sanitized and checked before calling this.
  */
 function DBADMIN_download($file)
 {
@@ -464,39 +436,41 @@ function DBADMIN_download($file)
     require_once $_CONF['path_system'] . 'classes/downloader.class.php';
 
     $dl = new downloader;
+
     $dl->setLogFile($_CONF['path'] . 'logs/error.log');
     $dl->setLogging(true);
     $dl->setDebug(true);
+
     $dl->setPath($_CONF['backup_path']);
-    $dl->setAllowedExtensions([
+    $dl->setAllowedExtensions(array(
         'sql' => 'application/x-gzip-compressed',
         'gz'  => 'application/x-gzip-compressed',
-    ]);
+    ));
     $dl->downloadFile($file);
 }
 
 /**
  * Check for DB storage engine support
  *
- * @param  string  $type
- * @return bool   true = if engine is supported, false = not supported
+ * @return   true = if engine is supported, false = not supported
  */
 function DBADMIN_supported_engine($type = 'MyISAM')
 {
     $retval = false;
 
-    if (!DBADMIN_validateEngine($type)) {
+    if ($type != 'MyISAM' || $type != 'InnoDB') {
         $type = 'MyISAM';
     }
 
     $result = DB_query("SHOW STORAGE ENGINES");
     $numEngines = DB_numRows($result);
-
     for ($i = 0; $i < $numEngines; $i++) {
         $A = DB_fetchArray($result);
 
         if (strcasecmp($A['Engine'], $type) == 0) {
-            if ((strcasecmp($A['Support'], 'yes') == 0) || (strcasecmp($A['Support'], 'default') == 0)) {
+            if ((strcasecmp($A['Support'], 'yes') == 0) ||
+                (strcasecmp($A['Support'], 'default') == 0)
+            ) {
                 $retval = true;
             }
             break;
@@ -506,46 +480,32 @@ function DBADMIN_supported_engine($type = 'MyISAM')
     return $retval;
 }
 
-/**
- * Return if all tables use the MySQL engine given
- *
- * @param  string  $targetEngine  either 'MyISAM' or 'InnoDB'
- * @return bool
- */
-function DBADMIN_checkMySQLEngineStatus($targetEngine)
-{
-    global $_TABLES, $_DB_name;
 
-    if (!in_array($targetEngine, ['MyISAM', 'InnoDB'])) {
-        die('Engine must be either \'MyISAM\' or \'InnoDB\'.');
-    }
+function DBADMIN_innodbStatus()
+{
+    global $_CONF, $_TABLES, $_DB_name;
 
     $retval = false;
 
-    $currentEngine = DB_getItem($_TABLES['vars'], 'value', "name = 'database_engine'");
-
-    if (!empty($currentEngine) && ($currentEngine === $targetEngine)) {
+    $engine = DB_getItem($_TABLES['vars'], 'value', "name = 'database_engine'");
+    if (!empty($engine) && ($engine == 'InnoDB')) {
         // need to look at all the tables
         $result = DB_query("SHOW TABLES");
         $numTables = DB_numRows($result);
-
         for ($i = 0; $i < $numTables; $i++) {
             $A = DB_fetchArray($result, true);
             $table = $A[0];
-
             if (in_array($table, $_TABLES)) {
-                $result2 = DB_query("SHOW TABLE STATUS FROM {$_DB_name} LIKE '{$table}'");
+                $result2 = DB_query("SHOW TABLE STATUS FROM $_DB_name LIKE '$table'");
                 $B = DB_fetchArray($result2);
-
-                if (strcasecmp($B['Engine'], $targetEngine) !== 0) {
-                    // found a table with different engine
+                if (strcasecmp($B['Engine'], 'InnoDB') != 0) {
                     return false;
+                    break; // found a non-InnoDB table
                 }
             }
         }
-
         if ($i == $numTables) {
-            // okay, all the tables are already $targetEngine
+            // okay, all the tables are InnoDB already
             $retval = true;
         }
     }
@@ -553,256 +513,226 @@ function DBADMIN_checkMySQLEngineStatus($targetEngine)
     return $retval;
 }
 
-/**
- * Return if all tables use the MySQL InnoDB engine
- *
- * @return bool
- */
-function DBADMIN_checkForInnoDBStatus()
+function DBADMIN_myisamStatus()
 {
-    return DBADMIN_checkMySQLEngineStatus('InnoDB');
+    global $_CONF, $_TABLES, $_DB_name;
+
+    $retval = false;
+
+    // need to look at all the tables
+    $result = DB_query("SHOW TABLES");
+    $numTables = DB_numRows($result);
+    for ($i = 0; $i < $numTables; $i++) {
+        $A = DB_fetchArray($result, true);
+        $table = $A[0];
+        if (in_array($table, $_TABLES)) {
+            $result2 = DB_query("SHOW TABLE STATUS FROM $_DB_name LIKE '$table'");
+            $B = DB_fetchArray($result2);
+            if (strcasecmp($B['Engine'], 'MyISAM') != 0) {
+                return false;
+                break; // found a non-MyISAM table
+            }
+        }
+    }
+    if ($i == $numTables) {
+        // okay, all the tables are MyISAM already
+        $retval = true;
+    }
+
+    return $retval;
 }
 
-/**
- * Return if all tables use the MySQL MyISAM engine
- *
- * @return bool
- */
-function DBADMIN_checkForMyISAMStatus()
-{
-    return DBADMIN_checkMySQLEngineStatus('MyISAM');
-}
 
-/**
- * Render a page for converting the engines of all MySQL tables
- *
- * @param  string  $targetEngine
- * @return string
- */
-function DBADMIN_renderMySQLConvertEnginePage($targetEngine)
+function DBADMIN_innodb()
 {
     global $_CONF, $LANG01, $LANG_ADMIN, $LANG_DB_BACKUP, $_IMAGE_TYPE;
 
-    if (!in_array($targetEngine, ['MyISAM', 'InnoDB'])) {
-        die('Engine must be either \'MyISAM\' or \'InnoDB\'.');
-    }
+    $retval = '';
 
     $T = COM_newTemplate(CTL_core_templatePath($_CONF['path_layout'] . 'admin/dbadmin'));
+
     $T->set_file('page', 'dbconvert.thtml');
 
-    $T->set_var(
-        'start_block',
-        COM_startBlock($LANG_DB_BACKUP['database_admin'], '',
-            COM_getBlockTemplate('_admin_block', 'header')
-        )
+    $menu_arr = array(
+        array('url'  => $_CONF['site_admin_url'] . '/database.php',
+              'text' => $LANG_DB_BACKUP['database_admin']),
+        array('url'  => $_CONF['site_admin_url'],
+              'text' => $LANG_ADMIN['admin_home']),
     );
 
-    $menu_arr = [
-        [
-            'url'  => $_CONF['site_admin_url'] . '/database.php',
-            'text' => $LANG_DB_BACKUP['database_admin'],
-        ],
-        [
-            'url'  => $_CONF['site_admin_url'],
-            'text' => $LANG_ADMIN['admin_home'],
-        ],
-    ];
-    $T->set_var(
-        'admin_menu',
-        ADMIN_createMenu(
+    $T->set_var('start_block', COM_startBlock($LANG_DB_BACKUP['database_admin'], '',
+        COM_getBlockTemplate('_admin_block', 'header')));
+
+    $T->set_var('admin_menu', ADMIN_createMenu(
             $menu_arr,
-            '',
-            $_CONF['layout_url'] . '/images/icons/database.' . $_IMAGE_TYPE
-        )
+            "",
+            $_CONF['layout_url'] . '/images/icons/database.' . $_IMAGE_TYPE)
     );
 
-    if ($targetEngine === 'InnoDB') {
-        // Covert to InnoDB engine
-        $T->set_var([
-            'lang_title'                   => $LANG_DB_BACKUP['convert_title'],
-            'lang_conversion_instructions' => $LANG_DB_BACKUP['innodb_instructions'],
-        ]);
-
-        if (DBADMIN_checkForInnoDBStatus()) {
-            $T->set_var('lang_conversion_status', $LANG_DB_BACKUP['already_converted']);
-        } else {
-            $T->set_var('lang_conversion_status', $LANG_DB_BACKUP['conversion_message']);
-        }
+    $T->set_var('lang_title', $LANG_DB_BACKUP['convert_title']);
+    $T->set_var('lang_conversion_instructions', $LANG_DB_BACKUP['innodb_instructions']);
+    if (DBADMIN_innodbStatus()) {
+        $T->set_var('lang_conversion_status', $LANG_DB_BACKUP['already_converted']);
     } else {
-        // Covert to MyISAM engine
-        $T->set_var([
-            'lang_title'                   => $LANG_DB_BACKUP['convert_myisam_title'],
-            'lang_conversion_instructions' => $LANG_DB_BACKUP['myisam_instructions'],
-        ]);
-
-        if (DBADMIN_checkForMyISAMStatus()) {
-            $T->set_var('lang_conversion_status', $LANG_DB_BACKUP['already_converted']);
-        } else {
-            $T->set_var('lang_conversion_status', $LANG_DB_BACKUP['conversion_message']);
-        }
+        $T->set_var('lang_conversion_status', $LANG_DB_BACKUP['conversion_message']);
     }
+    $T->set_var('security_token', SEC_createToken());
+    $T->set_var('security_token_name', CSRF_TOKEN);
+    $T->set_var(array(
+        'lang_convert'     => $LANG_DB_BACKUP['convert_button'],
+        'lang_cancel'      => $LANG_ADMIN['cancel'],
+        'lang_ok'          => $LANG01['ok'],
+        'lang_converting'  => $LANG_DB_BACKUP['converting'],
+        'lang_success'     => $LANG_DB_BACKUP['innodb_success'],
+        'lang_ajax_status' => $LANG_DB_BACKUP['conversion_status'],
+        'to_engine'        => 'InnoDB',
+        'action'           => "doinnodb",
+        'mode'             => "convertdb",
+    ));
+    $T->set_var('end_block', COM_endBlock(COM_getBlockTemplate('_admin_block', 'footer')));
 
-    $T->set_var([
-        'security_token'      => SEC_createToken(),
-        'security_token_name' => CSRF_TOKEN,
-        'lang_convert'        => $LANG_DB_BACKUP['convert_button'],
-        'lang_cancel'         => $LANG_ADMIN['cancel'],
-        'lang_ok'             => $LANG01['ok'],
-        'lang_converting'     => $LANG_DB_BACKUP['converting'],
-        'lang_success'        => ($targetEngine === 'InnoDB' ? $LANG_DB_BACKUP['innodb_success'] : $LANG_DB_BACKUP['myisam_success']),
-        'lang_ajax_status'    => $LANG_DB_BACKUP['conversion_status'],
-        'to_engine'           => $targetEngine,
-        'action'              => ($targetEngine === 'InnoDB' ? 'doinnodb' : 'domyisam'),
-        'mode'                => 'convertdb',
-        'end_block'           => COM_endBlock(COM_getBlockTemplate('_admin_block', 'footer')),
-    ]);
     $T->parse('output', 'page');
+    $retval .= $T->finish($T->get_var('output'));
 
-    return $T->finish($T->get_var('output'));
+    return $retval;
 }
 
-/**
- * Render a page for converting the engines of all MySQL tables to InnoDB
- *
- * @return string
- */
-function DBADMIN_innodb()
-{
-    return DBADMIN_renderMySQLConvertEnginePage('InnoDB');
-}
-
-
-/**
- * Render a page for converting the engines of all MySQL tables to MyISAM
- *
- * @return string
- */
 function DBADMIN_myisam()
 {
-    return DBADMIN_renderMySQLConvertEnginePage('MyISAM');
+    global $_CONF, $LANG01, $LANG_ADMIN, $LANG_DB_BACKUP, $_IMAGE_TYPE;
+
+    $retval = '';
+
+    $T = COM_newTemplate(CTL_core_templatePath($_CONF['path_layout'] . 'admin/dbadmin'));
+
+    $T->set_file('page', 'dbconvert.thtml');
+
+    $menu_arr = array(
+        array('url'  => $_CONF['site_admin_url'] . '/database.php',
+              'text' => $LANG_DB_BACKUP['database_admin']),
+        array('url'  => $_CONF['site_admin_url'],
+              'text' => $LANG_ADMIN['admin_home']),
+    );
+
+    $T->set_var('start_block', COM_startBlock($LANG_DB_BACKUP['database_admin'], '',
+        COM_getBlockTemplate('_admin_block', 'header')));
+
+    $T->set_var('admin_menu', ADMIN_createMenu(
+            $menu_arr,
+            "",
+            $_CONF['layout_url'] . '/images/icons/database.' . $_IMAGE_TYPE)
+    );
+
+    $T->set_var('lang_title', $LANG_DB_BACKUP['convert_myisam_title']);
+    $T->set_var('lang_conversion_instructions', $LANG_DB_BACKUP['myisam_instructions']);
+    if (DBADMIN_myisamStatus()) {
+        $T->set_var('lang_conversion_status', $LANG_DB_BACKUP['already_converted']);
+    } else {
+        $T->set_var('lang_conversion_status', $LANG_DB_BACKUP['conversion_message']);
+    }
+    $T->set_var('security_token', SEC_createToken());
+    $T->set_var('security_token_name', CSRF_TOKEN);
+    $T->set_var(array(
+        'lang_convert'     => $LANG_DB_BACKUP['convert_button'],
+        'lang_cancel'      => $LANG_ADMIN['cancel'],
+        'lang_ok'          => $LANG01['ok'],
+        'lang_converting'  => $LANG_DB_BACKUP['converting'],
+        'lang_success'     => $LANG_DB_BACKUP['myisam_success'],
+        'lang_ajax_status' => $LANG_DB_BACKUP['conversion_status'],
+        'to_engine'        => 'MyISAM',
+        'action'           => "domyisam",
+        'mode'             => "convertdb",
+    ));
+    $T->set_var('end_block', COM_endBlock(COM_getBlockTemplate('_admin_block', 'footer')));
+
+    $T->parse('output', 'page');
+    $retval .= $T->finish($T->get_var('output'));
+
+    return $retval;
 }
+
 
 /**
  * Convert to InnoDB tables
  *
- * @param  string  $toEngine          either 'InnoDB' or 'MyISAM'
- * @param  string  $tableToStartWith  table to start with
- * @param  int     $failures          number of previous errors
- * @return int                 number of errors during conversion
+ * @param    string $startwith table to start with
+ * @param    int    $failures  number of previous errors
+ * @return   int                 number of errors during conversion
  */
-function DBADMIN_convertTablesOfMySQLEngine($toEngine, $tableToStartWith = '', $failures = 0)
+function DBADMIN_convert_innodb($startwith = '', $failures = 0)
 {
     global $_CONF, $_TABLES, $_DB_name;
 
+    $retval = '';
     $start = time();
+
     DB_displayError(true);
-    $maxTime = @ini_get('max_execution_time');
-    if (empty($maxTime)) {
+
+    $maxtime = @ini_get('max_execution_time');
+    if (empty($maxtime)) {
         // unlimited or not allowed to query - assume 30 second default
-        $maxTime = 30;
-    } else {
-        $maxTime = (int) $maxTime;
+        $maxtime = 30;
     }
-    $maxTime -= 5; // give us some leeway
+    $maxtime -= 5; // give us some leeway
 
     $token = ''; // SEC_createToken();
+
     $result = DB_query("SHOW TABLES");
     $numTables = DB_numRows($result);
-
     for ($i = 0; $i < $numTables; $i++) {
         $A = DB_fetchArray($result, true);
         $table = $A[0];
-
         if (in_array($table, $_TABLES)) {
-            if (!empty($tableToStartWith)) {
-                if ($table === $tableToStartWith) {
-                    $tableToStartWith = '';
+            if (!empty($startwith)) {
+                if ($table == $startwith) {
+                    $startwith = '';
                 } else {
                     continue; // handled - skip
                 }
             }
 
-            $result2 = DB_query("SHOW TABLE STATUS FROM {$_DB_name} LIKE '{$table}'");
+            $result2 = DB_query("SHOW TABLE STATUS FROM $_DB_name LIKE '$table'");
             $B = DB_fetchArray($result2);
-            if (strcasecmp($B['Engine'], $toEngine) === 0) {
+            if (strcasecmp($B['Engine'], 'InnoDB') == 0) {
                 continue; // converted - skip
             }
 
-            if (time() > $start + $maxTime) {
+            if (time() > $start + $maxtime) {
                 // this is taking too long - kick off another request
-                $tableToStartWith = $table;
-
-                if ($toEngine === 'InnoDB') {
-                    $url = $_CONF['site_admin_url'] . '/database.php?doinnodb=x';
-                } else {
-                    $url = $_CONF['site_admin_url'] . '/database.php?domyisam=x';
-                }
-
+                $startwith = $table;
+                $url = $_CONF['site_admin_url'] . '/database.php?doinnodb=x';
                 if (!empty($token)) {
                     $token = '&' . CSRF_TOKEN . '=' . $token;
                 }
-
-                header("Location: {$url}&startwith={$tableToStartWith}&failures={$failures}" . $token);
+                header("Location: $url&startwith=$startwith&failures=$failures"
+                    . $token);
                 exit;
             }
 
-            $hasConverted = DB_query("ALTER TABLE {$table} ENGINE={$toEngine}", 1);
-            if (!$hasConverted) {
+            $make_innodb = DB_query("ALTER TABLE $table ENGINE=InnoDB", 1);
+            if ($make_innodb === false) {
                 $failures++;
-                COM_errorLog('SQL error for table "' . $table . '" (ignored): ' . DB_error());
+                COM_errorLog('SQL error for table "' . $table . '" (ignored): '
+                    . DB_error());
             }
         }
     }
 
     DB_delete($_TABLES['vars'], 'name', 'database_engine');
-
-    if ($toEngine === 'InnoDB') {
-        DB_query("INSERT INTO {$_TABLES['vars']} (name, value) VALUES ('database_engine', 'InnoDB')");
-    }
+    DB_query("INSERT INTO {$_TABLES['vars']} (name, value) VALUES ('database_engine', 'InnoDB')");
 
     return $failures;
 }
 
-/**
- * Convert to InnoDB tables
- *
- * @param  string  $tableToStartWith  table to start with
- * @param  int     $failures          number of previous errors
- * @return int                 number of errors during conversion
- */
-function DBADMIN_convert_innodb($tableToStartWith = '', $failures = 0)
-{
-    return DBADMIN_convertTablesOfMySQLEngine('InnoDB', $tableToStartWith, $failures);
-}
-
-/**
- * Convert to MyISAM tables
- *
- * @param  string  $tableToStartWith  table to start with
- * @param  int     $failures          number of previous errors
- * @return   int                 number of errors during conversion
- */
-function DBADMIN_convert_myisam($tableToStartWith = '', $failures = 0)
-{
-    return DBADMIN_convertTablesOfMySQLEngine('MyISAM', $tableToStartWith, $failures);
-}
-
-/**
- * Finish converting via ajax
- *
- * @param  string  $engine
- * @return bool
- */
 function DBADMIN_ajaxFinishCvt($engine)
 {
-    global $_TABLES;
+    global $_CONF, $_TABLES;
 
     switch ($engine) {
         case 'InnoDB' :
             DB_delete($_TABLES['vars'], 'name', 'database_engine');
             DB_query("INSERT INTO {$_TABLES['vars']} (name, value) VALUES ('database_engine', 'InnoDB')");
             break;
-
         case 'MyISAM' :
             DB_delete($_TABLES['vars'], 'name', 'database_engine');
             break;
@@ -811,99 +741,171 @@ function DBADMIN_ajaxFinishCvt($engine)
     return true;
 }
 
+
+/**
+ * Convert to MyISAM tables
+ *
+ * @param    string $startwith table to start with
+ * @param    int    $failures  number of previous errors
+ * @return   int                 number of errors during conversion
+ */
+function DBADMIN_convert_myisam($startwith = '', $failures = 0)
+{
+    global $_CONF, $_TABLES, $_DB_name;
+
+    $retval = '';
+    $start = time();
+
+    DB_displayError(true);
+
+    $maxtime = @ini_get('max_execution_time');
+    if (empty($maxtime)) {
+        // unlimited or not allowed to query - assume 30 second default
+        $maxtime = 30;
+    }
+    $maxtime -= 5; // give us some leeway
+
+    $token = ''; // SEC_createToken();
+
+    $result = DB_query("SHOW TABLES");
+    $numTables = DB_numRows($result);
+    for ($i = 0; $i < $numTables; $i++) {
+        $A = DB_fetchArray($result, true);
+        $table = $A[0];
+        if (in_array($table, $_TABLES)) {
+            if (!empty($startwith)) {
+                if ($table == $startwith) {
+                    $startwith = '';
+                } else {
+                    continue; // handled - skip
+                }
+            }
+
+            $result2 = DB_query("SHOW TABLE STATUS FROM $_DB_name LIKE '$table'");
+            $B = DB_fetchArray($result2);
+            if (strcasecmp($B['Engine'], 'MyISAM') == 0) {
+                continue; // converted - skip
+            }
+
+            if (time() > $start + $maxtime) {
+                // this is taking too long - kick off another request
+                $startwith = $table;
+                $url = $_CONF['site_admin_url'] . '/database.php?domyisam=x';
+                if (!empty($token)) {
+                    $token = '&' . CSRF_TOKEN . '=' . $token;
+                }
+                header("Location: $url&startwith=$startwith&failures=$failures"
+                    . $token);
+                exit;
+            }
+
+            $make_myisam = DB_query("ALTER TABLE $table ENGINE=MyISAM", 1);
+            if ($make_myisam === false) {
+                $failures++;
+                COM_errorLog('SQL error for table "' . $table . '" (ignored): '
+                    . DB_error());
+            }
+        }
+    }
+
+    DB_delete($_TABLES['vars'], 'name', 'database_engine');
+
+    return $failures;
+}
+
+
 /**
  * Prepare for optimizing tables
  *
- * @return string  HTML form
+ * @return   string  HTML form
  */
 function DBADMIN_optimize()
 {
     global $_CONF, $_TABLES, $LANG01, $LANG_ADMIN, $LANG_DB_BACKUP, $_IMAGE_TYPE;
 
-    $lastRun = DB_getItem($_TABLES['vars'], 'UNIX_TIMESTAMP(value)', "name = 'lastoptimizeddb'");
+    $retval = '';
+
+    $lastrun = DB_getItem($_TABLES['vars'], 'UNIX_TIMESTAMP(value)',
+        "name = 'lastoptimizeddb'");
+
 
     $T = COM_newTemplate(CTL_core_templatePath($_CONF['path_layout'] . 'admin/dbadmin'));
+
     $T->set_file('page', 'dbconvert.thtml');
 
-    $T->set_var(
-        'start_block',
-        COM_startBlock(
-            $LANG_DB_BACKUP['database_admin'], '',
-            COM_getBlockTemplate('_admin_block', 'header')
-        )
+    $menu_arr = array(
+        array('url'  => $_CONF['site_admin_url'] . '/database.php',
+              'text' => $LANG_DB_BACKUP['database_admin']),
+        array('url'  => $_CONF['site_admin_url'],
+              'text' => $LANG_ADMIN['admin_home']),
     );
 
-    $menu_arr = [
-        [
-            'url'  => $_CONF['site_admin_url'] . '/database.php',
-            'text' => $LANG_DB_BACKUP['database_admin'],
-        ],
-        [
-            'url'  => $_CONF['site_admin_url'],
-            'text' => $LANG_ADMIN['admin_home'],
-        ],
-    ];
-    $T->set_var(
-        'admin_menu',
-        ADMIN_createMenu(
+    $T->set_var('start_block', COM_startBlock($LANG_DB_BACKUP['database_admin'], '',
+        COM_getBlockTemplate('_admin_block', 'header')));
+
+    $T->set_var('admin_menu', ADMIN_createMenu(
             $menu_arr,
             "",
-            $_CONF['layout_url'] . '/images/icons/database.' . $_IMAGE_TYPE
-        )
+            $_CONF['layout_url'] . '/images/icons/database.' . $_IMAGE_TYPE)
     );
 
-    if (!empty($lastRun)) {
-        $last = COM_getUserDateTimeFormat($lastRun);
+    $T->set_var('lang_title', $LANG_DB_BACKUP['optimize_title']);
+    $T->set_var('lang_conversion_instructions', $LANG_DB_BACKUP['optimize_explain']);
+    $T->set_var('lang_conversion_status', $LANG_DB_BACKUP['optimization_message']);
+
+    if (!empty($lastrun)) {
+        $last = COM_getUserDateTimeFormat($lastrun);
         $T->set_var('lang_last_optimization', $LANG_DB_BACKUP['last_optimization']);
         $T->set_var('last_optimization', $last[0]);
     }
 
-    $T->set_var([
-        'lang_title'                   => $LANG_DB_BACKUP['optimize_title'],
-        'lang_conversion_instructions' => $LANG_DB_BACKUP['optimize_explain'],
-        'lang_conversion_status'       => $LANG_DB_BACKUP['optimization_message'],
-        'security_token'               => SEC_createToken(),
-        'security_token_name'          => CSRF_TOKEN,
-        'lang_convert'                 => $LANG_DB_BACKUP['optimize_button'],
-        'lang_cancel'                  => $LANG_ADMIN['cancel'],
-        'lang_ok'                      => $LANG01['ok'],
-        'lang_converting'              => $LANG_DB_BACKUP['optimizing'],
-        'lang_success'                 => $LANG_DB_BACKUP['optimize_success'],
-        'lang_ajax_status'             => $LANG_DB_BACKUP['optimization_status'],
-        'to_engine'                    => 'all',
-        'action'                       => 'dooptimize',
-        'mode'                         => 'optimize',
-        'end_block'                    => COM_endBlock(COM_getBlockTemplate('_admin_block', 'footer')),
-    ]);
+    $T->set_var('security_token', SEC_createToken());
+    $T->set_var('security_token_name', CSRF_TOKEN);
+    $T->set_var(array(
+        'lang_convert'     => $LANG_DB_BACKUP['optimize_button'],
+        'lang_cancel'      => $LANG_ADMIN['cancel'],
+        'lang_ok'          => $LANG01['ok'],
+        'lang_converting'  => $LANG_DB_BACKUP['optimizing'],
+        'lang_success'     => $LANG_DB_BACKUP['optimize_success'],
+        'lang_ajax_status' => $LANG_DB_BACKUP['optimization_status'],
+        'to_engine'        => 'all',
+        'action'           => "dooptimize",
+        'mode'             => "optimize",
+    ));
+    $T->set_var('end_block', COM_endBlock(COM_getBlockTemplate('_admin_block', 'footer')));
 
     $T->parse('output', 'page');
+    $retval .= $T->finish($T->get_var('output'));
 
-    return $T->finish($T->get_var('output'));
+    return $retval;
 }
 
 /**
  * Optimize database tables
  *
- * @param  string  $startWith  table to start with
- * @param  int     $failures   number of previous errors
- * @return int                 number of errors during conversion
+ * @param    string $startwith table to start with
+ * @param    int    $failures  number of previous errors
+ * @return   int                 number of errors during conversion
  */
-function DBADMIN_dooptimize($startWith = '', $failures = 0)
+function DBADMIN_dooptimize($startwith = '', $failures = 0)
 {
     global $_CONF, $_TABLES;
 
+    $retval = '';
     $start = time();
-    $lastTable = DB_getItem($_TABLES['vars'], 'value', "name = 'lastoptimizedtable'");
-    if (empty($startWith) && !empty($lastTable)) {
-        $startWith = $lastTable;
+
+    $lasttable = DB_getItem($_TABLES['vars'], 'value',
+        "name = 'lastoptimizedtable'");
+    if (empty($startwith) && !empty($lasttable)) {
+        $startwith = $lasttable;
     }
 
-    $maxTime = @ini_get('max_execution_time');
-    if (empty($maxTime)) {
+    $maxtime = @ini_get('max_execution_time');
+    if (empty($maxtime)) {
         // unlimited or not allowed to query - assume 30 second default
-        $maxTime = 30;
+        $maxtime = 30;
     }
-    $maxTime -= 5;
+    $maxtime -= 5;
 
     DB_displayError(true);
 
@@ -911,54 +913,54 @@ function DBADMIN_dooptimize($startWith = '', $failures = 0)
 
     $result = DB_query("SHOW TABLES");
     $numTables = DB_numRows($result);
-
     for ($i = 0; $i < $numTables; $i++) {
         $A = DB_fetchArray($result, true);
         $table = $A[0];
-
         if (in_array($table, $_TABLES)) {
-            if (!empty($startWith)) {
-                if ($table == $startWith) {
-                    $startWith = '';
+            if (!empty($startwith)) {
+                if ($table == $startwith) {
+                    $startwith = '';
                 } else {
                     continue; // already handled - skip
                 }
-
-                if (!empty($lastTable) && ($lastTable == $table)) {
+                if (!empty($lasttable) && ($lasttable == $table)) {
                     continue; // skip
                 }
             }
 
-            if (time() > $start + $maxTime) {
+            if (time() > $start + $maxtime) {
                 // this is taking too long - kick off another request
-                $startWith = $table;
+                $startwith = $table;
                 $url = $_CONF['site_admin_url']
                     . '/database.php?dooptimize=x';
                 if (!empty($token)) {
                     $token = '&' . CSRF_TOKEN . '=' . $token;
                 }
-                header("Location: $url&startwith=$startWith&failures=$failures" . $token);
+                header("Location: $url&startwith=$startwith&failures=$failures"
+                    . $token);
                 exit;
             }
 
-            if (empty($lastTable)) {
+            if (empty($lasttable)) {
                 DB_query("INSERT INTO {$_TABLES['vars']} (name, value) VALUES ('lastoptimizedtable', '$table')");
-                $lastTable = $table;
+                $lasttable = $table;
             } else {
                 DB_query("UPDATE {$_TABLES['vars']} SET value = '$table' WHERE name = 'lastoptimizedtable'");
             }
-
-            $hasOptimized = DB_query("OPTIMIZE TABLE $table", 1);
-            if (!$hasOptimized) {
+            $optimize = DB_query("OPTIMIZE TABLE $table", 1);
+            if ($optimize === false) {
                 $failures++;
-                COM_errorLog('SQL error for table "' . $table . '" (ignored): ' . DB_error());
-                $startWith = $table;
-                $url = $_CONF['site_admin_url'] . '/database.php?dooptimize=x';
+                COM_errorLog('SQL error for table "' . $table . '" (ignored): '
+                    . DB_error());
 
+                $startwith = $table;
+                $url = $_CONF['site_admin_url']
+                    . '/database.php?dooptimize=x';
                 if (!empty($token)) {
                     $token = '&' . CSRF_TOKEN . '=' . $token;
                 }
-                header("Location: $url&startwith=$startWith&failures=$failures" . $token);
+                header("Location: $url&startwith=$startwith&failures=$failures"
+                    . $token);
                 exit;
             }
         }
@@ -971,19 +973,14 @@ function DBADMIN_dooptimize($startWith = '', $failures = 0)
     return $failures;
 }
 
-/**
- * Change MySQL engine
- *
- * @param  string  $table_name
- * @param  string  $engine
- * @return bool
- */
 function DBADMIN_alterEngine($table_name, $engine = 'MyISAM')
 {
+    global $_CONF;
+
     $retval = true;
 
-    $hasConverted = DB_query("ALTER TABLE $table_name ENGINE=" . $engine, 1);
-    if (!$hasConverted) {
+    $convert_engine = DB_query("ALTER TABLE $table_name ENGINE=" . $engine, 1);
+    if ($convert_engine === false) {
         $retval = false;
         COM_errorLog('SQL error converting table "' . $table_name . '" to ' . $engine . ' (ignored): ' . DB_error());
     }
@@ -991,82 +988,59 @@ function DBADMIN_alterEngine($table_name, $engine = 'MyISAM')
     return $retval;
 }
 
-/**
- * Convert MySQL engine via ajax
- *
- * @param  string  $table
- * @param  string  $engine
- */
 function DBADMIN_ajaxConvertTable($table, $engine = 'MyISAM')
 {
-    if (!COM_isAjax()) {
-        die();
-    }
+    if (!COM_isAjax()) die();
 
-    $retval = [];
-    $return = [];
+    $retval = array();
+    $return = array();
 
     $rc = DBADMIN_alterEngine($table, $engine);
-    if ($rc) {
-        $retval['errorCode'] = 0;
-    } else {
+    if ($rc === false) {
         $retval['errorCode'] = 1;
         $retval['statusMessage'] = 'Failure: ' . $table . ' was not converted to ' . $engine;
+    } else {
+        $retval['errorCode'] = 0;
     }
 
-    $return['json'] = json_encode($retval);
+    $return["json"] = json_encode($retval);
 
     echo json_encode($return);
     exit;
 }
 
-/**
- * Optimize a table via ajax
- *
- * @param  string  $table
- */
 function DBADMIN_ajaxOptimizeTable($table)
 {
-    if (!COM_isAjax()) {
-        die();
-    }
+    if (!COM_isAjax()) die();
 
-    $retval = [];
-    $return = [];
+    $retval = array();
+    $return = array();
 
     $rc = DB_query("OPTIMIZE TABLE $table", 1);
-    if ($rc) {
-        $retval['errorCode'] = 0;
-    } else {
+    if ($rc === false) {
         $retval['errorCode'] = 1;
         $retval['statusMessage'] = 'Failure: ' . $table . ' was not optimized.';
+    } else {
+        $retval['errorCode'] = 0;
     }
 
-    $return['json'] = json_encode($retval);
+    $return["json"] = json_encode($retval);
 
     echo json_encode($return);
     exit;
 }
 
-/**
- * Return a list of tables via ajax
- *
- * @param  string  $engine
- */
 function DBADMIN_ajaxGetTableList($engine = 'MyISAM')
 {
-    global $_TABLES, $_DB_name;
+    global $_CONF, $_TABLES, $_DB_name;
 
-    $tableList = [];
-    $retval = [];
+    $tableList = array();
+    $retval = array();
 
-    if (!COM_isAjax()) {
-        die();
-    }
+    if (!COM_isAjax()) die();
 
     $result = DB_query("SHOW TABLES");
     $numTables = DB_numRows($result);
-
     for ($i = 0; $i < $numTables; $i++) {
         $A = DB_fetchArray($result, true);
         $table = $A[0];
@@ -1083,25 +1057,23 @@ function DBADMIN_ajaxGetTableList($engine = 'MyISAM')
     $retval['errorCode'] = 0;
     $retval['tablelist'] = $tableList;
 
-    $return['json'] = json_encode($retval);
+    $return["json"] = json_encode($retval);
 
     echo json_encode($return);
     exit;
 }
 
-/**
- * Return if the engine is valid
- *
- * @param  string  $engine
- * @return bool
- */
 function DBADMIN_validateEngine($engine)
 {
-    return in_array($engine, ['MyISAM', 'InnoDB']);
+    $validEngineTypes = array('MyISAM', 'InnoDB');
+
+    if (in_array($engine, $validEngineTypes)) return true;
+
+    return false;
 }
 
 /**
- * Provide an interface to configure backups
+ *   Provide an interface to configure backups
  *
  * @return string  HTML for configuration function
  */
@@ -1109,69 +1081,57 @@ function DBADMIN_configBackup()
 {
     global $_CONF, $_TABLES, $_VARS, $LANG_DB_BACKUP, $LANG_ADMIN, $_IMAGE_TYPE, $_SCRIPTS;
 
+    $tablenames = $_TABLES;
     $included = '';
     $excluded = '';
     $retval = '';
 
-    $exclude_tables = [];
-    if (isset($_VARS['_dbback_exclude'])) {
-        $exclude_tables = @unserialize($_VARS['_dbback_exclude']);
-
-        if (!is_array($exclude_tables)) {
-            $exclude_tables = [];
-        }
+    $exclude_tables = @unserialize($_VARS['_dbback_exclude']);
+    if (!is_array($exclude_tables)) {
+        $exclude_tables = array();
     }
 
-    $menu_arr = [
-        ['url'  => $_CONF['site_admin_url'] . '/database.php',
-         'text' => $LANG_DB_BACKUP['database_admin']],
-        ['url'  => $_CONF['site_admin_url'],
-         'text' => $LANG_ADMIN['admin_home']],
-    ];
+    $menu_arr = array(
+        array('url'  => $_CONF['site_admin_url'] . '/database.php',
+              'text' => $LANG_DB_BACKUP['database_admin']),
+        array('url'  => $_CONF['site_admin_url'],
+              'text' => $LANG_ADMIN['admin_home']),
+    );
 
     $T = COM_newTemplate(CTL_core_templatePath($_CONF['path_layout'] . 'admin/dbadmin'));
+
     $T->set_file('page', 'dbbackupcfg.thtml');
-    $T->set_var(
-        'start_block',
-        COM_startBlock($LANG_DB_BACKUP['database_admin'], '',
-            COM_getBlockTemplate('_admin_block', 'header'))
-    );
-    $T->set_var(
-        'admin_menu',
-        ADMIN_createMenu(
+
+    $_SCRIPTS->setJavaScriptFile('move_users', '/javascript/moveusers.js');
+
+    $T->set_var('start_block', COM_startBlock($LANG_DB_BACKUP['database_admin'], '',
+        COM_getBlockTemplate('_admin_block', 'header')));
+
+    $T->set_var('admin_menu', ADMIN_createMenu(
             $menu_arr,
             $LANG_DB_BACKUP['config_instructions'],
-            $_CONF['layout_url'] . '/images/icons/database.' . $_IMAGE_TYPE
-        )
+            $_CONF['layout_url'] . '/images/icons/database.' . $_IMAGE_TYPE)
     );
 
-    foreach ($_TABLES as $key => $name) {
-		if (!in_array($name, $exclude_tables)) { // Only include actual tables that are not excluded
-			$included .= "<option value=\"$name\">$name</option>\n";
-		}
+    $include_tables = array_diff($tablenames, $exclude_tables);
+
+    foreach ($include_tables as $key => $name) {
+        $included .= "<option value=\"$name\">$name</option>\n";
     }
     foreach ($exclude_tables as $key => $name) {
-		if (in_array($name, $_TABLES)) { // Only include actual tables that exist now in exclude
-			$excluded .= "<option value=\"$name\">$name</option>\n";
-		}
+        $excluded .= "<option value=\"$name\">$name</option>\n";
     }
-	
-    $T->set_var([
+
+    $T->set_var(array(
         'lang_tables_to_backup' => $LANG_DB_BACKUP['tables_to_backup'],
         'lang_include'          => $LANG_DB_BACKUP['include'],
         'lang_exclude'          => $LANG_DB_BACKUP['exclude'],
         'lang_save'             => $LANG_ADMIN['save'],
         'included_tables'       => $included,
         'excluded_tables'       => $excluded,
-		'noscript'       		=> COM_getNoScript(false), // JavaScript is required
-    ]);
-    $T->set_var('end_block', COM_endBlock(COM_getBlockTemplate('_admin_block', 'footer')));
+    ));
 
-    // Add JavaScript
-    // Hide the Advanced Editor as Javascript is required. If JS is enabled then the JS below will un-hide it
-    $js = 'document.getElementById("admin-dbconfig").style.display="";';
-    $_SCRIPTS->setJavaScript($js, true);
-	$_SCRIPTS->setJavaScriptFile('admin-dbconfig', '/javascript/moveusers.js');
+    $T->set_var('end_block', COM_endBlock(COM_getBlockTemplate('_admin_block', 'footer')));
 
     $T->parse('output', 'page');
     $retval .= $T->finish($T->get_var('output'));
@@ -1179,13 +1139,9 @@ function DBADMIN_configBackup()
     return $retval;
 }
 
-// MAIN
-$action = '';
-$expected = [
-    'backup', 'backupdb', 'config', 'download', 'delete', 'innodb', 'doinnodb', 'myisam', 'domyisam',
-    'optimize', 'dooptimize', 'mode', 'saveconfig',
-];
 
+$action = '';
+$expected = array('backup', 'backupdb', 'config', 'download', 'delete', 'innodb', 'doinnodb', 'myisam', 'domyisam', 'optimize', 'dooptimize', 'mode', 'saveconfig');
 foreach ($expected as $provided) {
     if (isset($_POST[$provided])) {
         $action = $provided;
@@ -1199,7 +1155,7 @@ if (isset($_POST['dbcancelbutton'])) {
 }
 
 switch ($action) {
-    case 'config':
+    case 'config' :
         $page = DBADMIN_configBackup();
         break;
 
@@ -1208,18 +1164,17 @@ switch ($action) {
             $page .= DBADMIN_backup();
         } else {
             COM_accessLog("User {$_USER['username']} tried to access the DB administration and failed CSRF checks.");
-            COM_redirect($_CONF['site_admin_url'] . '/index.php');
+            echo COM_refresh($_CONF['site_admin_url'] . '/index.php');
         }
         break;
 
-    case 'backupdb':
+    case 'backupdb' :
         $page .= DBADMIN_backupPrompt();
         break;
-
     case 'download':
         $file = '';
         if (isset($_GET['file'])) {
-            $file = preg_replace('/[^a-zA-Z0-9\-_.]/', '', Geeklog\Input::fGet('file'));
+            $file = preg_replace('/[^a-zA-Z0-9\-_\.]/', '', Geeklog\Input::fGet('file'));
             $file = str_replace('..', '', $file);
             if (!file_exists($_CONF['backup_path'] . $file)) {
                 $file = '';
@@ -1234,7 +1189,7 @@ switch ($action) {
     case 'delete':
         if (isset($_POST['delitem']) && SEC_checkToken()) {
             foreach ($_POST['delitem'] as $delfile) {
-                $file = preg_replace('/[^a-zA-Z0-9\-_.]/', '', COM_applyFilter($delfile));
+                $file = preg_replace('/[^a-zA-Z0-9\-_\.]/', '', COM_applyFilter($delfile));
                 $file = str_replace('..', '', $file);
                 if (!@unlink($_CONF['backup_path'] . $file)) {
                     COM_errorLog('Unable to remove backup file "' . $file . '"');
@@ -1242,7 +1197,7 @@ switch ($action) {
             }
         } else {
             COM_accessLog("User {$_USER['username']} tried to delete database backup(s) and failed CSRF checks.");
-            COM_redirect($_CONF['site_admin_url'] . '/index.php');
+            echo COM_refresh($_CONF['site_admin_url'] . '/index.php');
         }
         $page = DBADMIN_list();
         break;
@@ -1252,7 +1207,7 @@ switch ($action) {
         if (DBADMIN_supported_engine('MyISAM')) {
             $page .= DBADMIN_myisam();
         } else {
-            $page .= COM_showMessageText($LANG_DB_BACKUP['no_myisam'], $LANG01['error_title']);
+            $page .= COM_showMessageText($LANG_DB_BACKUP['no_myisam'], '', true, 'error');
         }
         break;
 
@@ -1261,13 +1216,12 @@ switch ($action) {
         if (DBADMIN_supported_engine('InnoDB')) {
             $page .= DBADMIN_innodb();
         } else {
-            $page .= COM_showMessageText($LANG_DB_BACKUP['no_innodb'], $LANG01['error_title']);
+            $page .= COM_showMessageText($LANG_DB_BACKUP['no_innodb'], '', true, 'error');
         }
         break;
 
     case 'doinnodb':
         $pagetitle = $LANG_DB_BACKUP['convert_title'];
-
         if (DBADMIN_supported_engine('InnoDB')) {
             $startwith = Geeklog\Input::fGet('startwith', '');
             if (!empty($startwith) || SEC_checkToken()) {
@@ -1276,18 +1230,17 @@ switch ($action) {
                 if ($num_errors == 0) {
                     $page .= COM_showMessageText($LANG_DB_BACKUP['innodb_success']);
                 } else {
-                    $page .= COM_showMessageText($LANG_DB_BACKUP['innodb_success'] . ' ' . $LANG_DB_BACKUP['table_issues'], $LANG01['error_title']);
+                    $page .= COM_showMessageText($LANG_DB_BACKUP['innodb_success'] . ' ' . $LANG_DB_BACKUP['table_issues'], '', true, 'error');
                 }
                 $page .= DBADMIN_list();
             }
         } else {
-            $page .= COM_showMessageText($LANG_DB_BACKUP['no_innodb'], $LANG01['error_title']);
+            $page .= COM_showMessageText($LANG_DB_BACKUP['no_innodb'], '', true, 'error');
         }
         break;
 
     case 'domyisam':
         $pagetitle = $LANG_DB_BACKUP['convert_myisam_title'];
-
         if (DBADMIN_supported_engine('MyISAM')) {
             $startwith = Geeklog\Input::fGet('startwith', '');
             if (!empty($startwith) || SEC_checkToken()) {
@@ -1296,14 +1249,15 @@ switch ($action) {
                 if ($num_errors == 0) {
                     $page .= COM_showMessageText($LANG_DB_BACKUP['myisam_success']);
                 } else {
-                    $page .= COM_showMessageText($LANG_DB_BACKUP['myisam_success'] . ' ' . $LANG_DB_BACKUP['table_issues'], $LANG01['error_title']);
+                    $page .= COM_showMessageText($LANG_DB_BACKUP['myisam_success'] . ' ' . $LANG_DB_BACKUP['table_issues'], '', true, 'error');
                 }
                 $page .= DBADMIN_list();
             }
         } else {
-            $page .= COM_showMessageText($LANG_DB_BACKUP['no_innodb'], $LANG01['error_title']);
+            $page .= COM_showMessageText($LANG_DB_BACKUP['no_innodb'], '', true, 'error');
         }
         break;
+
 
     case 'optimize':
         $pagetitle = $LANG_DB_BACKUP['optimize_title'];
@@ -1319,24 +1273,32 @@ switch ($action) {
             if ($num_errors == 0) {
                 $page .= COM_showMessageText($LANG_DB_BACKUP['optimize_success']);
             } else {
-                $page .= COM_showMessageText(
-                    $LANG_DB_BACKUP['optimize_success'] . ' ' . $LANG_DB_BACKUP['table_issues'],
-                    $LANG01['error_title']
-                );
+                $page .= COM_showMessageText($LANG_DB_BACKUP['optimize_success']
+                    . ' ' . $LANG_DB_BACKUP['table_issues'], '', true, 'error');
             }
             $page .= DBADMIN_list();
         }
         break;
 
-    case 'saveconfig':
-        $items = [];
+    case 'saveconfig' :
+        $items = array();
 
-		// Code taken from Geeklog Group Members. Uses same javascript so that is why it has these variable names
-        $exclude_tables = explode('|', Geeklog\Input::post('groupmembers'));
-		// Make sure tables exist that can be excluded
-		$exclude_tables = array_intersect($exclude_tables, $_TABLES);
         // Get the excluded tables into a serialized string
-		$items['_dbback_exclude'] = DB_escapeString(@serialize($exclude_tables));
+        $tables = explode('|', Geeklog\Input::post('groupmembers'));
+        $items['_dbback_exclude'] = DB_escapeString(@serialize($tables));
+        $items['_dbback_files'] = (int) Geeklog\Input::post('db_backup_maxfiles', 0);
+
+        /* ---
+                if (isset($_POST['disable_cron'])) {
+                    $str = '-1';
+                } else {
+                    $str = (int)$_POST['db_backup_interval'];
+                }
+                $items['_dbback_cron'] = $str;
+        --- */
+
+        $items['_dbback_gzip'] = isset($_POST['use_gzip']) ? 1 : 0;
+        $items['_dbback_allstructs'] = isset($_POST['allstructs']) ? 1 : 0;
 
         foreach ($items as $name => $value) {
             $sql = "INSERT INTO {$_TABLES['vars']} (name, value)
@@ -1345,12 +1307,11 @@ switch ($action) {
             DB_query($sql);
         }
 
-		$page .= COM_showMessageText($LANG_DB_BACKUP['config_successful']);
-
-        $page .= DBADMIN_list();
+        $page = DBADMIN_list();
         break;
 
-    case 'mode':
+
+    case 'mode' :
         $mode = Geeklog\Input::fPost('mode');
 
         switch ($mode) {
@@ -1425,11 +1386,11 @@ switch ($action) {
 
         }
         break;
-
     default :
         $page = DBADMIN_list();
         break;
+
 }
 
-$display = COM_createHTMLDocument($page, ['pagetitle' => $LANG_DB_BACKUP['database_admin']]);
+$display = COM_createHTMLDocument($page, array('pagetitle' => $LANG_DB_BACKUP['database_admin']));
 COM_output($display);

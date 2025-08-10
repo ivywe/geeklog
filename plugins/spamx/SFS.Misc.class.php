@@ -31,11 +31,6 @@ require_once $_CONF['path'] . 'plugins/spamx/' . 'BaseCommand.class.php';
 class SFS extends BaseCommand
 {
     /**
-     * @var bool
-     */
-    private $_verbose = false;
-
-    /**
      * Here we do the work
      *
      * @param  string $comment
@@ -50,7 +45,7 @@ class SFS extends BaseCommand
     public function execute($comment, $permanentLink = null, $commentType = Geeklog\Akismet::COMMENT_TYPE_COMMENT,
                             $commentAuthor = null, $commentAuthorEmail = null, $commentAuthorURL = null)
     {
-        $this->result = $this->_process($commentAuthorEmail, \Geeklog\IP::getIPAddress());
+        $this->result = $this->_process($commentAuthorEmail, $_SERVER['REMOTE_ADDR']);
 
         return $this->result;
     }
@@ -99,7 +94,7 @@ class SFS extends BaseCommand
         }
 
         $em = urlencode($email);
-        $query = "http://api.stopforumspam.org/api?f=serial&email=$em";
+        $query = "http://www.stopforumspam.com/api?f=serial&email=$em";
         if (!empty($ip)) {
             $query .= "&ip=$ip";
         }

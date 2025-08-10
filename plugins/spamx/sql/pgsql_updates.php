@@ -53,20 +53,16 @@ $_UPDATES = array(
 
     '1.3.2' => array(
         "ALTER TABLE {$_TABLES['spamx']} MODIFY COLUMN regdate DATETIME DEFAULT NULL",
-        "ALTER TABLE {$_TABLES['spamx']} DROP CONSTRAINT {$_TABLES['spamx']}_pkey",
+        "DROP INDEX `primary` ON {$_TABLES['spamx']}",
         "DROP INDEX `spamx_name` ON {$_TABLES['spamx']}",
-        "ALTER TABLE {$_TABLES['spamx']} ADD CONSTRAINT {$_TABLES['spamx']}_pkey PRIMARY KEY (name)"
+        "ALTER TABLE {$_TABLES['spamx']} ADD PRIMARY KEY (name)"
     ),
     
     '1.3.3' => array(
-        "ALTER TABLE {$_TABLES['spamx']} DROP CONSTRAINT {$_TABLES['spamx']}_pkey",
+        "DROP INDEX `primary` ON {$_TABLES['spamx']}",
         "ALTER TABLE {$_TABLES['spamx']} MODIFY COLUMN `value` VARCHAR(191)",
-        "ALTER TABLE {$_TABLES['spamx']} ADD CONSTRAINT {$_TABLES['spamx']}_pkey PRIMARY KEY (name, value)"
-    ),
-
-    '1.3.5' => array(
-        "DELETE FROM {$_TABLES['spamx']} WHERE name = 'SLVwhitelist'"
-    )
+        "ALTER TABLE {$_TABLES['spamx']} ADD PRIMARY KEY (name, value)"
+    )   
 );
 
 /**

@@ -70,7 +70,7 @@ function PNB_handlePingback($id, $type, $url, $oururl)
 
     // handle pingbacks to articles on our own site
     $skip_speedlimit = false;
-    if (\Geeklog\IP::getIPAddress() === $_SERVER['SERVER_ADDR']) {
+    if ($_SERVER['REMOTE_ADDR'] == $_SERVER['SERVER_ADDR']) {
         if (!isset($_CONF['pingback_self'])) {
             $_CONF['pingback_self'] = 0; // default: skip self-pingbacks
         }
@@ -84,7 +84,7 @@ function PNB_handlePingback($id, $type, $url, $oururl)
 
     COM_clearSpeedlimit($_CONF['commentspeedlimit'], 'pingback');
     if (!$skip_speedlimit) {
-        $last = COM_checkSpeedlimit('pingback', SPEED_LIMIT_MAX_PINGBACK);
+        $last = COM_checkSpeedlimit('pingback');
         if ($last > 0) {
             return new XML_RPC_Response(0, 49,
                 sprintf($PNB_ERROR['speedlimit'], $last,
@@ -95,7 +95,7 @@ function PNB_handlePingback($id, $type, $url, $oururl)
     // update speed limit in any case
     COM_updateSpeedlimit('pingback');
 
-    if (\Geeklog\IP::getIPAddress() !== $_SERVER['SERVER_ADDR']) {
+    if ($_SERVER['REMOTE_ADDR'] != $_SERVER['SERVER_ADDR']) {
         if ($_CONF['check_trackback_link'] & 4) {
             $parts = parse_url($url);
             if (empty($parts['host'])) {
@@ -104,7 +104,7 @@ function PNB_handlePingback($id, $type, $url, $oururl)
                 return new XML_RPC_Response(0, 33, $PNB_ERROR['uri_invalid']);
             } else {
                 $ip = gethostbyname($parts['host']);
-                if ($ip !== \Geeklog\IP::getIPAddress()) {
+                if ($ip != $_SERVER['REMOTE_ADDR']) {
                     TRB_logRejected('Pingback: IP address mismatch', $url);
 
                     return new XML_RPC_Response(0, 49, $PNB_ERROR['spam']);

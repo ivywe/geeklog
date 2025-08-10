@@ -8,7 +8,7 @@
 // |                                                                           |
 // | Geeklog class to detect device type of visitor.                           |
 // +---------------------------------------------------------------------------+
-// | Copyright (C) 2000-2020 by the following authors:                         |
+// | Copyright (C) 2000-2011 by the following authors:                         |
 // |                                                                           |
 // | Authors: Tom Homer, tomhomer AT gmail DOT com                             |
 // +---------------------------------------------------------------------------+
@@ -44,15 +44,6 @@ class Device
     const COMPUTER = 'computer';
     const MOBILE = 'mobile';
     const ALL = 'all';
-	
-    // Constants for Browsers
-    const CHROME = 'Chrome';
-    const OPERA = 'Opera';
-    const EDGE = 'Edge';
-    const SAFARI = 'Safari';
-	const FIREFOX = 'Firefox';
-	const IE = 'Internet Explorer';
-    const OTHER = 'Other';	
 
     /**
      * device type if already checked before
@@ -60,14 +51,6 @@ class Device
      * @var string one of self::PHONE, self::TABLET, or self::COMPUTER
      */
     private $type;
-	
-    /**
-     * browser type if already checked before
-     *
-	 * @var string one of self::CHROME, self::OPERA, self::EDGE, self::SAFARI, self::FIREFOX, self::IE, or self::OTHER
-     */
-    private $browser;
-	
 
     /**
      * Store if mobile device (includes phones and tablets) if already checked before
@@ -81,9 +64,8 @@ class Device
      */
     public function __construct()
     {
-		global $_SERVER;
-				
         // Include and instantiate the class.
+        require_once __DIR__ . '/mobiledetect/Mobile_Detect.php';
         $detect = new Mobile_Detect;
 
         // Any mobile device (phones or tablets).
@@ -99,25 +81,6 @@ class Device
             $this->is_mobile = false;
             $this->type = self::COMPUTER;
         }
-		
-		// Determine Browser Type
-		$user_agent = $_SERVER['HTTP_USER_AGENT'];
-		
-		if (strpos($user_agent, 'Opera') || strpos($user_agent, 'OPR/')) {
-			$this->browser = self::OPERA;
-		} elseif (strpos($user_agent, 'Edge')) {
-			$this->browser = self::EDGE;
-		} elseif (strpos($user_agent, 'Chrome')) {
-			$this->browser = self::CHROME;
-		} elseif (strpos($user_agent, 'Safari')) {
-			$this->browser = self::SAFARI;
-		} elseif (strpos($user_agent, 'Firefox')) {
-			$this->browser = self::FIREFOX;
-		} elseif (strpos($user_agent, 'MSIE') || strpos($user_agent, 'Trident/7')) {
-			$this->browser = self::IE;
-		} else {	   
-			$this->browser = self::OTHER;
-		}
     }
 
     /**
@@ -164,14 +127,4 @@ class Device
     {
         return $this->type;
     }
-	
-    /**
-     * What type of browser is being used on the device?
-     *
-     * @return   string (self::CHROME, self::OPERA, self::EDGE, self::SAFARI, self::FIREFOX, self::IE, self::OTHER)
-     */
-    public function browser()
-    {
-        return $this->browser;
-    }	
 }

@@ -14,16 +14,10 @@
       <dd class="controls_text">{user_lastlogin}</dd>
 
       <dt><label for="admin-edituser-username">{lang_username}</label></dt>
-      <dd><div><input type="text" maxlength="16" value="{username}" name="username" id="admin-edituser-username" class="uk-input size2"{xhtml}> {remoteservice}
-            {!if lang_convert_remote}
-            <input id="admin-edituser-convert-remote" type="checkbox" name="convert_remote"{xhtml}> <label for="admin-edituser-convert-remote">{lang_convert_remote} {lang_convert_remote_tooltip}</label>
-            {!endif}
-          </div>
+      <dd><div><input type="text" maxlength="16" value="{username}" name="username" id="admin-edituser-username" class="uk-input size2"{xhtml}> {remoteservice}</div>
           {!if user_photo}
           {user_photo}
-          {!endif}
-          {!if show_delete_photo}
-          <div><input id="admin-edituser-delete-photo" class="uk-checkbox" type="checkbox" name="delete_photo"{xhtml}> <label for="admin-edituser-delete-photo">{lang_delete_photo}</label></div>
+          <label for="admin-edituser-delete-photo">{lang_delete_photo}</label> <input id="admin-edituser-delete-photo" class="uk-checkbox" type="checkbox" name="delete_photo"{xhtml}>
           {!endif}
       </dd>
 
@@ -31,35 +25,29 @@
       <dd><input type="text" maxlength="80" value="{user_fullname}" name="fullname" id="admin-edituser-fullname" class="uk-input size5"{xhtml}></dd>
 
       {password_option}
-
+      
       <dt><label for="admin-edituser-email">{lang_emailaddress}</label></dt>
-      <dd><input type="text" maxlength="96" value="{user_email}" name="email" id="admin-edituser-email" class="uk-input size5"{xhtml}></dd>
-
+      <dd><input type="text" maxlength="255" value="{user_email}" name="email" id="admin-edituser-email" class="size5"{xhtml}></dd>
+      
       {!if enable_twofactorauth}
         <dt><label for="admin-edituser-enable_tfa">{lang_enable_twofactorauth}</label></dt>
         <dd>
-          <select name="enable_twofactorauth" id="admin-edituser-enable_tfa" class="uk-select uk-width-auto">
+          <select name="enable_twofactorauth" id="admin-edituser-enable_tfa" class="uk-select uk-width-auto">        
             {enable_tfa_options}
           </select>
         </dd>
-        <dd class="description" id="desc-admin-edituser-enable_tfa">{lang_tfa_user_edit_desc}</dd>
-      {!endif}
+        <dd>{lang_tfa_user_edit_desc}</dd>
+      {!endif}      
+
+      <dt><label for="admin-edituser-email">{lang_emailaddress}</label></dt>
+      <dd><input type="text" maxlength="255" value="{user_email}" name="email" id="admin-edituser-email" class="uk-input size5"{xhtml}></dd>
 
       <dt><label for="admin-edituser-homepage">{lang_homepage}</label></dt>
-      <dd><input type="text" maxlength="96" value="{user_homepage}" name="homepage" id="admin-edituser-homepage" class="uk-input size5"{xhtml}></dd>
+      <dd><input type="text" maxlength="255" value="{user_homepage}" name="homepage" id="admin-edituser-homepage" class="uk-input size5"{xhtml}></dd>
 
       <dt><label for="admin-edituser-location">{lang_location}</label></dt>
       <dd><input type="text" maxlength="96" value="{user_location}" name="location" id="admin-edituser-location" class="uk-input size7" aria-describedby="desc-admin-edituser-location"{xhtml}></dd>
       <dd class="description" id="desc-admin-edituser-location">{lang_location_text}</dd>
-
-	  <dt><label for="admin-edituser-postmode">{lang_postmode}</label></dt>
-	  <dd>
-	    <select id="admin-edituser-postmode" name="postmode">
-		  <option value="plaintext"{plaintext_selected}>{lang_plaintext}</option>
-		  <option value="html"{html_selected}>{lang_html}</option>
-	    </select>
-	  </dd>
-	  <dd class="description" id="desc-admin-edituser-postmode">{lang_postmode_text}</dd>
 
       <dt><label for="admin-edituser-sig">{lang_signature}</label></dt>
       <dd><textarea cols="45" rows="4" name="sig" id="admin-edituser-sig" class="uk-textarea wide" aria-describedby="desc-admin-edituser-sig">{user_signature}</textarea></dd>
@@ -75,9 +63,8 @@
 
       {display_fields}
 
-      <dt><label for="admin-edituser-userstatus">{lang_user_status}</label></dt>
+      <dt>{lang_user_status}</dt>
       <dd>{user_status}</dd>
-      <dd class="description" id="desc-admin-edituser-userstatus">{lang_user_status_desc}</dd>
     </dl>
   </div>
 

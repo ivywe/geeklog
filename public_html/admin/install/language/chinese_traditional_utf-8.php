@@ -2,13 +2,13 @@
 
 /* Reminder: always indent with 4 spaces (no tabs). */
 // +---------------------------------------------------------------------------+
-// | Geeklog 2.2                                                               |
+// | Geeklog 2.1                                                               |
 // +---------------------------------------------------------------------------+
 // | chinese_traditional_utf-8.php                                             |
 // |                                                                           |
 // | Chinese language file for the Geeklog installation script                 |
 // +---------------------------------------------------------------------------+
-// | Copyright (C) 2000-2022 by the following authors:                         |
+// | Copyright (C) 2000-2010 by the following authors:                         |
 // |                                                                           |
 // | Authors: Tony Bibbs         - tony AT tonybibbs DOT com                   |
 // |          Mark Limburg       - mlimburg AT users DOT sourceforge DOT net   |
@@ -17,7 +17,6 @@
 // |          Randy Kolenko      - randy AT nextide DOT ca                     |
 // |          Matt West          - matt AT mattdanger DOT net                  |
 // |          Samuel Maung Stone - sam AT stonemicro DOT com                   |
-// |          Tom Homer         - tomhomer AT gmail DOT com                    |
 // +---------------------------------------------------------------------------+
 // |                                                                           |
 // | This program is free software; you can redistribute it and/or             |
@@ -143,6 +142,7 @@ $LANG_INSTALL = array(
     89 => '目前版本:',
     90 => '空的資料庫?',
     91 => '看來你的資料庫是空的或你提供的資料庫資料有錯誤. 或你想重新安裝 (而不是升級)? 請回去再試.',
+    92 => '用 UTF-8',
     93 => 'Success',
     94 => 'Here are some hints to find the correct path:',
     95 => 'The complete path to this file (the install script) is:',
@@ -166,13 +166,7 @@ $LANG_INSTALL = array(
     113 => 'Install (then select plugins to install)',
     114 => 'Only plugins that support being auto installed will be installed (all core plugins do). The plugins that don\'t support this can be installed via the Plugins Administration from the Geeklog Command & Control.',
     115 => 'Upgrade',
-    116 => 'Clicking the "Upgrade" button will upgrade Geeklog to the latest version including all core plugins (if required).',
-    117 => 'Cancel',
-    118 => 'Change Language',
-    119 => 'Copyright © 2020 <a href="https://www.geeklog.net/">Geeklog</a>',
-    121 => 'Home',
-    122 => 'Help',
-    123 => 'Character Sets and Database Collations'
+    116 => 'Clicking the "Upgrade" button will upgrade Geeklog to the latest version including all core plugins (if required).'
 );
 
 // +---------------------------------------------------------------------------+
@@ -204,11 +198,7 @@ $LANG_SUCCESS = array(
     22 => 'migrated',
     23 => 'Would you like to delete all the files and directories used during the installation?',
     24 => 'Yes, please.',
-    25 => 'No, thanks.  I will manually delete them afterwards.',
-    26 => 'Remember, if you have disabled your site in <code>public_html/siteconfig.php</code>, you will need to reenable it again before you can use your site.',
-    27 => 'Successfully upgraded all plugins.',
-    28 => 'Failed to upgrade some plugins.  They are disabled now.',
-    29 => 'The language file "%s" you were using is no longer supported with the current version, so we are using "english.php" instead.'
+    25 => 'No, thanks.  I will manually delete them afterwards.'
 );
 
 // +---------------------------------------------------------------------------+
@@ -220,7 +210,7 @@ $LANG_MIGRATE = array(
     2 => 'Be sure any previously installed plugins have been copied to your new server.',
     3 => 'Be sure any images from <code>public_html/images/articles/</code>, <code>public_html/images/topics/</code>, and <code>public_html/images/userphotos/</code>, have been copied to your new server.',
     4 => 'If you\'re upgrading from a Geeklog version older than <strong>1.5.0</strong>, then make sure to copy over all your old <code>config.php</code> files so that the migration can pick up your settings.',
-    5 => 'If you\'re upgrading to a new Geeklog version during your migration and your current theme is not packaged with Geeklog, <em>then don\'t upload your theme just yet unless you are sure it supports this version of Geeklog</em>. Use the included default theme "%s" until you can be sure your migrated site works properly.',
+    5 => 'If you\'re upgrading to a new Geeklog version, then don\'t upload your theme just yet. Use the included default theme until you can be sure your migrated site works properly.',
     6 => 'Select an existing backup',
     7 => 'Choose file...',
     8 => 'From the server\'s backups directory',
@@ -254,7 +244,7 @@ $LANG_MIGRATE = array(
     36 => 'You can correct these any time.',
     37 => 'Migration Complete',
     38 => 'The migration process has completed. However, the installation script found the following issues:',
-    39 => 'Zlib extension is not loaded. Sorry, can\'t handle compressed database backups.',
+    39 => 'Failed to set PEAR include path. Sorry, can\'t handle compressed database backups without PEAR.',
     40 => 'The archive "%1$s" does not appear to contain any SQL files.  To retry, click on <a href="%2$s\">this</a>',
     41 => 'Error extracting database backup \'%s\' from compressed backup file.',
     42 => 'Backup file \'%s\' just vanished ...',
@@ -346,43 +336,24 @@ $LANG_ERROR = array(
     10 => 'Check your database settings',
     11 => 'Warning',
     12 => 'Information',
-    13 => '<p>The Geeklog install has detected that you are upgrading from <strong>Geeklog v%s to v%s</strong>.</p><p>Listed here are notices, warnings and/or any errors detected by the Geeklog Install. These messages are listed by the Geeklog version in case your site is several versions behind.</p><p><strong>Please read all of these important messages carefully</strong> as they pertain to your upgrade and may have additional instructions for your to follow after the upgrade or, may suggest you perform some action before the upgrade. If an <em>Error message</em> exists then you will not be able to proceed until you fix the problem.</p><p>You will find a prompt at the bottom of this page to either continue (if there are no errors) or bo back to the home install page.</p>',
     14 => 'Upgrade Notices',
     15 => 'Topic IDs and Names max length have changed from 128 to 75. This may cause issues when topic ids are truncated (if id is larger than 75 characters) during the upgrade. Please double check your topic ids that are larger than 75 characters will be unique when the max length is changed.',
     16 => 'Topic IDs and Names have changed from 128 to 75. It has been detected you need to modify 1 or more topic ids before this upgrade can proceed.',
     17 => 'Professional Theme support has been dropped from Geeklog. If you are currently using the Professional theme or Professional_css theme from Geeklog 2.1.1 or older your website may not function properly.',
     18 => 'Comment Signatures',
-    19 => "Comment Signatures before Geeklog 2.2.0 where stored with the comment. Now they are added when the comment is viewed. For backwards compatibility the upgrade will remove all comment signatures stored directly
-    with the comment  (so comment signatures will not display twice).",
+    19 => "Comment Signatures before Geeklog 2.2.0 where stored with the comment. Now they are added when the comment is viewed. For backwards compatibility the upgrade will remove all comment signatures stored directly\n    with the comment  (so comment signatures will not display twice).",
     20 => 'Plugin Compatibility',
-    21 => 'Geeklog internally has undergone some changes which may affect compatibility of some older plugins which have not been updated in a while. Please make sure all the plugins you have installed have been updated to the latest version before upgrading Geeklog to v2.2.0.<br><br>If you still wish to upgrade Geeklog to v2.2.0 and you are not sure about a plugin please post a question about it on our <a href="https://www.geeklog.net/forum/index.php?forum=2" target="_blank">Geeklog Forum</a>. Else, you can also disable or uninstall the plugin and then perform the Geeklog upgrade.<br><br>If you do perform the upgrade and run into problems you can then use the <a href="/admin/rescue.php">Geeklog Emergency Rescue Tool</a> to disable the plugin with the issue.',
-    22 => 'Default Security Group Assignments',
-    23 => 'User security group assignments for groups "Root" and "All Users" will be fixed along with the security group assignments for the "Admin" (2) user. The "Admin" user had duplicate permissions in some cases and these will be removed after this upgrade.<br><br>Please Note: The issue that caused duplicate permissions has been fixed but it does mean any user that you may have edited in the Admin User Editor before Geeklog v2.2.1 may have been affected. This only really affects permissions when you have security groups within security groups. While these permissions at the time of saving the user are correct if you modified security groups since then these users may still have access to groups they may have been removed from now. As each site is setup differently, the only way to fix this is for the Admin to review each user manually and confirm their security privileges.',
-    24 => 'FCKEditor Removed',
-    25 => 'The Advanced Editor FCKEditor has been removed from Geeklog since development for it has been stopped. If your Geeklog website is currently set to use the FCKEditor it will be updated to use the editor which currently ships with Geeklog called the CKEditor.',
-    26 => 'Google+ OAuth Login',
-    27 => 'The <a href="https://support.google.com/plus/answer/9195133" target="_blank">Google+ service shut down on April 2, 2019</a>. As of Geeklog v2.2.1 we will move from the Google+ OAuth authentication method and scope to the Google OAuth authentication method and scope. Because of this change and depending on when you created your Google API keys, you may need to update these keys in the Geeklog configuration or users who use this login method may receive an error.<br><br>Geeklog now offers the option to convert remote accounts to local accounts. If you have any remote accounts (like Google OAuth, Facebook OAuth, OpenID, etc..) you want to convert, edit the user account from the User Manager and then check off the "convert from remote to a local account" option and click on save. At this point the account will be converted to a local account and a random password will be generated. If the account has an email address and the status is set to "Active" an email will be automatically sent to the user about how to access their account. If not, you will manually have to fill in this information and let the user know how they can access their local account.',
-    28 => 'Duplicate Usernames & Usernames with Trailing Spaces',
-    29 => 'In some cases through remote accounts blank or duplicate usernames (some may have had trailing spaces) could be created. Blank username accounts are the results of remote account login errors so they will be deleted. Accounts that have duplicate names (could include local accounts) will have their accounts renamed. Some local account users may need to use the "Forget Your Password" to retrieve their new username.<br><br>Please note: This issue is a very rare occurrence and can only happen if you have remote user accounts. Most users will be unaffected.',
-    30 => 'Submitted Articles with Incorrect Permissions',
-    31 => 'Since Geeklog v2.0.0 the default article permissions and the Story Admin Group where not used for the default permissions when a submitted article was approved or brought up in the Article Editor. Instead the Topic Admin group and the default topic permissions for the article was used. This has now been fixed but you must manually go through and check any previously submitted articles and update their permissions if needed.<br><br>If you want all articles to belong to the Story Admin group set using your current article default permissions this can be easily done. Please check out the <a href="https://www.geeklog.net/forum/viewtopic.php?showtopic=97115" target="_blank">Geeklog Support Forum</a> for more information.',
-    32 => 'Static Pages Search Results Fix',
-    33 => 'If you use Static Pages with PHP or templates, the search results returned by Geeklog could show any code embedded in the page. This has now been fixed as all pages that use these features will now save a cached copy of the final executed page. This cached page is generated on the save of the page in the editor and (if page cache enabled) when a new cached file of the page is made. This means that all users that have access to the page will use the same search cache.  If autotags, PHP, or the is device_mobile template variable is used by the page this may generate different contents depending on the user. Since the search cache is only one view of the page it will be the one searched. Therefore what the search result returns may be slightly different than what the user will see when they visit the page. Please take this short coming into consideration when using template and php pages and having the "Include in Search" config option set to true (config options includesearchphp and/or includesearchtemplate).<br><br>Unfortunately, updating this search cache during the install is not possible as runtime errors could occur (if for example the page needs something that the installer cannot access) and will interrupt the install. <em>Therefore after the upgrade, before these pages search cache can be created and searched on, you must: Pages that are not cached must be saved again, Pages that use the page cache must be visited or saved again. <strong>These pages will not appear in the search results until this is done.</strong></em><br><br>For an automated script to perform this process automatically after the upgrade is complete, please check out the <a href="https://www.geeklog.net/forum/viewtopic.php?showtopic=97222" target="_blank">Geeklog Support Forum</a> for more information.',
-    34 => 'Database Character Set Required',
-    35 => 'Your Database Character Set has not been defined for your MySQL or PostgreSQL database. Please edit the dbconfig.php file and update the $_DB_charset variable with the appropriate database character set for your database collation and server.<br><br>Remember your Database Character Set must also be compatible with your Sites Default Character Set (which is defined in the siteconfig.php file located in the public_html directory). For more information on the different languages, character sets, and database collations for MySQL and PostgreSQL (including a table with what each should be based on your sites language), see the <a href="/docs/english/install.html" target="_blank">Geeklog install documentation</a>.',
-	36 => 'IP Addresses Anonymization',
-    37 => 'The process to update the Geeklog database for this feature may take awhile. If you have a database with a lot of comments or likes (in the thousands) this process could timeout and stop if your PHP "max_execution_time" value is set to low.<br><br><em>If PHP does timeout during the upgrade you will have to restore your database from a backup and try again.</em>'
+    21 => 'Geeklog internally has undergone some changes which may affect compatibility of some older plugins which have not been updated in a while. Please make sure all the plugins you have installed have been updated to the latest version before upgrading Geeklog to v2.2.0.<br><br>If you still wish to upgrade Geeklog to v2.2.0 and you are not sure about a plugin please post a question about it on our <a href="https://www.geeklog.net/forum/index.php?forum=2" target="_blank">Geeklog Forum</a>. Else, you can also disable or uninstall the plugin and then perform the Geeklog upgrade.<br><br>If you do perform the upgrade and run into problems you can then use the <a href="/admin/install/rescue.php">Geeklog Emergency Rescue Tool</a> to disable the plugin with the issue.'
 );
 
 // +---------------------------------------------------------------------------+
 // help.php
 
 $LANG_HELP = array(
-    0 => 'Geeklog Installation Help',
-    'description' => '<p>This help page explains what each field means that you may be asked to input for new Geeklog installs and migrating your Geeklog site to a new domain.</p><p>If you run into problems with installing, upgrading, or migrating your Geeklog site, please review the <a href="/docs/english/install.html">Geeklog Installation Docs</a>. For any additional questions or problems you may have, please visit the <a href="https://www.geeklog.net/forum/index.php?forum=1">Geeklog Install Support Forum</a> to read up on similar issues and post your own topic.</p>',
+    0 => '志樂安裝支助',
     'site_name' => '你的網站名.',
     'site_slogan' => '簡單的描述你的網站.',
-    'db_type' => 'Geeklog can be installed using either a MySQL or PostgreSQL database. If you are not sure which option to select contact your hosting provider.<br><br><strong>Note</strong> InnoDB Tables may improve performance on (very) large sites, but they also make database backups more complicated.',
+    'db_type' => '志樂可用 MySQL 或 Microsoft SQL 資料庫安裝. 若你不肯定你的選擇，請問你的主機服務員.</p><p class="indent"><strong>注:</strong> InnoDB 表格也許會在巨大的網站上提升效果, 但它會使資料庫備份次序更加複雜.',
     'db_host' => '你的資料庫的網路名 (或 IP 位址). 這通常是 "localhost". 若你不肯定，請問你的主機服務員.',
     'db_name' => '你的資料庫名稱. 若你不肯定，請問你的主機服務員.',
     'db_user' => '你的資料庫用戶名. 若你不肯定，請問你的主機服務員.',
@@ -392,44 +363,8 @@ $LANG_HELP = array(
     'site_admin_url' => '有些主機服務者預先設定管理目錄 admin. 在這樣的情況下，你要將志樂的 admin 目錄改名，例如： "myadmin" 而且更改一下的 URL. 現暫時不必改，等到你發現進入 admin菜當是遇到問題.',
     'site_mail' => '這是所有志樂寄出的電郵的回信位址和在辛迪加的聯絡資訊.',
     'noreply_mail' => '這是系統電郵的寄信者位址用於用戶登記時等等. 這應當是跟網站電郵同樣或一個無法回信的位址避免冒名者借著網站登記來錄取你的地址. 若這電郵不跟上面一樣, 建議你加一個資訊在你寄出的電郵裏.',
-    'utf8' => 'Indicate whether to use UTF-8 as the default character set for your site (unless your database collation is already UTF-8 then the UTF-8 character sets will be used automatically). Recommended for multi-lingual setups and required for emoji support.<br><br>This will set the database character set to UTF-8. If you have <strong>checked</strong> this setting, make sure your database collation is compatible with the character set (for MySQL usually this is either <strong>utf8_general_ci</strong> or, if you wish to support emojis <strong>utf8mb4_general_ci</strong>). <em>Checking this will not change the collation of your database, this must be done manually before you proceed with the install.</em><br><br>The Geeklog site English Language default character set is \'iso-8859-1\' (Latin-1) which is compatible with the database character set of \'latin1\' (latin1_swedish_ci) for MySQL. For new installs changing the language of the install may change the character sets used. Some of these are older legacy encoding standards that supports a limited number of languages. If you leave \'Use UTF-8\' unchecked your installs default language selection character set will be used.',
-    'charactersets' => "Here are the Language character sets supported by the Geeklog Install along with their corresponding database character sets and recommended database collations. More information on character sets and database collations can be found in the <a href=\"/docs/english/install.html\">Geeklog Installation Docs</a>.
-    <div class=\"uk-overflow-auto\">
-    <table class=\"uk-table uk-table-striped\">
-        <thead>
-            <tr>
-                <th>Language</th><th>Site Language Character Set</th><th>MySQL DB Character Set</th><th>MySQL DB Collation</th><th>PostgreSQL DB Character Set</th><th>PostgreSQL DB Collation</th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr>
-                <td>English</td><td>iso-8859-1</td><td>latin1</td><td>latin1_swedish_ci</td><td>LATIN1</td><td>?</td>
-            </tr>
-            <tr>
-                <td>English (UTF-8)</td><td>utf-8</td><td>utf8/utf8mb4</td><td>utf8_general_ci/utf8mb4_general_ci</td><td>UTF8</td><td>en_US.UTF-8</td>
-            </tr>
-            <tr>
-                <td>Japanese</td><td>utf-8</td><td>utf8</td><td>utf8_general_ci/utf8mb4_general_ci</td><td>UTF8</td><td>ja_JP.UTF-8</td>
-            </tr>
-            <tr>
-                <td>German</td><td>iso-8859-15</td><td>latin1</td><td>latin1_swedish_ci</td><td>LATIN9</td><td>?</td>
-            </tr>
-            <tr>
-                <td>Hebrew</td><td>utf-8</td><td>utf8</td><td>utf8_general_ci/utf8mb4_general_ci</td><td>UTF8</td><td>he_IL.UTF-8</td>
-            </tr>
-            <tr>
-                <td>Polish</td><td>iso-8859-2</td><td>latin2</td><td>latin2_general_ci</td><td>LATIN2</td><td>?</td>
-            </tr>
-            <tr>
-                <td>Simplified Chinese</td><td>utf-8</td><td>utf8</td><td>utf8_general_ci/utf8mb4_general_ci</td><td>UTF8</td><td>zh_CN.UTF-8</td>
-            </tr>
-            <tr>
-                <td>Traditional Chinese</td><td>utf-8</td><td>utf8</td><td>utf8_general_ci/utf8mb4_general_ci</td><td>UTF8</td><td>zh_TW.UTF-8</td>
-            </tr>
-        </tbody>
-    </table>
-    </div>",
-    'migrate_file' => 'Choose the backup file you want to migrate. This can either be an existing file in your "backups" directory or you can upload a file from your computer. Alternatively, you can also migrate the current contents of the database.',
+    'utf8' => '指示你是否要用 UTF-8 為你網站的默認字形檔. 這在多言語的網站上會有幫助.',
+    'migrate_file' => 'Choose the backup file you want to migrate. This can either be an exisiting file in your "backups" directory or you can upload a file from your computer. Alternatively, you can also migrate the current contents of the database.',
     'plugin_upload' => 'Choose a plugin archive (in .zip, .tar.gz, or .tgz format) to upload and install.'
 );
 
@@ -441,7 +376,7 @@ $LANG_RESCUE = array(
     1 => 'Geeklog Emergency Rescue Tool',
     2 => 'Geeklog Install',
     3 => 'Geeklog Emergency Rescue Tool',
-    4 => 'Do not forget to <strong>delete this {{SELF}} file once you are done!</strong>  If other users guess the password, they can seriously harm your geeklog installation!',
+    4 => 'Do not forget to <strong>delete this {{SELF}} file and the install directory once you are done!</strong>  If other users guess the password, they can seriously harm your geeklog installation!',
     5 => 'Status',
     6 => 'You are attempting to access a secure section.  You can\'t proceed until you pass the security check.',
     7 => 'In order to verify you, we require you to enter your database password.  This is the password that is stored in geeklog\'s db-config.php',
@@ -485,7 +420,6 @@ $LANG_RESCUE = array(
     45 => 'Geeklog appears not to be installed or the install did not complete properly as core information is missing in the Geeklog database. Therefore this rescue tool cannot be used.'
 );
 
-
 // which texts to use as labels, so they don't have to be translated again
 $LANG_LABEL = array(
     'site_name'      => $LANG_INSTALL[32],
@@ -501,7 +435,6 @@ $LANG_LABEL = array(
     'site_mail'      => $LANG_INSTALL[48],
     'noreply_mail'   => $LANG_INSTALL[49],
     'utf8'           => $LANG_INSTALL[92],
-	'charactersets'  => $LANG_INSTALL[123],
     'migrate_file'   => $LANG_MIGRATE[6],
     'plugin_upload'  => $LANG_PLUGINS[10]
 );

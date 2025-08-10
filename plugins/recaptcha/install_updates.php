@@ -5,7 +5,7 @@
 // +---------------------------------------------------------------------------+
 // | geeklog/plugins/recaptcha/install_updates.php                             |
 // +---------------------------------------------------------------------------+
-// | Copyright (C) 2014-2020 mystral-kk - geeklog AT mystral-kk DOT net        |
+// | Copyright (C) 2014-2017 mystral-kk - geeklog AT mystral-kk DOT net        |
 // |                                                                           |
 // | Based on the CAPTCHA Plugin by Ben                                        |
 // |                                                - ben AT geeklog DOT fr    |
@@ -125,70 +125,6 @@ function recaptcha_update_ConfValues_1_1_6()
     $c->add('enable_calendar', $_RECAPTCHA_CONF['enable_calendar'], 'select', $sg, $fs, 2, $so, true, $me, $tab);
     $so += 10;
     $c->add('enable_links', $_RECAPTCHA_CONF['enable_links'], 'select', $sg, $fs, 2, $so, true, $me, $tab);
-
-    return true;
-}
-
-/**
- * Update Configuration settings for reCAPTCHA plugin v1.2.1 (Geeklog 2.2.1)
- *
- * @return bool true on success, false otherwise
- */
-function recaptcha_update_ConfValues_1_2_0()
-{
-    $c = config::get_instance();
-    $me = 'recaptcha';
-
-    // Remove plugins from "Integration" tab, since the information on the tab will be
-    // obtained through calling "plugin_supportsRecaptcha_xxx"
-    $c->del('enable_forum', $me);
-    $c->del('enable_mediagallery', $me);
-    $c->del('enable_rating', $me);
-    $c->del('enable_calendar', $me);
-    $c->del('enable_links', $me);
-
-    return true;
-}
-
-/**
- * Update Configuration settings for reCAPTCHA plugin v1.2.2 (Geeklog 2.2.2)
- *
- * @return bool true on success, false otherwise
- */
-function recaptcha_update_ConfValues_1_2_2()
-{
-    global $_RECAPTCHA_DEFAULT;
-
-    require_once __DIR__ . '/install_defaults.php';
-
-    $c = config::get_instance();
-    $me = 'recaptcha';
-    $sg = 0;
-    $fs = 0;
-    $tab = 0;
-
-    // Add reCAPTCHA V3 support
-    $c->add('site_key_v3', $_RECAPTCHA_DEFAULT['site_key_v3'], 'text', $sg, $fs, null, 42, true, $me, $tab);
-    $c->add('secret_key_v3', $_RECAPTCHA_DEFAULT['secret_key_v3'], 'text', $sg, $fs, null, 44, true, $me, $tab);
-
-    // Add score thresholds fro V3
-    $tab = 2;
-    $so = 200;
-    $c->add('tab_score', null, 'tab', $sg, $fs, null, $so, true, $me, $tab);
-    $so += 10;
-    $c->add('fs_score', null, 'fieldset', $sg, $fs, null, $so, true, $me, $tab);
-    $so += 10;
-    $c->add('score_comment', $_RECAPTCHA_DEFAULT['score_comment'], 'text', $sg, $fs, null, $so, true, $me, $tab);
-    $so += 10;
-    $c->add('score_emailstory', $_RECAPTCHA_DEFAULT['score_emailstory'], 'text', $sg, $fs, null, $so, true, $me, $tab);
-    $so += 10;
-    $c->add('score_registration', $_RECAPTCHA_DEFAULT['score_registration'], 'text', $sg, $fs, null, $so, true, $me, $tab);
-    $so += 10;
-    $c->add('score_getpassword', $_RECAPTCHA_DEFAULT['score_getpassword'], 'text', $sg, $fs, null, $so, true, $me, $tab);
-    $so += 10;
-    $c->add('score_loginform', $_RECAPTCHA_DEFAULT['score_loginform'], 'text', $sg, $fs, null, $so, true, $me, $tab);
-    $so += 10;
-    $c->add('score_story', $_RECAPTCHA_DEFAULT['score_story'], 'text', $sg, $fs, null, $so, true, $me, $tab);
 
     return true;
 }

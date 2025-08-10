@@ -574,7 +574,7 @@ function WS_xmlToArgs(&$args)
                 if ($node->nodeType == XML_ELEMENT_NODE) {
                     $child_nodes = $node->childNodes;
                     if ($child_nodes == null) {
-                        continue 2;
+                        continue;
                     }
                     $args[$node->localName] = array();
                     for ($i = 0; $i < $child_nodes->length; $i++) {
@@ -585,7 +585,7 @@ function WS_xmlToArgs(&$args)
                                         = $child_node->firstChild->nodeValue;
                                 break;
                             }
-                            }
+                        }
                     }
                 }
                 break;
@@ -594,7 +594,7 @@ function WS_xmlToArgs(&$args)
                     $is_array = 1;
                     $child_nodes = $node->childNodes;
                     if ($child_nodes == null)
-                        continue 2;
+                        continue;
 
                     $args[$node->localName] = array();
                     for ($i = 0; $i < $child_nodes->length; $i++) {
@@ -906,11 +906,9 @@ function WS_authenticate()
     }
 
     if ($status == USER_ACCOUNT_ACTIVE) {
+
         $_USER = SESS_getUserDataFromId($uid);
         PLG_loginUser($_USER['uid']);
-
-        // Issue an auto-login key user cookie and record hash in db if needed
-		SESS_issueAutoLogin($_USER['uid']);
 
         // Global array of groups current user belongs to
         $_GROUPS = SEC_getUserGroups($_USER['uid']);
@@ -984,7 +982,7 @@ function WS_writeSync()
 }
 
 /**
- * Create a new ID, preferably from a provided 'Slug:' header
+ * Create a new ID, preferrably from a provided 'Slug:' header
  *
  * For more information on the 'Slug:' header, see RFC 5023, section 9.7
  *

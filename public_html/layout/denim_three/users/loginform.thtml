@@ -21,30 +21,13 @@
 
       <div class="submit">
         <button type="submit" value="{lang_login}" class="uk-button uk-button-primary uk-margin-small-bottom g-recaptcha"{!if invisible_recaptcha}{invisible_recaptcha}{!endif}>{lang_login}</button>
-        {recaptcha_v3}
-        {!if lang_newreglink}
         <div class="uk-margin-small-bottom">{lang_newreglink}</div>
-        {!endif}
-        {!if lang_forgetpassword}
         <div class="uk-margin-small-bottom"><a href="{site_url}/users.php?mode=getpassword" rel="nofollow">{lang_forgetpassword}</a></div>
-        {!endif}
       </div>
    </fieldset>
   </form>
-  
-  {!if lang_remote_login}
-  <div id="userremoteloginform" class="compact uk-form">
-    <fieldset>
-      <legend>{lang_remote_login}</legend>
-
-      <p class="form_message">{user_remote_login_desc_long}</p>
-  
-      {oauth_login}
-	  {openid_login}
-	  
-   </fieldset>
-  </div>
-  {!endif}
+  {openid_login}
+  {oauth_login}
 {end_block}
 
 {# end {templatelocation} #}

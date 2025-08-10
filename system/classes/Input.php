@@ -8,7 +8,7 @@
 // |                                                                           |
 // | This file deals with input variables.                                     |
 // +---------------------------------------------------------------------------+
-// | Copyright (C) 2015-2020 by the following authors:                         |
+// | Copyright (C) 2015-2017 by the following authors:                         |
 // |                                                                           |
 // | Authors: Kenji ITO        - mystralkk AT gmail DOT com                    |
 // +---------------------------------------------------------------------------+
@@ -31,9 +31,6 @@
 
 namespace Geeklog;
 
-use Exception;
-use GLText;
-
 /**
  * Class Input
  *
@@ -48,47 +45,26 @@ class Input
     private static $initialized = false;
 
     /**
-     * Initialize the Input class
-     *
-     * @param  string  $internalEncoding
+     * @var bool the current value of magic_quotes_gpc
      */
-    public static function init($internalEncoding)
+    private static $magicQuotes = false;
+
+    /**
+     * Initialize the Input class
+     */
+    public static function init()
     {
-        if (self::$initialized) {
-            return;
-        }
-
-        self::$initialized = true;
-
-        // Check for invalid request data for UTF-8
-        if (strcasecmp($internalEncoding, 'UTF-8') !== 0) {
-            return;
-        }
-
-        $targets = [$_GET, $_POST, $_COOKIE];
-        $vars = '';
-
-        // Concat all request data as one string
-        array_walk_recursive(
-            $targets,
-            function ($value, $key) use (&$vars) {
-                $vars .= "{$key}({$value})";
-            }
-        );
-
-        if (strlen($vars) > 0) {
-            // Check encoding
-            if (!mb_check_encoding($vars, $internalEncoding)) {
-                die('Invalid encoding detected!');
-            }
+        if (!self::$initialized) {
+            self::$magicQuotes = (bool) get_magic_quotes_gpc();
+            self::$initialized = true;
         }
     }
 
     /**
      * Apply a basic filter
      *
-     * @param  string|array  $var
-     * @param  bool          $isNumeric
+     * @param  string|array $var
+     * @param  bool         $isNumeric
      * @return string|array
      */
     public static function applyFilter($var, $isNumeric = false)
@@ -101,8 +77,8 @@ class Input
             $var = COM_applyBasicFilter($var);
         } else {
             // Simulate COM_applyBasicFilter
-            $var = GLText::remove4byteUtf8Chars($var);
-            $var = GLText::stripTags($var);
+            $var = \GLText::remove4byteUtf8Chars($var);
+            $var = \GLText::stripTags($var);
 
             if (is_callable('COM_killJS')) {
                 $var = COM_killJS($var); // doesn't help a lot right now, but still ...
@@ -131,46 +107,61 @@ class Input
     }
 
     /**
+     * Remove an added slash if necessary
+     *
+     * @param     array|string $value
+     * @return    array|string
+     */
+    private static function undoMagicQuotes($value)
+    {
+        if (self::$magicQuotes) {
+            return is_array($value) ? array_map(__METHOD__, $value) : stripslashes($value);
+        } else {
+            return $value;
+        }
+    }
+
+    /**
      * Return the value of $_GET variable
      *
-     * @param  string        $name  an index of $_GET
-     * @param  string|array  $defaultValue
+     * @param    string       $name an index of $_GET
+     * @param    string|array $defaultValue
      * @return   array|null|string
      */
     public static function get($name, $defaultValue = null)
     {
-        return isset($_GET[$name]) ? $_GET[$name] : $defaultValue;
+        return isset($_GET[$name]) ? self::undoMagicQuotes($_GET[$name]) : $defaultValue;
     }
 
     /**
      * Return the value of $_POST variable
      *
-     * @param  string        $name  an index of $_POST
-     * @param  string|array  $defaultValue
+     * @param    string       $name an index of $_POST
+     * @param    string|array $defaultValue
      * @return   array|null|string
      */
     public static function post($name, $defaultValue = null)
     {
-        return isset($_POST[$name]) ? $_POST[$name] : $defaultValue;
+        return isset($_POST[$name]) ? self::undoMagicQuotes($_POST[$name]) : $defaultValue;
     }
 
     /**
      * Return the value of $_COOKIE variable
      *
-     * @param  string        $name  an index of $_COOKIE
-     * @param  string|array  $defaultValue
+     * @param    string       $name an index of $_COOKIE
+     * @param    string|array $defaultValue
      * @return   array|null|string
      */
     public static function cookie($name, $defaultValue = null)
     {
-        return isset($_COOKIE[$name]) ? $_COOKIE[$name] : $defaultValue;
+        return isset($_COOKIE[$name]) ? self::undoMagicQuotes($_COOKIE[$name]) : $defaultValue;
     }
 
     /**
      * Return the value of $_SERVER variable
      *
-     * @param  string        $name  an index of $_SERVER
-     * @param  string|array  $defaultValue
+     * @param    string       $name an index of $_SERVER
+     * @param    string|array $defaultValue
      * @return   array|null|string
      */
     public static function server($name, $defaultValue = null)
@@ -181,8 +172,8 @@ class Input
     /**
      * Return the value of $_FILES variable
      *
-     * @param  string        $name  an index of $_FILES
-     * @param  string|array  $defaultValue
+     * @param    string       $name an index of $_FILES
+     * @param    string|array $defaultValue
      * @return   array|null|string
      */
     public static function files($name, $defaultValue = null)
@@ -193,8 +184,8 @@ class Input
     /**
      * Return the value of $_ENV variable
      *
-     * @param  string        $name  an index of $_ENV
-     * @param  string|array  $defaultValue
+     * @param    string       $name an index of $_ENV
+     * @param    string|array $defaultValue
      * @return   array|null|string
      */
     public static function env($name, $defaultValue = null)
@@ -205,27 +196,27 @@ class Input
     /**
      * Return the value of $_REQUEST variable
      *
-     * @param  string        $name  an index of $_REQUEST
-     * @param  string|array  $defaultValue
+     * @param    string       $name an index of $_REQUEST
+     * @param    string|array $defaultValue
      * @return   array|null|string
      */
     public static function request($name, $defaultValue = null)
     {
-        return isset($_REQUEST[$name]) ? $_REQUEST[$name] : $defaultValue;
+        return isset($_REQUEST[$name]) ? self::undoMagicQuotes($_REQUEST[$name]) : $defaultValue;
     }
 
     /**
      * Return the value of $_SESSION variable
      *
-     * @param  string        $name  an index of $_SESSION
-     * @param  string|array  $defaultValue
+     * @param    string       $name an index of $_SESSION
+     * @param    string|array $defaultValue
      * @return   array|null|string
-     * @throws   Exception
+     * @throws   \Exception
      */
     public static function session($name, $defaultValue = null)
     {
         if (session_id() === '') {
-            throw new Exception('Session has not started yet');
+            throw new \Exception('Session has not started yet');
         }
 
         return isset($_SESSION[$name]) ? $_SESSION[$name] : $defaultValue;
@@ -234,8 +225,8 @@ class Input
     /**
      * Return the value of $_GET or $_POST variable depending on the current request method
      *
-     * @param  string        $name  an index of $_GET or $_POST
-     * @param  string|array  $defaultValue
+     * @param    string       $name an index of $_GET or $_POST
+     * @param    string|array $defaultValue
      * @return   array|null|string
      */
     public static function req($name, $defaultValue = null)
@@ -248,8 +239,8 @@ class Input
     /**
      * Return the value of $_GET[$name] if it is set.  Otherwise return the value of $_POST[$name]
      *
-     * @param  string        $name  an index of $_GET or $_POST
-     * @param  string|array  $defaultValue
+     * @param    string       $name an index of $_GET or $_POST
+     * @param    string|array $defaultValue
      * @return   array|null|string
      */
     public static function getOrPost($name, $defaultValue = null)
@@ -266,8 +257,8 @@ class Input
     /**
      * Return the value of $_POST[$name] if it is set.  Otherwise return the value of $_GET[$name]
      *
-     * @param  string        $name  an index of $_GET or $_POST
-     * @param  string|array  $defaultValue
+     * @param    string       $name an index of $_GET or $_POST
+     * @param    string|array $defaultValue
      * @return   array|null|string
      */
     public static function postOrGet($name, $defaultValue = null)
@@ -284,8 +275,8 @@ class Input
     /**
      * Return the value of $_GET variable
      *
-     * @param  string        $name  an index of $_GET
-     * @param  string|array  $defaultValue
+     * @param    string       $name an index of $_GET
+     * @param    string|array $defaultValue
      * @return   array|null|string
      */
     public static function fGet($name, $defaultValue = null)
@@ -296,8 +287,8 @@ class Input
     /**
      * Return the value of $_POST variable
      *
-     * @param  string        $name  an index of $_POST
-     * @param  string|array  $defaultValue
+     * @param    string       $name an index of $_POST
+     * @param    string|array $defaultValue
      * @return   array|null|string
      */
     public static function fPost($name, $defaultValue = null)
@@ -308,8 +299,8 @@ class Input
     /**
      * Return the value of $_COOKIE variable
      *
-     * @param  string        $name  an index of $_COOKIE
-     * @param  string|array  $defaultValue
+     * @param    string       $name an index of $_COOKIE
+     * @param    string|array $defaultValue
      * @return   array|null|string
      */
     public static function fCookie($name, $defaultValue = null)
@@ -320,8 +311,8 @@ class Input
     /**
      * Return the value of $_SERVER variable
      *
-     * @param  string        $name  an index of $_SERVER
-     * @param  string|array  $defaultValue
+     * @param    string       $name an index of $_SERVER
+     * @param    string|array $defaultValue
      * @return   array|null|string
      */
     public static function fServer($name, $defaultValue = null)
@@ -332,8 +323,8 @@ class Input
     /**
      * Return the value of $_FILES variable
      *
-     * @param  string        $name  an index of $_FILES
-     * @param  string|array  $defaultValue
+     * @param    string       $name an index of $_FILES
+     * @param    string|array $defaultValue
      * @return   array|null|string
      */
     public static function fFiles($name, $defaultValue = null)
@@ -344,8 +335,8 @@ class Input
     /**
      * Return the value of $_ENV variable
      *
-     * @param  string        $name  an index of $_ENV
-     * @param  string|array  $defaultValue
+     * @param    string       $name an index of $_ENV
+     * @param    string|array $defaultValue
      * @return   array|null|string
      */
     public static function fEnv($name, $defaultValue = null)
@@ -356,8 +347,8 @@ class Input
     /**
      * Return the value of $_REQUEST variable
      *
-     * @param  string        $name  an index of $_REQUEST
-     * @param  string|array  $defaultValue
+     * @param    string       $name an index of $_REQUEST
+     * @param    string|array $defaultValue
      * @return   array|null|string
      */
     public static function fRequest($name, $defaultValue = null)
@@ -368,15 +359,15 @@ class Input
     /**
      * Return the value of $_SESSION variable
      *
-     * @param  string        $name  an index of $_SESSION
-     * @param  string|array  $defaultValue
+     * @param    string       $name an index of $_SESSION
+     * @param    string|array $defaultValue
      * @return   array|null|string
-     * @throws   Exception
+     * @throws   \Exception
      */
     public static function fSession($name, $defaultValue = null)
     {
         if (session_id() === '') {
-            throw new Exception('Session has not started yet');
+            throw new \Exception('Session has not started yet');
         }
 
         return isset($_SESSION[$name]) ? self::applyFilter(self::session($name)) : $defaultValue;
@@ -385,8 +376,8 @@ class Input
     /**
      * Return the value of $_GET or $_POST variable depending on the current request method
      *
-     * @param  string        $name  an index of $_GET or $_POST
-     * @param  string|array  $defaultValue
+     * @param    string       $name an index of $_GET or $_POST
+     * @param    string|array $defaultValue
      * @return   array|null|string
      */
     public static function fReq($name, $defaultValue = null)
@@ -399,8 +390,8 @@ class Input
     /**
      * Return the value of $_GET[$name] if it is set.  Otherwise return the value of $_POST[$name]
      *
-     * @param  string        $name  an index of $_GET or $_POST
-     * @param  string|array  $defaultValue
+     * @param    string       $name an index of $_GET or $_POST
+     * @param    string|array $defaultValue
      * @return   array|null|string
      */
     public static function fGetOrPost($name, $defaultValue = null)
@@ -417,8 +408,8 @@ class Input
     /**
      * Return the value of $_POST[$name] if it is set.  Otherwise return the value of $_GET[$name]
      *
-     * @param  string        $name  an index of $_GET or $_POST
-     * @param  string|array  $defaultValue
+     * @param    string       $name an index of $_GET or $_POST
+     * @param    string|array $defaultValue
      * @return   array|null|string
      */
     public static function fPostOrGet($name, $defaultValue = null)

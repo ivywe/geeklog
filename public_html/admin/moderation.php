@@ -121,7 +121,7 @@ function usersubmissions($token, $approved = 0, $deleted = 0)
 
     // Get lists from plugins that support submissions
     $retval .= PLG_showModerationList($token);
-
+    
     $retval .= COM_endBlock(COM_getBlockTemplate('_admin_block', 'footer'));
 
     return $retval;
@@ -158,7 +158,7 @@ function itemlist($type, $token)
     if ($page < 1) {
         $page = 1;
     }
-
+    
     if ($type === 'comment') {
         $sql = "SELECT cid AS id,title,comment,date,uid,type,sid FROM {$_TABLES['commentsubmissions']} "
             . "ORDER BY date DESC";
@@ -251,7 +251,7 @@ function itemlist($type, $token)
 
     if ($type === 'comment') {
         $header_arr = array(      // display 'text' and use table field 'field'
-            array('text' => $LANG_ADMIN['edit'], 'field' => 'edit'),
+            array('text' => $LANG_ADMIN['edit'], 'field' => 0),
             array('text' => $H[0], 'field' => 1),
             array('text' => $H[1], 'field' => 2),
             array('text' => $H[2], 'field' => 3),
@@ -262,7 +262,7 @@ function itemlist($type, $token)
         );
     } elseif ($type === 'story' || $type === 'story_draft') {
         $header_arr = array(      // display 'text' and use table field 'field'
-            array('text' => $LANG_ADMIN['edit'], 'field' => 'edit'),
+            array('text' => $LANG_ADMIN['edit'], 'field' => 0),
             array('text' => $H[0], 'field' => 1),
             array('text' => $H[1], 'field' => 'uid'),
             array('text' => $H[2], 'field' => 3),
@@ -272,7 +272,7 @@ function itemlist($type, $token)
         );
     } else {
         $header_arr = array(      // display 'text' and use table field 'field'
-            array('text' => $LANG_ADMIN['edit'], 'field' => 'edit'),
+            array('text' => $LANG_ADMIN['edit'], 'field' => 0),
             array('text' => $H[0], 'field' => 1),
             array('text' => $H[1], 'field' => 2),
             array('text' => $H[2], 'field' => 3),
@@ -291,9 +291,9 @@ function itemlist($type, $token)
     $form_arr = array('bottom' => '', 'top' => '');
     if ($numRows > 0) {
         // Anchor for paging
-        $page_anchor = "gl-moderation-" . $type;
+        $page_anchor = "gl-moderation-" . $type; 
         $form_arr['top'] .= '<span id="' . $page_anchor . '"></span>';;
-
+        
         $form_arr['bottom'] .= '<input type="hidden" name="type" value="' . $type . '"' . XHTML . '>' . LB
             . '<input type="hidden" name="' . CSRF_TOKEN . '" value="' . $token . '"' . XHTML . '>' . LB
             . '<input type="hidden" name="mode" value="moderation"' . XHTML . '>' . LB
@@ -412,6 +412,8 @@ function moderation($mid, $action, $type, $count)
 
     $retval = '';
 
+    $sidArray = array();
+
     if (empty($type)) {
         // something is terribly wrong, bail
         $retval .= COM_errorLog("Submission type not set in moderation.php");
@@ -460,52 +462,40 @@ function moderation($mid, $action, $type, $count)
 
             case 'approve':
                 if ($type === 'story') {
-					// Have topic access to approve?
-					if (TOPIC_hasMultiTopicAccess('article', $mid[$i]) == 3) {
-						$sql = "SELECT *, ta.tid
-						FROM {$_TABLES['storysubmission']}, {$_TABLES['topic_assignments']} ta
-						WHERE ta.type = 'article' AND ta.id = sid  AND sid = '$mid[$i]'";
+                    $sql = "SELECT *, ta.tid
+                    FROM {$_TABLES['storysubmission']}, {$_TABLES['topic_assignments']} ta
+                    WHERE ta.type = 'article' AND ta.id = sid  AND sid = '$mid[$i]'";
 
-						$result = DB_query($sql);
-						$A = DB_fetchArray($result);
-						$A['related'] = DB_escapeString(implode("\n", STORY_extractLinks($A['introtext'])));
-						$A['owner_id'] = $A['uid'];
-						$A['title'] = DB_escapeString($A['title']);
-						$A['introtext'] = DB_escapeString($A['introtext']);
-						$A['bodytext'] = DB_escapeString($A['bodytext']);
-
-						$result = DB_query("SELECT group_id,perm_owner,perm_group,perm_members,perm_anon,archive_flag FROM {$_TABLES['topics']} WHERE tid = '{$A['tid']}'");
-						$T = DB_fetchArray($result);
-						if ($T['archive_flag'] == 1) {
-							$frontPage = 0;
-						} elseif (isset($_CONF['frontpage'])) {
-							$frontPage = $_CONF['frontpage'];
-						} else {
-							$frontPage = 1;
-						}
-
-						SEC_setDefaultPermissions($A, $_CONF['default_permissions_story']);
-						if (isset($_GROUPS['Story Admin'])) {
-							$group_id = $_GROUPS['Story Admin'];
-						} else {
-							$group_id = SEC_getFeatureGroup('story.edit');
-						}
-
-						DB_save($_TABLES['stories'], 'sid,uid,title,introtext,bodytext,related,date,show_topic_icon,commentcode,trackbackcode,postmode,frontpage,owner_id,group_id,perm_owner,perm_group,perm_members,perm_anon',
-							"'{$A['sid']}',{$A['uid']},'{$A['title']}','{$A['introtext']}','{$A['bodytext']}','{$A['related']}','{$A['date']}','{$_CONF['show_topic_icon']}','{$_CONF['comment_code']}','{$_CONF['trackback_code']}','{$A['postmode']}',$frontPage,{$A['owner_id']},$group_id,{$T['perm_owner']},{$T['perm_group']},{$T['perm_members']},{$T['perm_anon']}");
-
-						DB_delete($_TABLES['storysubmission'], "$id", $mid[$i]);
-
-						$approved++;
-
-						PLG_itemSaved($A['sid'], 'article');
-						COM_rdfUpToDateCheck();
-					} else {
-						COM_errorLog("Someone tried to approve an article submission who didn't have edit access to the topics assigned to it.");
-					}
-                } elseif ($type === 'comment') {
-                    CMT_approveModeration($mid[$i]);
+                    $result = DB_query($sql);
+                    $A = DB_fetchArray($result);
+                    $A['related'] = DB_escapeString(implode("\n", STORY_extractLinks($A['introtext'])));
+                    $A['owner_id'] = $A['uid'];
+                    $A['title'] = DB_escapeString($A['title']);
+                    $A['introtext'] = DB_escapeString($A['introtext']);
+                    $A['bodytext'] = DB_escapeString($A['bodytext']);
+                    $result = DB_query("SELECT group_id,perm_owner,perm_group,perm_members,perm_anon,archive_flag FROM {$_TABLES['topics']} WHERE tid = '{$A['tid']}'");
+                    $T = DB_fetchArray($result);
+                    if ($T['archive_flag'] == 1) {
+                        $frontPage = 0;
+                    } elseif (isset($_CONF['frontpage'])) {
+                        $frontPage = $_CONF['frontpage'];
+                    } else {
+                        $frontPage = 1;
+                    }
+                    DB_save($_TABLES['stories'], 'sid,uid,title,introtext,bodytext,related,date,show_topic_icon,commentcode,trackbackcode,postmode,frontpage,owner_id,group_id,perm_owner,perm_group,perm_members,perm_anon',
+                        "'{$A['sid']}',{$A['uid']},'{$A['title']}','{$A['introtext']}','{$A['bodytext']}','{$A['related']}','{$A['date']}','{$_CONF['show_topic_icon']}','{$_CONF['comment_code']}','{$_CONF['trackback_code']}','{$A['postmode']}',$frontPage,{$A['owner_id']},{$T['group_id']},{$T['perm_owner']},{$T['perm_group']},{$T['perm_members']},{$T['perm_anon']}");
+                    DB_delete($_TABLES['storysubmission'], "$id", $mid[$i]);
                     $approved++;
+
+                    PLG_itemSaved($A['sid'], 'article');
+                    COM_rdfUpToDateCheck();
+                } elseif ($type === 'comment') {
+                    $sid = CMT_approveModeration($mid[$i]);
+                    $approved++;
+
+                    if (!in_array($sid, $sidArray)) {
+                        $sidArray[$i] = $sid;
+                    }
                 } else {
                     /**
                      * This is called in case this is a plugin. There may be some
@@ -520,6 +510,16 @@ function moderation($mid, $action, $type, $count)
                     $approved++;
                 }
                 break;
+        }
+    }
+
+    // after loop update comment tree and count for each story
+    if (count($sidArray) > 0) {
+        foreach ($sidArray as $sid) {
+            CMT_rebuildTree($sid);
+            // update comment count of stories;
+            $comments = DB_count($_TABLES['comments'], 'sid', $sid);
+            DB_change($_TABLES['stories'], 'comments', $comments, 'sid', $sid);
         }
     }
 

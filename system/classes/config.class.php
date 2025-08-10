@@ -8,7 +8,7 @@
 // |                                                                           |
 // | Controls the UI and database for configuration settings                   |
 // +---------------------------------------------------------------------------+
-// | Copyright (C) 2007-2022 by the following authors:                         |
+// | Copyright (C) 2007-2011 by the following authors:                         |
 // |                                                                           |
 // | Authors: Aaron Blankstein  - kantai AT gmail DOT com                      |
 // |          Akeda Bagus       - admin AT gedex DOT web DOT id                |
@@ -31,13 +31,7 @@
 // |                                                                           |
 // +---------------------------------------------------------------------------+
 
-use Geeklog\Cache;
-use Geeklog\ConfigInterface;
-use Geeklog\Input;
-
-require_once __DIR__ . '/ConfigInterface.php';
-
-class config implements ConfigInterface
+class config
 {
     /**
      * Path to db-config.php file
@@ -51,7 +45,7 @@ class config implements ConfigInterface
      *
      * @var array
      */
-    private $config_array;
+    private $config_array = array();
 
     /**
      * Array of configuration tabs, used by autocomplete
@@ -65,14 +59,21 @@ class config implements ConfigInterface
      *
      * @var array
      */
-    private $conf_ft_arr;
+    private $conf_ft_arr = array();
 
     /**
      * Array of configuration types
      *
      * @var array
      */
-    private $conf_type;
+    private $conf_type = array();
+
+    /**
+     * Whether support new theme format for the later Geeklog 2.0 or not
+     *
+     * @var boolean
+     */
+    private $flag_version_2;
 
     /**
      * List of validation rules. Append entries for validation as
@@ -81,21 +82,21 @@ class config implements ConfigInterface
      *
      * @var array
      */
-    public $validate = [];
+    public $validate = array();
 
     /**
      * List of validation errors.
      *
      * @var array
      */
-    public $validationErrors = [];
+    public $validationErrors = array();
 
     /**
      * Values that failed validation
      *
      * @var array
      */
-    public $validationErrorValues = [];
+    public $validationErrorValues = array();
 
     /**
      * Changed values that pass the validation.
@@ -104,7 +105,7 @@ class config implements ConfigInterface
      *
      * @var array
      */
-    public $tmpValues = [];
+    public $tmpValues = array();
 
     /**
      * Changed configuration array (such as mail settings) that pass the validation.
@@ -113,17 +114,17 @@ class config implements ConfigInterface
      *
      * @var array
      */
-    public $changedArray = [];
+    public $changedArray = array();
 
     /**
      * Constructor
      */
     private function __construct()
     {
-        $this->config_array = [];
+        $this->config_array = array();
         $this->conf_tab_arr = null;
         $this->conf_ft_arr = null;
-        $this->conf_type = [];
+        $this->conf_type = array();
     }
 
     /**
@@ -190,10 +191,9 @@ class config implements ConfigInterface
         // Figure out tabs first
         $sql = "SELECT name, value, group_name, type, subgroup, tab FROM {$_TABLES['conf_values']} WHERE 1=1";
         $result = DB_query($sql);
-        $tabs = [];
+        $tabs = array();
         $curr_group_name = '';
         $curr_subgroup = '';
-
         while ($row = DB_fetchArray($result)) {
             // For backwards compatibility, add in a tab for plugins that support the old config
             if (($row['type'] !== 'tab') && ($row['tab'] == '') && ($row['group_name'] != $curr_group_name || $row['subgroup'] != $curr_subgroup)) {
@@ -205,7 +205,7 @@ class config implements ConfigInterface
                 $this->conf_type['tree'][$row[2]][$row[4]][$tab_name] = "config.{$row[2]}.{$tab_name}";
 
                 if (!isset($this->conf_tab_arr[$tab_name])) {
-                    $this->conf_tab_arr[$row[2]][$row[4]][$tab_name] = [];
+                    $this->conf_tab_arr[$row[2]][$row[4]][$tab_name] = array();
                     $tabs[$row[2]][$row[4]][$tab_id] = $tab_name;
                 }
                 continue;
@@ -217,7 +217,7 @@ class config implements ConfigInterface
                 $this->conf_type['tree'][$row[2]][$row[4]][$row[0]] = "config.{$row[2]}.{$row[0]}";
 
                 if (!isset($this->conf_tab_arr[$row[0]])) {
-                    $this->conf_tab_arr[$row[2]][$row[4]][$row[0]] = [];
+                    $this->conf_tab_arr[$row[2]][$row[4]][$row[0]] = array();
                     $tabs[$row[2]][$row[4]][$row[5]] = $row[0];
                 }
                 continue;
@@ -323,7 +323,7 @@ class config implements ConfigInterface
             $tab = 'tab_' . $tab;
         }
 
-        if (isset($this->conf_tab_arr[$group]) && is_array($this->conf_tab_arr[$group])) {
+        if (isset($this->conf_tab_arr[$group])) {
             foreach ($this->conf_tab_arr[$group] as $itemGroups) {
                 foreach ($itemGroups as $tabName => $values) {
                     if ($tab === $tabName) {
@@ -354,9 +354,9 @@ class config implements ConfigInterface
      */
     public function getAllTabs($group)
     {
-        $retval = [];
+        $retval = array();
 
-        if (isset($this->conf_tab_arr[$group]) && is_array($this->conf_tab_arr[$group])) {
+        if (isset($this->conf_tab_arr[$group])) {
             foreach ($this->conf_tab_arr[$group] as $itemGroups) {
                 foreach ($itemGroups as $tabName => $values) {
                     $retval[] = str_replace('tab_', '', $tabName);
@@ -537,17 +537,18 @@ class config implements ConfigInterface
     {
         global $_TABLES;
 
-        $Qargs = [
-            $param_name,
-            ($set ? serialize($default_value) : 'unset'),
+        $Qargs = array($param_name,
+            $set ? serialize($default_value) : 'unset',
             $type,
             $subgroup,
             $group,
-            ($selection_array === null ? -1 : $selection_array),
+            ($selection_array === null ?
+                -1 : $selection_array),
             $sort,
-            ($fieldset === null ? 0 : $fieldset),
+            ($fieldset === null ?
+                0 : $fieldset),
             serialize($default_value),
-        ];
+        );
 
         $columns = 'name, value, type, subgroup, group_name, selectionArray, sort_order, fieldset, default_value';
 
@@ -582,10 +583,6 @@ class config implements ConfigInterface
 
         if ($set) {
             $this->config_array[$group][$param_name] = $default_value;
-        }
-
-        if (!defined('GL_INSTALL_ACTIVE')) {
-            Cache::delete('configuration.autocomplete_data');
         }
     }
 
@@ -623,7 +620,7 @@ class config implements ConfigInterface
         global $_TABLES;
 
         $columns = '';
-        $Qargs = [
+        $Qargs = array(
             $param_name,
             ($set ? serialize($default_value) : 'unset'),
             $type,
@@ -633,7 +630,7 @@ class config implements ConfigInterface
             $sort,
             $fieldset,
             serialize($default_value),
-        ];
+        );
 
         // special handling of $tab for backward compatibility
         if ($tab !== null) {
@@ -647,10 +644,6 @@ class config implements ConfigInterface
             " WHERE group_name='{$Qargs[4]}' AND name='{$Qargs[0]}'";
 
         $this->_DB_escapedQuery($sql, 1);
-
-        if (!defined('GL_INSTALL_ACTIVE')) {
-            Cache::delete('configuration.autocomplete_data');
-        }
     }
 
     /**
@@ -661,16 +654,11 @@ class config implements ConfigInterface
      */
     public function del($param_name, $group)
     {
-        DB_delete(
-            $GLOBALS['_TABLES']['conf_values'],
-            ['name', 'group_name'],
-            [DB_escapeString($param_name), DB_escapeString($group)]
+        DB_delete($GLOBALS['_TABLES']['conf_values'],
+            array('name', 'group_name'),
+            array(DB_escapeString($param_name), DB_escapeString($group))
         );
         unset($this->config_array[$group][$param_name]);
-
-        if (!defined('GL_INSTALL_ACTIVE')) {
-            Cache::delete('configuration.autocomplete_data');
-        }
     }
 
     /**
@@ -690,12 +678,12 @@ class config implements ConfigInterface
             . " AND (type <> 'tab' AND type <> 'subgroup') "
             . " ORDER BY tab, fieldset, sort_order ASC";
         $Qresult = DB_query($q_string);
-        $res = [];
+        $res = array();
         if (!array_key_exists($group, $LANG_configselects)) {
-            $LANG_configselects[$group] = [];
+            $LANG_configselects[$group] = array();
         }
         if (!array_key_exists($group, $LANG_confignames)) {
-            $LANG_confignames[$group] = [];
+            $LANG_confignames[$group] = array();
         }
 
         while ($row = DB_fetchArray($Qresult)) {
@@ -706,14 +694,14 @@ class config implements ConfigInterface
             }  // If tab is null then old plugin so set default tab
 
             $cur[5] = (substr($cur[5], 0, 6) === 'unset:');
-            $res[$cur[3]][$cur[0]] = [
+            $res[$cur[3]][$cur[0]] = array(
                 'display_name'   => (array_key_exists($cur[0], $LANG_confignames[$group]) ? $LANG_confignames[$group][$cur[0]] : $cur[0]),
                 'type'           => (($cur[4] === 'unset') ? 'unset' : $cur[1]),
                 'selectionArray' => (($cur[2] != -1) ? $LANG_configselects[$group][$cur[2]] : null),
                 'value'          => (($cur[4] === 'unset') ? 'unset' : unserialize($cur[4])),
                 'fieldset'       => $cur[6],
                 'reset'          => $cur[5],
-            ];
+            );
         }
 
         return $res;
@@ -730,8 +718,7 @@ class config implements ConfigInterface
         global $_USER;
 
         $theme = $this->config_array['Core']['theme'];
-        if ($this->config_array['Core']['allow_user_themes'] == 1
-                && !empty($_USER['theme']) && COM_validateTheme($_USER['theme'])) {
+        if ($this->config_array['Core']['allow_user_themes'] == 1 && !empty($_USER['theme'])) {
             $theme = $_USER['theme'];
         }
         $this->config_array['Core']['path_themes'] = $this->config_array['Core']['path_html'] . 'layout/'; // Cannot be set by admin anymore
@@ -747,7 +734,7 @@ class config implements ConfigInterface
      */
     private function _post_configuration()
     {
-        $methods = ['standard', 'openid', '3rdparty', 'oauth'];
+        $methods = array('standard', 'openid', '3rdparty', 'oauth');
         $methods_disabled = 0;
         foreach ($methods as $m) {
             if (isset($this->config_array['Core']['user_login_method'][$m]) &&
@@ -813,7 +800,7 @@ class config implements ConfigInterface
         $q_string = "SELECT name,subgroup FROM {$_TABLES['conf_values']} "
             . "WHERE type = 'subgroup' AND group_name = '{$group}' "
             . "ORDER BY subgroup";
-        $retval = [];
+        $retval = array();
         $res = DB_query($q_string);
 
         while ($row = DB_fetchArray($res)) {
@@ -875,10 +862,10 @@ class config implements ConfigInterface
      */
     public function get_ui($grp, $sg = '0', $change_result = null)
     {
-        global $_CONF, $LANG_CONFIG, $LANG_configsubgroups, $LANG_fs, $_SCRIPTS, $_USER, $LANG01, $_CONF_VALIDATE;
+        global $_CONF, $LANG_CONFIG, $LANG_configsubgroups, $LANG_fs, $_SCRIPTS, $_USER, $LANG01;
 
         if (!array_key_exists($grp, $LANG_configsubgroups)) {
-            $LANG_configsubgroups[$grp] = [];
+            $LANG_configsubgroups[$grp] = array();
         }
 
         // denied users that don't have access to configuration
@@ -887,7 +874,7 @@ class config implements ConfigInterface
             return self::UI_perm_denied();
         }
 
-        if (empty($sg)) {
+        if (!isset($sg) || empty($sg)) {
             $sg = '0';
 
             // get default subgroup for non Root user
@@ -903,16 +890,14 @@ class config implements ConfigInterface
         }
 
         $t = COM_newTemplate(CTL_core_templatePath($_CONF['path_layout'] . 'admin/config'));
-        $t->set_file([
+        $t->set_file(array(
             'main'      => 'configuration.thtml',
             'menugroup' => 'menu_element.thtml',
-        ]);
+        ));
 
         $link_message = $LANG01[139];
         $t->set_var('noscript', COM_getNoScript(false, '', $link_message));
-
-        // Hide the Configuration as Javascript is currently required. If JS is enabled then the JS below
-        // will un-hide it
+        // Hide the Configuration as Javascript is currently required. If JS is enabled then the JS below will un-hide it
         $js = 'document.getElementById("geeklog_config_editor").style.display="";';
         $_SCRIPTS->setJavaScript($js, true);
 
@@ -921,22 +906,28 @@ class config implements ConfigInterface
 
         // set javascript variable for autocomplete
         $js = $this->_UI_autocomplete_data();
-
         // set javascript variable for image spinner
         $js .= $this->_UI_js_image_spinner();
         $js .= "var frmGroupAction = '" . $_CONF['site_admin_url'] . "/configuration.php';";
         $_SCRIPTS->setJavaScript($js, true);
 
-        $_SCRIPTS->setJavaScriptFile('admin.configuration', '/javascript/admin.configuration.js');
+        $this->flag_version_2 = version_compare($_CONF['supported_version_theme'], '2.0.0', '>=');
+
+        if ($this->flag_version_2 == true) {
+            $_SCRIPTS->setJavaScriptFile('admin.configuration', '/javascript/admin.configuration.js');
+        } else {
+            $_SCRIPTS->setJavaScriptFile('admin.configuration', '/javascript/ver.1.8/admin.configuration.js');
+        }
+
 
         $t->set_var('search_configuration_label', $LANG_CONFIG['search_configuration_label']);
         if (isset($_POST['search-configuration-cached'])) {
-            $t->set_var('search_configuration_value', Input::post('search-configuration-cached'));
+            $t->set_var('search_configuration_value', Geeklog\Input::post('search-configuration-cached'));
         } else {
             $t->set_var('search_configuration_value', '');
         }
         if (isset($_POST['tab-id-cached'])) {
-            $t->set_var('tab_id_value', Input::post('tab-id-cached'));
+            $t->set_var('tab_id_value', Geeklog\Input::post('tab-id-cached'));
         } else {
             $t->set_var('tab_id_value', '');
         }
@@ -1005,40 +996,45 @@ class config implements ConfigInterface
             $table_flag = false;
             //print_r($params);
             foreach ($params as $name => $e) {
-                if (COM_isDemoMode()) {
-                    if (in_array($name, [
-                        'site_url','site_admin_url'
-                        ,'url_routing'
-
-                        ,'path_html','path_log','path_language','backup_path','path_data','path_data','path_themes','path_images','path_editors','rdf_file'
-
-                        ,'path_to_mogrify', 'path_to_netpbm', 'image_lib'
-
-                        ,'custom_registration','user_login_method'
-
-                        ,'mail_cc_enabled','mail_cc_default'
-
-                        ,'facebook_login','facebook_consumer_key','facebook_consumer_secret'
-                        ,'linkedin_login','linkedin_consumer_key','linkedin_consumer_secret'
-                        ,'twitter_login','twitter_consumer_key','twitter_consumer_secret'
-                        ,'google_login','google_consumer_key','google_consumer_secret'
-                        ,'microsoft_login','microsoft_consumer_key','microsoft_consumer_secret'
-                        ,'yahoo_login','yahoo_consumer_key','yahoo_consumer_secret'
-                        ,'github_login','github_consumer_secret','github_consumer_key'
-
-                        ,'filemanager_upload_restrictions','filemanager_images_ext','filemanager_videos_ext','filemanager_audios_ext'
-
-                        // For reCaptcha Plugin
-                        ,'public_key','private_key','enable_emailstory','enable_registration','enable_contact','remoteusers','anonymous_only'
-                    ])) {
+                if (isset($_CONF['demo_mode']) && $_CONF['demo_mode']) {
+                    if ( in_array($name,array(
+                    'site_url','site_admin_url'
+                    ,'url_routing'
+                    
+                    ,'path_html','path_log','path_language','backup_path','path_data','path_data','path_themes','path_images','path_editors','rdf_file'
+                    
+                    ,'path_to_mogrify', 'path_to_netpbm', 'image_lib'
+                    
+                    ,'custom_registration','user_login_method'
+                    
+                    ,'mail_cc_enabled','mail_cc_default'
+                    
+                    ,'facebook_login','facebook_consumer_key','facebook_consumer_secret'
+                    ,'linkedin_login','linkedin_consumer_key','linkedin_consumer_secret'
+                    ,'twitter_login','twitter_consumer_key','twitter_consumer_secret'
+                    ,'google_login','google_consumer_key','google_consumer_secret'
+                    ,'microsoft_login','microsoft_consumer_key','microsoft_consumer_secret'
+                    ,'yahoo_login','yahoo_consumer_key','yahoo_consumer_secret'
+                    ,'github_login','github_consumer_secret','github_consumer_key'
+                    
+                    ,'filemanager_upload_restrictions','filemanager_images_ext','filemanager_videos_ext','filemanager_audios_ext'
+                    
+                    // For reCaptcha Plugin
+                    ,'public_key','private_key','enable_emailstory','enable_registration','enable_contact','remoteusers','anonymous_only'
+                    ))) {
                         continue;
                     }
-                }
+                }     
 
                 if ($e['type'] === 'fieldset' && $e['fieldset'] != $current_fs) {
                     $fs_flag = true;
                     if ($current_fs != '') {
-                        $tab_contents .= '</div></fieldset><!-- END fieldset -->';
+
+                        if ($this->flag_version_2 == true) {
+                            $tab_contents .= '</div></fieldset><!-- END fieldset -->';
+                        } else {
+                            $tab_contents .= '</table></fieldset><!-- END fieldset -->';
+                        }
 
                         $table_flag = false;
                     }
@@ -1046,25 +1042,44 @@ class config implements ConfigInterface
                     $current_fs = $e['fieldset'];
                 }
                 if (!$table_flag) {
-                    $tab_contents .= '<div class="inputTable">';
+                    if ($this->flag_version_2 == true) {
+                        $tab_contents .= '<div class="inputTable">';
+                    } else {
+                        $tab_contents .= '<table class="inputTable">';
+                    }
 
                     $table_flag = true;
                 }
 
-                $tab_contents .=
-                    $this->_UI_get_conf_element(
-                        $grp, $name,
-                        $e['display_name'],
-                        $e['type'],
-                        $e['value'],
-                        $e['selectionArray'], false,
-                        $e['reset'],
-                        (isset($_CONF_VALIDATE[$grp][$name]['readonly']) ? $_CONF_VALIDATE[$grp][$name]['readonly'] : false)
-                    );
+                if ($this->flag_version_2 == true) {
+                    $tab_contents .=
+                        $this->_UI_get_conf_element_2(
+                            $grp, $name,
+                            $e['display_name'],
+                            $e['type'],
+                            $e['value'],
+                            $e['selectionArray'], false,
+                            $e['reset']
+                        );
+                } else {
+                    $tab_contents .=
+                        $this->_UI_get_conf_element(
+                            $grp, $name,
+                            $e['display_name'],
+                            $e['type'],
+                            $e['value'],
+                            $e['selectionArray'], false,
+                            $e['reset']
+                        );
+                }
             }
 
             if ($table_flag) {
-                $tab_contents .= '</div>';
+                if ($this->flag_version_2 == true) {
+                    $tab_contents .= '</div>';
+                } else {
+                    $tab_contents .= '</table>';
+                }
             }
 
             if ($fs_flag) {
@@ -1090,7 +1105,7 @@ class config implements ConfigInterface
         $t->set_var('config_menu', $this->_UI_configmanager_menu($grp, $sg));
 
         // message box
-        if (($change_result != null) && ($change_result !== [])) {
+        if ($change_result != null && $change_result !== array()) {
             $t->set_var('lang_changes_made', $LANG_CONFIG['changes_made'] . ':');
             $t->set_var('change_block', $this->_UI_get_change_block($change_result, $grp, $sg));
         } else {
@@ -1108,11 +1123,11 @@ class config implements ConfigInterface
         $_CONF['theme'] = $_USER['theme'];
         $display = COM_createHTMLDocument(
             $display,
-            [
+            array(
                 'what'       => 'none',
                 'pagetitle'  => $LANG_CONFIG['title'],
                 'rightblock' => false,
-            ]
+            )
         );
 
         return $display;
@@ -1129,12 +1144,12 @@ class config implements ConfigInterface
     private function _UI_get_change_block($changes, $group = null, $sg = null)
     {
         $display = '';
-        $anchors = [];
+        $anchors = array();
 
         if (empty($this->validationErrors)) {
-            if (($changes != null) && ($changes !== [])) {
+            if ($changes != null && $changes !== array()) {
                 foreach ($changes as $param_name => $success) {
-                    if (isset($this->changedArray[$group][$param_name]) && is_array($this->changedArray[$group][$param_name])) {
+                    if (isset($this->changedArray[$group][$param_name])) {
                         foreach ($this->changedArray[$group][$param_name] as $_param_name => $_success) {
                             $anchors[] = ' <a href="#' . $param_name . '[' . $_param_name . ']' .
                                 '" class="select_config"' .
@@ -1183,7 +1198,7 @@ class config implements ConfigInterface
         global $_TABLES, $LANG_tab, $LANG_CONFIG;
 
         if (!array_key_exists($group, $LANG_tab)) {
-            $LANG_tab[$group] = [];
+            $LANG_tab[$group] = array();
         }
         $t->set_var('tab_contents', $contents);
         $tab_index = DB_getItem($_TABLES['conf_values'], 'name',
@@ -1224,7 +1239,7 @@ class config implements ConfigInterface
         global $_TABLES, $LANG_fs;
 
         if (!array_key_exists($group, $LANG_fs)) {
-            $LANG_fs[$group] = [];
+            $LANG_fs[$group] = array();
         }
         $t->set_var('fs_contents', $contents);
         $fs_index = DB_getItem($_TABLES['conf_values'], 'name',
@@ -1250,7 +1265,7 @@ class config implements ConfigInterface
         global $_USER, $MESSAGE;
 
         $display = COM_showMessageText($MESSAGE[29], $MESSAGE[30]);
-        $display = COM_createHTMLDocument($display, ['pagetitle' => $MESSAGE[30]]);
+        $display = COM_createHTMLDocument($display, array('pagetitle' => $MESSAGE[30]));
         COM_accessLog("User {$_USER['username']} tried to illegally access the config administration screen.");
 
         return $display;
@@ -1261,32 +1276,32 @@ class config implements ConfigInterface
      * type $type, value to be shown $val and label $display_name to be shown
      * on the left based on language.
      *
-     * @param  string  $group          Configuration group.
-     * @param  string  $name           Configuration name on table.
-     * @param  string  $display_name   Configuration display name based on language.
-     * @param  string  $type           Configuration type such as select, text, textarea, @select, etc.
-     * @param  string  $val            Value of configuration
-     * @param  mixed   $selectionArray Array of option of select element
-     * @param  bool    $deletable      If configuration is deletable
-     * @param  bool    $allow_reset    Allow set and unset of configuration
-     * @param  bool    $readOnly       If configuration is readonly (since Geeklog 2.2.0)
+     * @param  string $group          Configuration group.
+     * @param  string $name           Configuration name on table.
+     * @param  string $display_name   Configuration display name based on language.
+     * @param  string $type           Configuration type such as select, text, textarea, @select, etc.
+     * @param  string $val            Value of configuration
+     * @param  mixed  $selectionArray Array of option of select element
+     * @param  bool   $deletable      If configuration is deleteable
+     * @param  bool   $allow_reset    Allow set and unset of configuration
      * @return string
      */
     private function _UI_get_conf_element($group, $name, $display_name, $type, $val,
                                           $selectionArray = null, $deletable = false,
-                                          $allow_reset = false, $readOnly = false)
+                                          $allow_reset = false)
     {
         global $LANG_CONFIG;
 
         $t = COM_newTemplate(CTL_core_templatePath($GLOBALS['_CONF']['path_layout'] . 'admin/config'));
         $t->set_file('element', 'config_element.thtml');
 
-        $blocks = [
+        $blocks = array(
             'delete-button', 'text-element', 'placeholder-element',
             'select-element', 'list-element', 'unset-param',
             'keyed-add-button', 'unkeyed-add-button', 'text-area',
             'validation_error_block',
-        ];
+        );
+
         foreach ($blocks as $block) {
             $t->set_block('element', $block);
         }
@@ -1296,7 +1311,7 @@ class config implements ConfigInterface
         $t->set_var('lang_add_element', $LANG_CONFIG['add_element']);
 
         $t->set_var('name', $name);
-        $t->set_var('id_name', str_replace(['[', ']'], ['_', ''], $name));
+        $t->set_var('id_name', str_replace(array('[', ']'), array('_', ''), $name));
         $t->set_var('display_name', $display_name);
 
         // check tmp values
@@ -1313,11 +1328,11 @@ class config implements ConfigInterface
                  */
                 $t->set_var('value', str_replace(',', '.', $val));
             } else {
-                $t->set_var('value', ($val === null || $val === '') ? '' : htmlspecialchars($val));
+                $t->set_var('value', htmlspecialchars($val));
             }
         }
 
-        // if there is an error message to show
+        // if there is a error message to shown
         if (isset($this->validationErrors[$group][$name])) {
             $t->set_var('validation_error_message', $this->validationErrors[$group][$name]);
             $t->set_var('error_block', $t->parse('output', 'validation_error_block'));
@@ -1338,7 +1353,201 @@ class config implements ConfigInterface
             }
             if (($a = strrchr($name, '[')) !== false) {
                 //$on = substr($a, 1, -1);
-                $o = str_replace(['[', ']'], ['_', ''], $name);
+                $o = str_replace(array('[', ']'), array('_', ''), $name);
+            } else {
+                $o = $name;
+                //$on = $name;
+            }
+            /*  As of v2.2.0 Removed numeric check for config help which indicates a config option variable is an array.
+                The only thing that uses config variables which are an array at the moment is Security Default Permissions for items like Articles, Dynamic Blocks and Autotags usage permissions.
+                It was determined tooltip was needed since users where wondering what they are needed for.
+                This should not affect anything else.
+
+            if (!is_numeric($on)) {
+                $this->_set_ConfigHelp($t, $group, $o);
+            }
+            */ 
+            $this->_set_ConfigHelp($t, $group, $o);
+        }
+
+        if ($type === 'unset') {
+            return $t->finish($t->parse('output', 'unset-param'));
+        } elseif ($type === 'text') {
+            return $t->finish($t->parse('output', 'text-element'));
+        } elseif ($type === 'textarea') {
+            return $t->finish($t->parse('output', 'text-area'));
+        } elseif ($type === 'placeholder') {
+            return $t->finish($t->parse('output', 'placeholder-element'));
+        } elseif ($type === 'select') {
+            // if $name is like "blah[0]", separate name and index
+            $n = explode('[', $name);
+            $name = $n[0];
+            $index = null;
+            if (count($n) == 2) {
+                $i = explode(']', $n[1]);
+                $index = $i[0];
+            }
+            $type_name = $type . '_' . $name;
+            if ($group === 'Core') {
+                $fn = 'configmanager_' . $type_name . '_helper';
+            } else {
+                $fn = 'plugin_configmanager_' . $type_name . '_' . $group;
+            }
+            if (function_exists($fn)) {
+                if ($index === null) {
+                    $selectionArray = $fn();
+                } else {
+                    $selectionArray = $fn($index);
+                }
+            } elseif (is_array($selectionArray)) {
+                // leave sorting to the function otherwise
+                uksort($selectionArray, 'strcasecmp');
+            }
+            if (!is_array($selectionArray)) {
+                return $t->finish($t->parse('output', 'text-element'));
+            }
+
+            $t->set_block('select-element', 'select-options', 'myoptions');
+            foreach ($selectionArray as $sName => $sVal) {
+                if (is_bool($sVal)) {
+                    $t->set_var('opt_value', $sVal ? 'b:1' : 'b:0');
+                } else {
+                    $t->set_var('opt_value', $sVal);
+                }
+                $t->set_var('opt_name', $sName);
+                $t->set_var('selected', ($val == $sVal ? 'selected="selected"' : ''));
+                $t->parse('myoptions', 'select-options', true);
+            }
+            if ($index === 'placeholder') {
+                $t->set_var('hide_row', ' style="display:none;"');
+            }
+
+            return $t->parse('output', 'select-element');
+        } elseif (strpos($type, '@') === 0) {
+            $result = '';
+            foreach ($val as $valkey => $valval) {
+                $result .= $this->_UI_get_conf_element($group,
+                    $name . '[' . $valkey . ']',
+                    $display_name . '[' . $valkey . ']',
+                    substr($type, 1), $valval, $selectionArray,
+                    false);
+            }
+
+            return $result;
+        } elseif (strpos($type, '*') === 0 || strpos($type, '%') === 0) {
+            $t->set_var('arr_name', $name);
+            $t->set_var('array_type', $type);
+            $button = $t->parse('output', (strpos($type, '*') === 0 ?
+                'keyed-add-button' :
+                'unkeyed-add-button'));
+            $t->set_var('my_add_element_button', $button);
+            $result = "";
+            if ($type === '%select') {
+                $result .= $this->_UI_get_conf_element($group,
+                    $name . '[placeholder]', 'placeholder',
+                    substr($type, 1), 'placeholder', $selectionArray,
+                    true
+                );
+            }
+            foreach ($val as $valkey => $valval) {
+                $result .= $this->_UI_get_conf_element($group,
+                    $name . '[' . $valkey . ']', $valkey,
+                    substr($type, 1), $valval, $selectionArray,
+                    true);
+            }
+            $t->set_var('my_elements', $result);
+            // if the values are indexed numerically, add a class to the table
+            // for identification. The UI code can take advantage of it
+            if ($val === array_values($val)) {
+                $t->set_var('arr_table_class_list', 'numerical_config_list');
+            }
+
+            return $t->parse('output', 'list-element');
+        }
+    }
+
+    /**
+     * Get a parsed config element based on group $group, name $name,
+     * type $type, value to be shown $val and label $display_name to be shown
+     * on the left based on language.
+     *
+     * @param  string $group          Configuration group.
+     * @param  string $name           Configuration name on table.
+     * @param  string $display_name   Configuration display name based on language.
+     * @param  string $type           Configuration type such as select, text, textarea, @select, etc.
+     * @param  string $val            Value of configuration
+     * @param  mixed  $selectionArray Array of option of select element
+     * @param  bool   $deletable      If configuration is deletable
+     * @param  bool   $allow_reset    Allow set and unset of configuration
+     * @return string
+     */
+    private function _UI_get_conf_element_2($group, $name, $display_name, $type, $val,
+                                            $selectionArray = null, $deletable = false,
+                                            $allow_reset = false)
+    {
+        global $LANG_CONFIG;
+
+        $t = COM_newTemplate(CTL_core_templatePath($GLOBALS['_CONF']['path_layout'] . 'admin/config'));
+        $t->set_file('element', 'config_element_2.thtml');
+
+        $blocks = array(
+            'delete-button', 'text-element', 'placeholder-element',
+            'select-element', 'list-element', 'unset-param',
+            'keyed-add-button', 'unkeyed-add-button', 'text-area',
+            'validation_error_block',
+        );
+        foreach ($blocks as $block) {
+            $t->set_block('element', $block);
+        }
+
+        $t->set_var('lang_restore', $LANG_CONFIG['restore']);
+        $t->set_var('lang_enable', $LANG_CONFIG['enable']);
+        $t->set_var('lang_add_element', $LANG_CONFIG['add_element']);
+
+        $t->set_var('name', $name);
+        $t->set_var('id_name', str_replace(array('[', ']'), array('_', ''), $name));
+        $t->set_var('display_name', $display_name);
+
+        // check tmp values
+        if (isset($this->tmpValues[$group][$name])) {
+            $val = $this->tmpValues[$group][$name];
+        }
+
+        if (!is_array($val)) {
+            if (is_float($val)) {
+                /**
+                 * @todo FIXME: for Locales where the comma is the decimal
+                 *              separator, patch output to a decimal point
+                 *              to prevent it being cut off by COM_applyFilter
+                 */
+                $t->set_var('value', str_replace(',', '.', $val));
+            } else {
+                $t->set_var('value', htmlspecialchars($val));
+            }
+        }
+
+        // if there is a error message to shown
+        if (isset($this->validationErrors[$group][$name])) {
+            $t->set_var('validation_error_message', $this->validationErrors[$group][$name]);
+            $t->set_var('error_block', $t->parse('output', 'validation_error_block'));
+            $t->set_var('error_class', ' input_error');
+            $t->set_var('value', $this->validationErrorValues[$group][$name]);
+        } else {
+            $t->set_var('error_class', '');
+            $t->set_var('error_block', '');
+        }
+
+        if ($deletable) {
+            $t->set_var('delete', $t->parse('output', 'delete-button'));
+        } else {
+            if ($allow_reset) {
+                $t->set_var('unset_link',
+                    "(<a href=\"#{$name}\" class=\"unset_param\" title='"
+                    . $LANG_CONFIG['disable'] . "'>X</a>)");
+            }
+            if (($a = strrchr($name, '[')) !== false) {
+                //$on = substr($a, 1, -1);
+                $o = str_replace(array('[', ']'), array('_', ''), $name);
             } else {
                 $o = $name;
                 //$on = $name;
@@ -1354,13 +1563,6 @@ class config implements ConfigInterface
             */
             $this->_set_ConfigHelp($t, $group, $o);
         }
-
-        // Set readonly attribute
-        $t->set_var(
-            'readonly',
-            ($readOnly ? ' readonly="readonly"' : '')
-        );
-
         // if $name is like "blah[0]", separate name and index
         $n = explode('[', $name);
         $index = null;
@@ -1422,14 +1624,11 @@ class config implements ConfigInterface
         } elseif ($prefix === '@') {
             $result = '';
             foreach ($val as $valkey => $valval) {
-                $result .= $this->_UI_get_conf_element(
-                    $group,
+                $result .= $this->_UI_get_conf_element_2($group,
                     $name . '[' . $valkey . ']',
                     $display_name . '[' . $valkey . ']',
                     substr($type, 1), $valval, $selectionArray,
-                    false,
-                    $readOnly
-                );
+                    false);
             }
 
             return $result;
@@ -1442,41 +1641,34 @@ class config implements ConfigInterface
             $t->set_var('my_add_element_button', $button);
             $result = "";
 
-            $base_type = str_replace(['*', '%'], '', $type);
-            if (in_array($base_type, ['select', 'text', 'placeholder'])) {
-                $result .= $this->_UI_get_conf_element(
-                    $group,
+            $base_type = str_replace(array('*', '%'), '', $type);
+            if (in_array($base_type, array('select', 'text', 'placeholder'))) {
+                $result .= $this->_UI_get_conf_element_2($group,
                     $name . '[placeholder]', 'skeleton',
                     substr($type, 1), 'placeholder', $selectionArray,
-                    true,
-                    $readOnly
-                );
+                    true);
             }
 
             if ($display_name === 'skeleton') {
-                $val = [];
+                $val = array();
             }
             if (!is_array($val)) {
-                $val = [];
+                $val = array();
             }
 
             foreach ($val as $valkey => $valval) {
-                $result .= $this->_UI_get_conf_element(
-                    $group,
+                $result .= $this->_UI_get_conf_element_2($group,
                     $name . '[' . $valkey . ']', $valkey,
                     substr($type, 1), $valval, $selectionArray,
-                    true,
-                    $readOnly
+                    true
                 );
             }
             $t->set_var('my_elements', $result);
-
             // if the values are indexed numerically, add a class to the div
             // for identification. The UI code can take advantage of it
-            $t->set_var(
-                'arr_class_list',
-                ($prefix === '%' ? 'numerical_config_list' : 'named_config_list')
-            );
+            $t->set_var('arr_class_list', ($prefix === '%' ?
+                'numerical_config_list' :
+                'named_config_list'));
 
             return $t->parse('output', 'list-element');
         }
@@ -1491,7 +1683,7 @@ class config implements ConfigInterface
      */
     public function updateConfig($change_array, $group)
     {
-        global $_TABLES, $_CONF_VALIDATE;
+        global $_TABLES;
 
         if ($group === 'Core') {
             /**
@@ -1521,23 +1713,14 @@ class config implements ConfigInterface
 
         $this->_extract_permissible_conf($change_array, $group, $change_array['sub_group']);
 
-        $pass_validation = [];
-        $success_array = [];
+        $pass_validation = array();
+        $success_array = array();
         if (!is_array($this->validationErrors)) {
-            $this->validationErrors = [];
+            $this->validationErrors = array();
         }
 
         foreach ($this->config_array[$group] as $param_name => $param_value) {
             if (array_key_exists($param_name, $change_array)) {
-                // Skip readonly properties
-                if (isset(
-                        $_CONF_VALIDATE[$group],
-                        $_CONF_VALIDATE[$group][$param_name],
-                        $_CONF_VALIDATE[$group][$param_name]['readonly']
-                    ) && $_CONF_VALIDATE[$group][$param_name]['readonly']) {
-                    continue;
-                }
-
                 // Sanitize input before validation of input begins
                 $change_array[$param_name] =
                     $this->_validate_input($param_name, $group, $change_array[$param_name]);
@@ -1553,34 +1736,21 @@ class config implements ConfigInterface
                         $pass_validation[$param_name] = $change_array[$param_name];
                     }
                 } elseif (is_array($change_array[$param_name])) {
-                    // if array such as mail settings or language
+                    // if array such as mail settings
                     $_changed = false;
                     if (count($this->config_array[$group][$param_name]) != count($change_array[$param_name])) {
                         $_changed = true;
                     }
-
-                    if (!empty($change_array[$param_name])) {
-                        foreach ($change_array[$param_name] as $_param_name => $_param_value) {
-                            if (!isset($this->config_array[$group][$param_name][$_param_name])) {
-                                $_changed = true;
-                            } elseif ($change_array[$param_name][$_param_name] != $this->config_array[$group][$param_name][$_param_name]) {
-                                $_changed = true;
-                            }
-                            if ($_changed) {
-                                // Detect array validation based on array name and element name (either numeric or named)
-                                if ($this->_validates($param_name . '[' . $_param_name . ']', $group, $change_array[$param_name][$_param_name], $change_array[$param_name])) {
-                                    $this->changedArray[$group][$param_name][$_param_name] = true;
-                                }
-                                // Detect array validation based on array name alone
-                                if ($this->_validates($param_name, $group, $change_array[$param_name][$_param_name], $change_array[$param_name])) {
-                                    $this->changedArray[$group][$param_name][$_param_name] = true;
-                                }
-                            }
+                    foreach ($change_array[$param_name] as $_param_name => $_param_value) {
+                        if (!isset($this->config_array[$group][$param_name][$_param_name])) {
+                            $_changed = true;
+                        } elseif ($change_array[$param_name][$_param_name] != $this->config_array[$group][$param_name][$_param_name]) {
+                            $_changed = true;
                         }
-                    } else {
-                        // Detect array validation based on array name alone
-                        if ($this->_validates($param_name, $group, $change_array[$param_name], $change_array[$param_name])) {
-                            $this->changedArray[$group][$param_name] = true;
+                        if ($_changed) {
+                            if ($this->_validates($param_name . '[' . $_param_name . ']', $group, $change_array[$param_name][$_param_name], $change_array[$param_name])) {
+                                $this->changedArray[$group][$param_name][$_param_name] = true;
+                            }
                         }
                     }
 
@@ -1624,8 +1794,7 @@ class config implements ConfigInterface
      */
     private function _extract_permissible_conf(&$change_array, $group, $sg_id = null)
     {
-        $permissible_conf = [];
-
+        $permissible_conf = array();
         foreach ($this->conf_tab_arr[$group] as $sg => $tabs) {
             if ($sg_id && $sg_id != $sg) {
                 continue;
@@ -1654,10 +1823,9 @@ class config implements ConfigInterface
     private function _validate_input($config, $group, &$input_val)
     {
         if (is_array($input_val)) {
-            $r = [];
+            $r = array();
             $is_num = true;
             $max_key = -1;
-
             foreach ($input_val as $key => $val) {
                 if ($key !== 'placeholder' && $key !== 'nameholder') {
                     $r[$key] = $this->_validate_input($config, $group, $val);
@@ -1672,14 +1840,14 @@ class config implements ConfigInterface
             }
             if ($is_num && ($max_key >= 0) && ($max_key + 1 != count($r))) {
                 // re-number keys
-                $r2 = [];
+                $r2 = array();
                 foreach ($r as $val) {
                     $r2[] = $val;
                 }
                 $r = $r2;
             }
         } else {
-            $r = $input_val;
+            $r = COM_stripslashes($input_val);
             // Boolean default check
             // Numeric check
             // String Sanitize
@@ -1773,7 +1941,7 @@ class config implements ConfigInterface
                         $rule_type = $validator;
                     }
 
-                    return in_array($rule_type, ['numeric', 'range', 'decimal', 'comparison']);
+                    return in_array($rule_type, array('numeric', 'range', 'decimal', 'comparison'));
                 }
             }
         }
@@ -1800,9 +1968,9 @@ class config implements ConfigInterface
         if (isset($_CONF_VALIDATE[$group][$config]) &&
             !empty($_CONF_VALIDATE[$group][$config])
         ) {
-            $default = [
+            $default = array(
                 'rule' => 'blank',
-            ];
+            );
 
             foreach ($_CONF_VALIDATE[$group][$config] as $index => $validator) {
                 if ($index !== 'sanitize') {
@@ -1811,20 +1979,17 @@ class config implements ConfigInterface
                             continue;
                         }
 
-                        $validator = ['rule' => $validator];
+                        $validator = array('rule' => $validator);
                     } else {
                         if ($index === 'rule') {
-                            $validator = ['rule' => $validator];
+                            $validator = array('rule' => $validator);
                         }
                     }
                     if (isset($_CONF_VALIDATE[$group][$config]['message']) &&
                         is_string($_CONF_VALIDATE[$group][$config]['message'])
                     ) {
                         $validator['message'] = $_CONF_VALIDATE[$group][$config]['message'];
-                        // Not sure why Message is unset here in $_CONF_VALIDATE array. Rules from the same array below are also unset but that is required so the function can cycle through the rules
-                        // Unsetting the Message here creates problems when we are trying to deal with array validation since each element of the array has to go through the validation process and requires the same message
-                        // Left the code in but commented out just in case this messes something else up
-                        //unset($_CONF_VALIDATE[$group][$config]['message']);
+                        unset($_CONF_VALIDATE[$group][$config]['message']);
                     }
                     $validator = array_merge($default, $validator);
 
@@ -1841,17 +2006,17 @@ class config implements ConfigInterface
                     if (is_array($validator['rule'])) {
                         $rule = $validator['rule'][0];
                         unset($validator['rule'][0]);
-                        $ruleParams = array_merge([$value], array_values($validator['rule']));
+                        $ruleParams = array_merge(array($value), array_values($validator['rule']));
                     } else {
                         $rule = $validator['rule'];
-                        $ruleParams = [$value];
+                        $ruleParams = array($value);
                     }
 
                     $valid = true;
                     $custom_function = 'custom_validation_' . strtolower($rule);
                     if (function_exists($custom_function)) {
                         $ruleParams[] = $validator;
-                        $ruleParams[0] = [$config => $ruleParams[0]];
+                        $ruleParams[0] = array($config => $ruleParams[0]);
 
                         if (is_array($relatedValue) && !empty($relatedValue)) {
                             $ruleParams[] = $relatedValue;
@@ -1897,7 +2062,7 @@ class config implements ConfigInterface
 
         $retval = COM_startBlock($LANG_CONFIG['sections'], '',
             COM_getBlockTemplate('configmanager_block', 'header'));
-        $link_array = [];
+        $link_array = array();
 
         $groups = $this->_get_groups();
         if (count($groups) > 0) {
@@ -1908,10 +2073,18 @@ class config implements ConfigInterface
                     $group_display = $LANG_configsections[$group]['label'];
                 }
                 // Create a menu item for each config group - disable the link for the current selected one
-                if ($conf_group == $group) {
-                    $link = "<li class=\"configoption_off\">$group_display</li>";
+                if ($this->flag_version_2 == true) {
+                    if ($conf_group == $group) {
+                        $link = "<li class=\"configoption_off\">$group_display</li>";
+                    } else {
+                        $link = "<li class=\"configoption\"><a href=\"#\" onclick='open_group(\"$group\");return false;'>$group_display</a></li>";
+                    }
                 } else {
-                    $link = "<li class=\"configoption\"><a href=\"#\" onclick='open_group(\"$group\");return false;'>$group_display</a></li>";
+                    if ($conf_group == $group) {
+                        $link = "<div>$group_display</div>";
+                    } else {
+                        $link = "<div><a href=\"#\" onclick='open_group(\"$group\");return false;'>$group_display</a></div>";
+                    }
                 }
                 if ($group === 'Core') {
                     $retval .= $link;
@@ -1926,8 +2099,13 @@ class config implements ConfigInterface
             $retval .= $link;
         }
 
-        $retval .= '<li class="configoption"><a href="' . $_CONF['site_admin_url'] . '">'
-            . $LANG_ADMIN['admin_home'] . '</a></li>';
+        if ($this->flag_version_2 == true) {
+            $retval .= '<li class="configoption"><a href="' . $_CONF['site_admin_url'] . '">'
+                . $LANG_ADMIN['admin_home'] . '</a></li>';
+        } else {
+            $retval .= '<div><a href="' . $_CONF['site_admin_url'] . '">'
+                . $LANG_ADMIN['admin_home'] . '</a></div>';
+        }
         $retval .= COM_endBlock(COM_getBlockTemplate('configmanager_block', 'footer'));
 
         // Now display the sub-group menu for the selected config group
@@ -1951,10 +2129,18 @@ class config implements ConfigInterface
                     $group_display = $sgName;
                 }
                 // Create a menu item for each sub config group - disable the link for the current selected one
-                if ($sGroup == $sg) {
-                    $retval .= "<li class=\"configoption_off\">$group_display</li>";
+                if ($this->flag_version_2 == true) {
+                    if ($sGroup == $sg) {
+                        $retval .= "<li class=\"configoption_off\">$group_display</li>";
+                    } else {
+                        $retval .= "<li class=\"configoption\"><a href=\"#\" onclick='open_subgroup(\"$conf_group\",\"$sGroup\");return false;'>$group_display</a></li>";
+                    }
                 } else {
-                    $retval .= "<li class=\"configoption\"><a href=\"#\" onclick='open_subgroup(\"$conf_group\",\"$sGroup\");return false;'>$group_display</a></li>";
+                    if ($sGroup == $sg) {
+                        $retval .= "<div>$group_display</div>";
+                    } else {
+                        $retval .= "<div><a href=\"#\" onclick='open_subgroup(\"$conf_group\",\"$sGroup\");return false;'>$group_display</a></div>";
+                    }
                 }
                 $i++;
             }
@@ -1973,15 +2159,8 @@ class config implements ConfigInterface
     {
         global $LANG_configsections, $LANG_confignames, $LANG_fs, $LANG_tab, $LANG_CONFIG;
 
-        if (!defined('GL_INSTALL_ACTIVE')) {
-            $data = Cache::get('configuration.autocomplete_data', null);
-            if (is_string($data)) {
-                return $data;
-            }
-        }
-
         $permitted_groups = $this->_get_groups();
-        $retval = [];
+        $retval = array();
 
         foreach ($this->conf_type['tree'] as $group => $subgroups) {
             if (!in_array($group, $permitted_groups)) {
@@ -2049,13 +2228,7 @@ class config implements ConfigInterface
         }
         $retval = implode(',', $retval);
 
-        $data = "var autocomplete_data = [{$retval}];";
-
-        if (!defined('GL_INSTALL_ACTIVE')) {
-            Cache::set('configuration.autocomplete_data', $data, 0);
-        }
-
-        return $data;
+        return "var autocomplete_data = [{$retval}];";
     }
 
     /**
@@ -2101,7 +2274,7 @@ class config implements ConfigInterface
         static $docUrl;
 
         if (!isset($docUrl)) {
-            $docUrl = [];
+            $docUrl = array();
         }
 
         $configText = PLG_getConfigTooltip($group, $option);
@@ -2120,13 +2293,6 @@ class config implements ConfigInterface
                 } else { // plugin
                     $docUrl[$group] = PLG_getDocumentationUrl($group, 'config');
                 }
-
-                $docDir = str_ireplace(
-                    'config.html',
-                    '',
-                    COM_getDocumentUrl('docs', 'config.html')
-                );
-                $_SCRIPTS->setJavaScript('var glConfigDocDir = "' . $docDir . '";', true);
                 $_SCRIPTS->setJavaScript('var glConfigDocUrl = "' . $docUrl[$group] . '";', true);
             }
             $descUrl = $docUrl[$group];
@@ -2138,13 +2304,24 @@ class config implements ConfigInterface
 
                 $t->set_var('doc_url', $descUrl);
 
-                // Does hack need to be used?
-                if (gettype($configText) == "NULL") {
-                    $t->set_var('doc_link',
-                        '(<a href="javascript:void(0);" id="desc_' . $option . '" class="tooltip">?</a>)');
+                if ($this->flag_version_2 == true) {
+                    // Does hack need to be used?
+                    if (gettype($configText) == "NULL") {
+                        $t->set_var('doc_link',
+                            '(<a href="javascript:void(0);" id="desc_' . $option . '" class="tooltip">?</a>)');
+                    } else {
+                        $t->set_var('doc_link',
+                            '(<a href="javascript:void(0);" id="desc_' . $option . '">?</a>)');
+                    }
                 } else {
-                    $t->set_var('doc_link',
-                        '(<a href="javascript:void(0);" id="desc_' . $option . '">?</a>)');
+                    // Does hack need to be used?
+                    if (gettype($configText) == "NULL") {
+                        $t->set_var('doc_link',
+                            '(<a href="' . $descUrl . '" target="help" class="tooltip">?</a>)');
+                    } else {
+                        $t->set_var('doc_link',
+                            '(<a href="' . $descUrl . '" target="help">?</a>)');
+                    }
                 }
             }
         } else {
@@ -2166,9 +2343,8 @@ class config implements ConfigInterface
 
         if (is_null($this->conf_ft_arr)) {
             $result = DB_query("SELECT ft_name FROM {$_TABLES['features']} WHERE ft_name LIKE 'config.%'");
-            $this->conf_ft_arr = [];
+            $this->conf_ft_arr = array();
             $numRows = DB_numRows($result);
-
             if ($numRows > 0) {
                 for ($i = 0; $i < $numRows; $i++) {
                     $A = DB_fetchArray($result, false);

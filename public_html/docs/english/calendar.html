@@ -7,7 +7,7 @@
 </head>
 
 <body>
-<p><a href="https://www.geeklog.net/" style="background:transparent"><img src="../images/logo.gif" alt="Geeklog" width="243" height="90" /></a></p>
+<p><a href="https://www.geeklog.net/" style="background:transparent"><img src="../images/newlogo.gif" alt="Geeklog" width="243" height="90" /></a></p>
 <div class="menu"><a href="index.html">Geeklog Documentation</a> - Calendar Plugin</div>
 
 <h1>Calendar Plugin</h1>
@@ -38,7 +38,7 @@ panel:</p>
     the calendar even when <code>'calendarloginrequired'</code> is set
     to 0.</td>
 </tr>
-<tr>
+<tr class="r2">
   <td><a name="desc_hidecalendarmenu">hidecalendarmenu</a></td>
   <td>0</td>
   <td>Whether to hide the "Calendar" entry from Geeklog's menu bar (when set to
@@ -49,7 +49,7 @@ panel:</p>
   <td>0</td>
   <td>Allow account holders to have a personal calendar</td>
 </tr>
-<tr>
+<tr class="r2">
   <td><a name="desc_eventsubmission">eventsubmission</a></td>
   <td>1</td>
   <td>Whether events submitted by users will have to be approved by an admin
@@ -61,7 +61,7 @@ panel:</p>
   <td>Whether to show upcoming events (0 = no, 1 = yes) in a separate
     block.</td>
 </tr>
-<tr>
+<tr class="r2">
   <td><a name="desc_upcomingeventsrange">upcomingeventsrange</a></td>
   <td>14</td>
   <td>Number of days that the &quot;Upcoming Events&quot; block will look
@@ -75,7 +75,7 @@ panel:</p>
     Uses the same value as <a
     href="config.html#desc_hour_mode">$_CONF['hour_mode']</a> by default.</td>
 </tr>
-<tr>
+<tr class="r2">
   <td><a name="desc_event_types">event_types</a></td>
   <td>Anniversary, Appointment, Birthday, Business, Education, Holiday, Meeting, Miscellaneous, Personal, Phone Call, Special Occasion, Travel, Vacation</td>
   <td>The set of event types that are used both on the public calendar and the
@@ -88,7 +88,7 @@ panel:</p>
     the site's calendar (when set to = 1) or not (when set to = 0).<br />
     No notification is ever sent for events in personal calendars.</td>
 </tr>
-<tr>
+<tr class="r2">
   <td><a name="desc_delete_event">delete_event</a></td>
   <td>0</td>
   <td>Defines what to do when a user is deleted that is the owner of an event.
@@ -109,23 +109,7 @@ panel:</p>
     <li>'admin': go to the "Admin Home" page, i.e. Command &amp; Control</li>
     </ul></td>
 </tr>
-<tr>
-  <td><a name="desc_recaptcha">recaptcha</a></td>
-  <td>1</td>
-  <td>Requires the reCAPTCHA plugin v1.2.4+ to be installed, setup with the proper keys, and enabled. reCAPTCHA options include:
-    <ul>
-      <li>0: Disabled, don't show reCAPTCHA</li>
-      <li>1: Use reCAPTCHA V2 Checkbox</li>
-      <li>2: Use reCAPTCHA V2 Invisible</li>
-      <li>4: Use reCAPTCHA V3 (default)</li>
-    </ul>
-    <p>For more about how reCAPTCHA helps fight SPAM see the reCAPTCHA plugin docs or visit the <a href="https://www.google.com/recaptcha/" target="_blank">Google reCAPTCHA</a> website.</p></td>
-</tr>
-<tr>
-  <td><a name="desc_recaptcha_score">recaptcha_score</a></td>
-  <td>0.5</td>
-  <td>Specify score threshold for reCAPTCHA V3.  Valid value is 0.0 (even a bot could pass for a human) - 1.0 (only a human will be accepted).</td>
-</tr>
+
 <tr>
   <td valign="top"><a name="desc_default_permissions_0">default_permissions[0]</a></td>
   <td valign="top"><em>Read-Write</em></td>
@@ -172,7 +156,7 @@ panel:</p>
   <td valign="top"><a name="desc_block_enable">block_enable</a></td>
   <td valign="top">true</td>
   <td valign="top">Enable block.</td></tr>
-<tr>
+<tr class="r2">
   <td valign="top"><a name="desc_block_isleft">block_isleft</a></td>
   <td valign="top">1</td>
   <td valign="top">Whether to display the block on the left (when set to 1)

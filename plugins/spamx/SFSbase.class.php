@@ -61,8 +61,8 @@ class SFSbase
         }
 
 
-        $ip = \Geeklog\IP::getIPAddress();
-        $query = "http://api.stopforumspam.org/api?f=serial&ip=$ip";
+        $ip = $_SERVER['REMOTE_ADDR'];
+        $query = "http://www.stopforumspam.com/api?f=serial&ip=$ip";
 
         $req = new HTTP_Request2(
             $query,
@@ -119,11 +119,9 @@ class SFSbase
                         VALUES ('IP', '$db_ip', '$timestamp')";
                 DB_query($sql);
             }
-        } else {
+        } elseif ($this->_verbose) {
             $retval = PLG_SPAM_NOT_FOUND;
-            if ($this->_verbose) {
-                SPAMX_log("SFS: spammer IP not detected: " . $ip);
-            }
+            SPAMX_log("SFS: spammer IP not detected: " . $ip);
         }
 
         return $retval;

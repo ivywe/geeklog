@@ -22,7 +22,7 @@ abstract class BaseCommand
      */
     protected function callbackDecimal($str)
     {
-        return chr($str[1]);
+        return chr($str);
     }
 
     /**
@@ -33,7 +33,7 @@ abstract class BaseCommand
      */
     protected function callbackHex($str)
     {
-        return chr('0x' . $str[1]);
+        return chr('0x' . $str);
     }
 
     /**
@@ -128,20 +128,20 @@ abstract class BaseCommand
     /**
      * Prepare regular expression
      *
-     * @param  string  $pattern
-     * @param  string  $delimiter
-     * @param  bool    $caseSensitive
+     * @param  string $str
+     * @param  string $delimiter
+     * @param  bool   $caseSensitive
      * @return string
      */
-    protected function prepareRegularExpression($pattern, $delimiter = self::REGX_DELIMITER, $caseSensitive = false)
+    protected function prepareRegularExpression($str, $delimiter = self::REGX_DELIMITER, $caseSensitive = false)
     {
-        $pattern = str_replace($delimiter, '\\' . $delimiter, $pattern);
-        $pattern = $delimiter . $pattern . $delimiter;
+        $str = preg_quote($str, $delimiter);
+        $str = $delimiter . $str . $delimiter;
 
         if (!$caseSensitive) {
-            $pattern .= 'i';
+            $str .= 'i';
         }
 
-        return $pattern;
+        return $str;
     }
 }

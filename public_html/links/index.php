@@ -52,13 +52,12 @@
  * @author     Dirk Haun, dirk AT haun-online DOT de
  */
 
- // Geeklog common function library. If VERSION set then lib-common already loaded. Check required for URL Routing functionality (with or without "index.php")
- if (!defined('VERSION')) {
-     require_once '../lib-common.php';
- } else {
-      // You have to set any global variables used by this file since the scope is different as it is routed through index.php (and lib-common is loaded from there. See Github Issue #945 for more info
-      global $_CONF, $_PLUGINS, $_LI_CONF;
- }
+global $_CONF, $_PLUGINS, $_LI_CONF;
+
+/**
+ * Geeklog common function library
+ */
+require_once '../lib-common.php';
 
 if (!in_array('links', $_PLUGINS)) {
     COM_handle404();
@@ -76,25 +75,13 @@ function links_list($message)
     global $_CONF, $_TABLES, $_LI_CONF, $LANG_LINKS_ADMIN, $LANG_LINKS,
            $LANG_LINKS_STATS;
 
-    define('LINKS_PLACEHOLDER', 'links_placeholder');
-
+    $cid = $_LI_CONF['root'];
     $display = '';
-
-    if ($_CONF['url_rewrite'] && !$_CONF['url_routing']) {
-        COM_setArgNames(array('category'));
-        $cid = COM_applyFilter(COM_getArgument('category'));
-    } elseif ($_CONF['url_rewrite'] && $_CONF['url_routing']) {
-        COM_setArgNames(array(LINKS_PLACEHOLDER, 'category'));
-        $cid = COM_applyFilter(COM_getArgument('category'));
-    } else {
-        $cid = GLText::stripTags(Geeklog\Input::fGet('category'));
+    if (isset($_GET['category'])) {
+        $cid = GLText::stripTags(Geeklog\Input::get('category'));
+    } elseif (isset($_POST['category'])) {
+        $cid = GLText::stripTags(Geeklog\Input::post('category'));
     }
-
-    // If empty assume root
-    if (empty($cid)) {
-        $cid = $_LI_CONF['root'];
-    }
-
     $cat = DB_escapeString($cid);
     $page = (int) Geeklog\Input::fGet('page', 0);
     if ($page == 0) {
@@ -125,28 +112,21 @@ function links_list($message)
     // Check has access and existent to this category
     if ($cid != $_LI_CONF['root']) {
         $result = DB_query("SELECT owner_id,group_id,perm_owner,perm_group,perm_members,perm_anon FROM {$_TABLES['linkcategories']} WHERE cid='{$cat}'");
-        $nrows = DB_numRows($result);                                     
+        $A = DB_fetchArray($result);
+        if (SEC_hasAccess($A['owner_id'], $A['group_id'], $A['perm_owner'], $A['perm_group'], $A['perm_members'], $A['perm_anon']) < 2) {
+            $display .= COM_showMessage(5, 'links');
+            $display = COM_createHTMLDocument($display, array('pagetitle' => $page_title));
+            COM_output($display);
+            exit;
+        }
 
-        if ($nrows == 1) {
-			$A = DB_fetchArray($result);
-			if (SEC_hasAccess($A['owner_id'], $A['group_id'], $A['perm_owner'], $A['perm_group'], $A['perm_members'], $A['perm_anon']) < 2) {
-				$display .= COM_showMessage(5, 'links');
-				$display = COM_createHTMLDocument($display, array('pagetitle' => $page_title));
-				COM_output($display);
-				exit;
-			}
-
-			// check existent
-			if (!isset($A['owner_id'])) {
-				$display .= COM_showMessage(16, 'links');
-				$display = COM_createHTMLDocument($display, array('pagetitle' => $page_title));
-				COM_output($display);
-				exit;
-			}
-		} else {
-			// Links Category doesn't exist
-			COM_handle404($_CONF['site_url'] . '/links/index.php');
-		}
+        // check existent
+        if (!isset($A['owner_id'])) {
+            $display .= COM_showMessage(16, 'links');
+            $display = COM_createHTMLDocument($display, array('pagetitle' => $page_title));
+            COM_output($display);
+            exit;
+        }
     }
 
     if (is_array($message) && !empty($message[0])) {
@@ -381,14 +361,8 @@ function prepare_link_item($A, &$template)
     $template->set_var('link_name', $title);
     $template->set_var('link_name_encoded', rawurlencode($title));
     $template->set_var('link_hits', COM_numberFormat($A['hits']));
-	
-	$description = PLG_replaceTags(stripslashes($A['description']));
-	// Just like comments, link description really should have a postmode that is saved with the description (ie store either 'html' or 'plaintext') OR just remove HTML but they don't so lets figure out if description is html by searching for html tags. This is done in links notification email as well
-	// Needs to be done after autotags incase they insert HTML
-	if (preg_match('/<.*>/', $description) == 0) {
-		$description = COM_nl2br($description);
-	}	
-    $template->set_var('link_description', $description);
+    $template->set_var('link_description',
+        PLG_replaceTags(COM_nl2br(stripslashes($A['description']))));
 
     $attr = array('title' => $actualUrl);
     if (substr($actualUrl, 0, strlen($_CONF['site_url'])) != $_CONF['site_url']) {
@@ -451,39 +425,15 @@ if (($mode === 'report') && !COM_isAnonUser()) {
         $lidsl = DB_escapeString($lid);
         $result = DB_query("SELECT url, title FROM {$_TABLES['links']} WHERE lid = '$lidsl'");
         list($url, $title) = DB_fetchArray($result);
-		
-		
-		// Create HTML and plaintext version of report email
-		$t = COM_newTemplate(CTL_plugin_templatePath('links', 'emails'));
-		
-		$t->set_file(array('email_html' => 'link_report-html.thtml'));
-		// Remove line feeds from plain text templates since required to use {LB} template variable
-		$t->preprocess_fn = "CTL_removeLineFeeds"; // Set preprocess_fn before the template file you want to use it on		
-		$t->set_file(array('email_plaintext' => 'link_report-plaintext.thtml'));
 
-		$t->set_var('email_divider', $LANG31['email_divider']);
-		$t->set_var('email_divider_html', $LANG31['email_divider_html']);
-		$t->set_var('LB', LB);
-		
-		$t->set_var('lang_link_broken_msg', $LANG_LINKS[119]); // The following link has been reported to be broken:
-		
-		$t->set_var('reported_link_title', $title);
-		$t->set_var('reported_link', $url);
-		
-		$t->set_var('lang_edit_link_msg', $LANG_LINKS[120]); // To edit the link, click her
-		$editurl = $_CONF['site_admin_url'] . '/plugins/links/index.php?mode=edit&lid=' . $lid;
-		$t->set_var('edit_link', $editurl);
-
-		$t->set_var('lang_reported_by', $LANG_LINKS[121]); // The broken Link was reported by: 
-		$t->set_var('reporter_author', COM_getDisplayName($_USER['uid']));
-
-		// Output final content
-		$message[] = $t->parse('output', 'email_html');	
-		$message[] = $t->parse('output', 'email_plaintext');
-		
-		COM_mail($_CONF['site_mail'], $LANG_LINKS[118], $message, '' , true);		
-		
-		$message = array($LANG_LINKS[123], $LANG_LINKS[122]);
+        $editurl = $_CONF['site_admin_url']
+            . '/plugins/links/index.php?mode=edit&lid=' . $lid;
+        $msg = $LANG_LINKS[119] . LB . LB . "$title, <$url>" . LB . LB
+            . $LANG_LINKS[120] . LB . '<' . $editurl . '>' . LB . LB
+            . $LANG_LINKS[121] . $_USER['username'] . ', IP: '
+            . $_SERVER['REMOTE_ADDR'];
+        COM_mail($_CONF['site_mail'], $LANG_LINKS[118], $msg);
+        $message = array($LANG_LINKS[123], $LANG_LINKS[122]);
     }
 }
 

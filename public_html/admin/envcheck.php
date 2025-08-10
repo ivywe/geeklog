@@ -8,7 +8,7 @@
 // |                                                                           |
 // | Geeklog Environment Check.                                                |
 // +---------------------------------------------------------------------------+
-// | Copyright (C) 2000-2021 by the following authors:                         |
+// | Copyright (C) 2000-2013 by the following authors:                         |
 // |                                                                           |
 // | Authors: Mark R. Evans      - mark AT glfusion DOT org                    |
 // |          Tom Homer          - tomhomer AT gmail DOT com                   |
@@ -47,13 +47,9 @@ if (!SEC_inGroup('Root')) {
     exit;
 };
 
-/**
- * @param  bool  $phpInfoDisabled  true if phpinfo() function is disabled
- * @return string
- */
-function _checkEnvironment($phpInfoDisabled)
+function _checkEnvironment()
 {
-    global $_CONF, $_TABLES, $_PLUGINS, $LANG_ADMIN, $LANG_ENVCHECK, $_SCRIPTS, $_DB_dbms;
+    global $_CONF, $_TABLES, $_PLUGINS, $_SYSTEM, $LANG_ADMIN, $LANG_ENVCHECK, $_SCRIPTS, $_DB_dbms;
 
     $retval = '';
     $permError = 0;
@@ -61,17 +57,15 @@ function _checkEnvironment($phpInfoDisabled)
     $T = COM_newTemplate(CTL_core_templatePath($_CONF['path_layout'] . 'admin'));
     $T->set_file('page','envcheck.thtml');
     $T->set_block('page', 'status');
-    $_SCRIPTS->setJavaScriptLibrary('jquery');
 
-    if (!$phpInfoDisabled) {
-        $javascript = '
+    $_SCRIPTS->setJavaScriptLibrary('jquery');
+    $javascript = '
     $(document).ready(function(){
       $("#toggle_phpinfo").click(function(){
         $("#panel_phpinfo").toggle();
       });
     });';
-        $_SCRIPTS->setJavascript($javascript, true);
-    }
+    $_SCRIPTS->setJavascript($javascript, true);
 
     $menu_arr = array (
         array('url'  => $_CONF['site_admin_url'] . '/envcheck.php',
@@ -87,7 +81,7 @@ function _checkEnvironment($phpInfoDisabled)
         $LANG_ENVCHECK['php_warning'],
         $_CONF['layout_url'] . '/images/icons/envcheck.png'
     );
-
+    
     // ***********************************************
     // Database Settings Section
     $dbms_error = false;
@@ -115,15 +109,15 @@ function _checkEnvironment($phpInfoDisabled)
                 'current'     => $current,
                 'recommended' => $recommended . '+',
                 'notes'       => $LANG_ENVCHECK['database_' . $_DB_dbms . '_req_version']
-            );
+            );    
         } else {
             $dbms_error = true;
         }
     } else {
         $dbms_error = true;
     }
-
-    if ($dbms_error) {
+    
+    if ($dbms_error) {   
         $header_arr = array(      // display 'text' and use table field 'field'
             array('text' => $LANG_ENVCHECK['item'],   'field' => 'item'),
             array('text' => $LANG_ENVCHECK['status'], 'field' => 'status'),
@@ -140,12 +134,12 @@ function _checkEnvironment($phpInfoDisabled)
             'item'   => $LANG_ENVCHECK['database_dms'],
             'status' => _getStatusTags($T, 'notok', $LANG_ENVCHECK['not_found']),
             'notes'  => $LANG_ENVCHECK['database_dms_notes']
-        );
+        );                              
     }
 
     $admin_list = ADMIN_simpleList('', $header_arr, $text_arr, $data_arr);
     $T->set_var('database_settings_list', $admin_list);
-
+                          
     // ***********************************************
     // PHP Settings Section - First we will validate the general environment.
     $header_arr = array(      // display 'text' and use table field 'field'
@@ -167,8 +161,38 @@ function _checkEnvironment($phpInfoDisabled)
     $data_arr[] = array(
         'settings'    => $LANG_ENVCHECK['php_version'],
         'current'     => $current,
-        'recommended' => '5.6.4+',
+        'recommended' => '5.3.3+',
         'notes'       => $LANG_ENVCHECK['php_req_version']
+    );
+
+    $rg = ini_get('register_globals');
+    $className = 'yes';
+    $value = $LANG_ENVCHECK['off'];
+    if ($rg == 1) {
+        $className = 'notok';
+        $value = $LANG_ENVCHECK['on'];
+    }
+    $current = _getStatusTags($T, $className, $value);
+    $data_arr[] = array(
+        'settings'    => 'register_globals',
+        'current'     => $current,
+        'recommended' => $LANG_ENVCHECK['off'],
+        'notes'       => $LANG_ENVCHECK['register_globals']
+    );
+
+    $sm = ini_get('safe_mode');
+    $className = 'yes';
+    $value = $LANG_ENVCHECK['off'];
+    if ($sm == 1) {
+        $className = 'notok';
+        $value = $LANG_ENVCHECK['on'];
+    }
+    $current = _getStatusTags($T, $className, $value);
+    $data_arr[] = array(
+        'settings'    => 'safe_mode',
+        'current'     => $current,
+        'recommended' => $LANG_ENVCHECK['off'],
+        'notes'       => $LANG_ENVCHECK['safe_mode']
     );
 
     $ob = ini_get('open_basedir');
@@ -244,7 +268,7 @@ function _checkEnvironment($phpInfoDisabled)
     );
 
     $max_execution_time = ini_get('max_execution_time');
-    $className = ($max_execution_time >= 30) || ($max_execution_time == 0) ? 'yes' : 'notok';
+    $className = ($max_execution_time < 30) ? 'notok' : 'yes';
     $value = $max_execution_time . ' secs';
     $current = _getStatusTags($T, $className, $value);
     $data_arr[] = array(
@@ -256,7 +280,7 @@ function _checkEnvironment($phpInfoDisabled)
 
     $admin_list = ADMIN_simpleList('', $header_arr, $text_arr, $data_arr);
     $T->set_var('php_settings_list', $admin_list);
-
+    
 
     // ***********************************************
     // Libraries
@@ -285,7 +309,7 @@ function _checkEnvironment($phpInfoDisabled)
             'notes'  => $LANG_ENVCHECK['fileinfo_not_found']
         );
     }
-
+    
     if (extension_loaded('openssl')) {
         $data_arr[] = array(
             'item'   => $LANG_ENVCHECK['openssl_library'],
@@ -300,7 +324,7 @@ function _checkEnvironment($phpInfoDisabled)
         );
     }
 
-    if ($open_basedir_restriction != 1) {
+    if ($sm != 1 && $open_basedir_restriction != 1) {
         switch ($_CONF['image_lib']) {
             case 'imagemagick':    // ImageMagick
                 if (PHP_OS == "WINNT") {
@@ -467,19 +491,20 @@ function _checkEnvironment($phpInfoDisabled)
         $_CONF['path_log'] . 'spamx.log',
         $feedPath,
         $_CONF['rdf_file'],
-        $_CONF['path_html'] . 'filemanager/config/filemanager.config.json',
-        // Image Directories
-        $_CONF['path_images'] . 'articles/',                   // Used by article editor for when image is uploaded (to be included in article)
-        $_CONF['path_images'] . 'topics/',                     // Used by topic editor for when image is uploaded
-        $_CONF['path_images'] . 'userphotos/',                 // Used by user editor for when image is uploaded
-        $_CONF['path_images'] . 'library/File/',               // Used by CKEditor (launches File Manager to this directory when "image button" button pressed in CKeditor tool bar)
-        $_CONF['path_images'] . 'library/Flash/',              // Used by CKEditor (launches File Manager to this directory when "flash" button pressed in CKeditor tool bar)
-        $_CONF['path_images'] . 'library/Image/',              // Used by CKEditor (launches File Manager to this directory when "image" button pressed in CKeditor tool bar)
-        $_CONF['path_images'] . 'library/Image/_thumbs/',      // Used by CKEditor for thumbnails when File Manager used to pick images
-        $_CONF['path_images'] . 'library/Media/',              // Used by CKEditor (assumed as not sure how it is accessed)
-        $_CONF['path_images'] . '_thumbs/',                    // Used by File Manager for thumbnails when launched from Geeklog Control Panel
-        $_CONF['path_images'] . '_thumbs/articles/',           // Used by File Manager for thumbnails when launched from Geeklog Control Panel. Article Editor also stores articles thumbnail images here
-        $_CONF['path_images'] . '_thumbs/userphotos/',         // Used by File Manager for thumbnails when launched from Geeklog Control Panel
+        $_CONF['path_html'] . 'images/articles/',
+        $_CONF['path_html'] . 'images/topics/',
+        $_CONF['path_html'] . 'images/userphotos/',
+        $_CONF['path_html'] . 'images/library/File/',
+        $_CONF['path_html'] . 'images/library/Flash/',
+        $_CONF['path_html'] . 'images/library/Image/',
+        $_CONF['path_html'] . 'images/library/Image/_thumbs/',
+        $_CONF['path_html'] . 'images/library/Image/icons/',
+        $_CONF['path_html'] . 'images/library/Media/',
+        $_CONF['path_html'] . 'images/_thumbs/',
+        $_CONF['path_html'] . 'images/_thumbs/articles/',
+        $_CONF['path_html'] . 'images/_thumbs/library/Image/',
+        $_CONF['path_html'] . 'images/_thumbs/userphotos/',
+        $_CONF['path_html'] . 'filemanager/scripts/filemanager.config.json',
     );
 
 /* For Media Gallery Plugin - left in incase add plugin api checks in future
@@ -630,22 +655,15 @@ function _checkEnvironment($phpInfoDisabled)
 
     // ***********************************************
     // Current PHP Settings
-    if (!COM_isDemoMode()) {
-        if ($phpInfoDisabled) {
-            $T->set_var([
-                'lang_current_php_settings' => $LANG_ENVCHECK['current_php_settings'],
-                'lang_showhide_phpinfo'     => $LANG_ENVCHECK['phpinfo_disabled'],
-            ]);
-        } else {
-            $T->set_var([
-                'lang_current_php_settings' => $LANG_ENVCHECK['current_php_settings'],
-                'lang_showhide_phpinfo'     => $LANG_ENVCHECK['showhide_phpinfo'],
-            ]);
-
-            _phpinfo($T);
-        }
+    $T->set_var(array(
+        'lang_current_php_settings' => $LANG_ENVCHECK['current_php_settings'],
+        'lang_showhide_phpinfo'     => $LANG_ENVCHECK['showhide_phpinfo'],
+    ));
+    
+   if (!(isset($_CONF['demo_mode']) && $_CONF['demo_mode'])) {
+        _phpinfo($T);
     }
-
+    
     $T->parse('output', 'page');
     $retval .= $T->finish($T->get_var('output'));
     $retval .= COM_endBlock(COM_getBlockTemplate('_admin_block', 'footer'));
@@ -653,13 +671,7 @@ function _checkEnvironment($phpInfoDisabled)
     return $retval;
 }
 
-/**
- * @param  Template $T
- * @param  string $className
- * @param  string $value
- * @return mixed
- */
-function _getStatusTags($T, $className, $value)
+function _getStatusTags(&$T, $className, $value)
 {
     $T->set_var('status_class', $className);
     $T->set_var('status_value', $value);
@@ -689,10 +701,10 @@ function php_v()
  */
 function _phpOutOfDate()
 {
-    // Min PHP Version 5.6.4
-
+    // Min PHP Version 5.3.3
+    
     $phpv = php_v();
-    if (($phpv[0] < 5) || (($phpv[0] == 6) && ($phpv[1] < 4))) {
+    if (($phpv[0] < 5) || (($phpv[0] == 3) && ($phpv[1] < 3))) {
         return true;
     } else {
         return false;
@@ -701,10 +713,8 @@ function _phpOutOfDate()
 
 function _isWritable($path)
 {
-    $ch = substr($path, -1);
-    if (($ch === '/') || ($ch === '\\')) {
+    if ($path{strlen($path)-1} == '/')
         return _isWritable($path . uniqid(mt_rand()) . '.tmp');
-    }
 
     if (@file_exists($path)) {
         if (!($f = @fopen($path, 'r+')))
@@ -820,10 +830,7 @@ function gdVersion($user_ver = 0)
     return $gd_ver;
 }
 
-/**
- * @param Template $T
- */
-function _phpinfo($T)
+function _phpinfo(&$T)
 {
     ob_start();
     phpinfo();
@@ -833,9 +840,15 @@ function _phpinfo($T)
     # $matches[1]; # Style information
     # $matches[2]; # Body information
 
-    foreach (explode("\n", trim(preg_replace("/\nbody/", "\n", $matches[1]))) as $key => &$value) {
-        $value = str_replace(',', ',#panel_phpinfo' . $key, $value);
-    }
+    $idName = "panel_phpinfo";
+    $style_array = array_map(
+        create_function(
+            '$i',
+            'return "#' . $idName . ' " . preg_replace("/,/", ",#' . $idName . '", $i);'
+        ),
+        preg_split('/\n/', trim(preg_replace("/\nbody/", "\n", $matches[1])))
+    );
+    $style = implode(PHP_EOL, $style_array);
 
     $content = $matches[2];
     $content = preg_replace('/<font/', '<span', $content);
@@ -847,11 +860,10 @@ function _phpinfo($T)
     $content = preg_replace('/<h1/', '<h2', $content);
     $content = preg_replace('/<\/h1>/', '</h2>', $content);
 
-    $T->set_var('phpinfo_style', $matches[1]);
+    $T->set_var('phpinfo_style', $style);
     $T->set_var('phpinfo_content', $content);
 }
 
-$phpInfoDisabled = !is_callable('phpinfo');
-$content = _checkEnvironment($phpInfoDisabled);
+$content = _checkEnvironment();
 $display = COM_createHTMLDocument($content, array('pagetitle' => $LANG_ENVCHECK['env_check']));
 COM_output($display);

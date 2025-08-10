@@ -190,7 +190,7 @@ class sanitizer
     /* Default filter for character and numeric data */
     private function _applyFilter($parameter, $isnumeric = false)
     {
-        $p = $parameter;
+        $p = COM_stripslashes($parameter);
         $p = GLText::stripTags($p);
         $p = COM_killJS($p); // doesn't help a lot right now, but still ...
         if ($isnumeric) {
@@ -222,7 +222,7 @@ class sanitizer
 
         if ($this->_logmode) {
             if (strcmp($p, $parameter) != 0) {
-                COM_errorLog("Filter applied: >> $parameter << filtered to $p [IP " . \Geeklog\IP::getIPAddress() . "]", 1);
+                COM_errorLog("Filter applied: >> $parameter << filtered to $p [IP {$_SERVER['REMOTE_ADDR']}]", 1);
             }
         }
 

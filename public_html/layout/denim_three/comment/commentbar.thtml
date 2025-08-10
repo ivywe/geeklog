@@ -11,7 +11,11 @@
 <div id="commentbar">
   <form action="{editor_url}" method="post" id="commentbar-comment">
     <div class="submit">
-      {postcomment_action}
+{!if jump_link_for_commenteditform}
+      {jump_link_for_commenteditform}
+{!else}
+      <button type="submit" name="reply" value="{lang_reply}" class="uk-button uk-button-default" rel="nofollow">{lang_reply}</button>
+{!endif}
       <input type="hidden" name="{nprefix}sid" value="{sid}"{xhtml}>
       <input type="hidden" name="{nprefix}pid" value="0"{xhtml}>
       <input type="hidden" name="{nprefix}type" value="{comment_type}"{xhtml}>
@@ -32,19 +36,9 @@
 </div>
 
 <p class="disclaimer">{lang_disclaimer}</p>
-{!if lang_comments_closed}
-<p><strong>{lang_comments_closed}</strong></p>
-{!endif}
-{!if lang_comment_post_login_required}
-<p>{lang_comment_post_login_required}</p>
-{!endif}
 
-<!-- BEGIN postcomment_jumplink -->
+<!-- BEGIN commenteditform_jumplink -->
       <a class="uk-button uk-button-default" href="#commenteditform">{lang_reply}</a>
-<!-- END postcomment_jumplink -->
-
-<!-- BEGIN postcomment_button -->
-      <button type="submit" name="reply" value="{lang_reply}" class="uk-button uk-button-default" rel="nofollow">{lang_reply}</button>
-<!-- END postcomment_button -->
+<!-- END commenteditform_jumplink -->
 
 {# end {templatelocation} #}

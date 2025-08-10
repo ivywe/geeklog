@@ -4,6 +4,8 @@ function spamx_update_ConfValues_1_2_1()
 {
     global $_CONF;
 
+    require_once $_CONF['path_system'] . 'classes/config.class.php';
+
     $c = config::get_instance();
 
     // Add in all the New Tabs
@@ -17,6 +19,8 @@ function spamx_update_ConfValues_1_2_2()
     global $_CONF, $_SPX_DEFAULT;
 
     // Now add in new Config options
+    require_once $_CONF['path_system'] . 'classes/config.class.php';
+
     $c = config::get_instance();
 
     require_once $_CONF['path'] . 'plugins/spamx/install_defaults.php';
@@ -40,6 +44,8 @@ function spamx_update_ConfValues_1_3_0()
     global $_CONF, $_SPX_DEFAULT;
 
     // Now add in new Config options
+    require_once $_CONF['path_system'] . 'classes/config.class.php';
+
     $c = config::get_instance();
 
     require_once $_CONF['path'] . 'plugins/spamx/install_defaults.php';
@@ -59,6 +65,8 @@ function spamx_update_ConfValues_1_3_4()
     global $_CONF, $_SPX_DEFAULT;
 
     // Now add in new Config options
+    require_once $_CONF['path_system'] . 'classes/config.class.php';
+
     $c = config::get_instance();
 
     require_once $_CONF['path'] . 'plugins/spamx/install_defaults.php';

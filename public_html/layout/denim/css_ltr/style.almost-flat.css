@@ -462,12 +462,6 @@ input[type="reset"]:disabled {
   padding-right: .8em;
 }
 
-.gl-screen-reader-only {
-  position: absolute;
-  left: 0;
-  clip: rect(1px, 1px, 1px, 1px);
-}
-
 /* Forms */
 .form-description {
   /* used with calendar plugin */
@@ -882,6 +876,14 @@ fieldset.form_block {
 
 .separator {
   display: none;
+}
+
+.speech {
+  overflow: hidden;
+  position: absolute;
+  left: -999px;
+  width: 0;
+  height: 0;
 }
 
 #save_button {
@@ -3066,9 +3068,9 @@ div.third-party-login {
 
 @media only screen and (max-width: 767px) {
 
-  /*.story_icon {
+  .story_icon {
     display: none;
-  }*/
+  }
 }
 
 /* Story(Date, Auther, Display no.) */
@@ -3790,7 +3792,8 @@ span.warning em {
   My Account Page
 --------------------------------------*/
 
-#exclude_topic > .checkboxes-list > li {
+#exclude_topic > .checkboxes-list > li,
+#boxesblock > .checkboxes-list > li {
   /* display: inline */
   margin-right: .5em;
 }

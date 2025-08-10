@@ -45,19 +45,6 @@
 // THIS SCRIPT IS PROVIDED AS IS, WITHOUT ANY WARRANTY OR GUARANTEE OF ANY KIND
 //
 
-/**
- * Replaces all newlines in a string with <br> or <br />,
- * depending on the detected setting.  Ported from "lib-common.php"
- *
- * @param  string  $string  The string to modify
- * @return  string         The modified string
- */
-function myNl2br($string)
-{
-    return str_replace(["\r\n", "\n\r", "\r", "\n"], '<br>', $string);
-}
-
-define('GL_INSTALL_ACTIVE', true);
 define('PATH_INSTALL', __DIR__ . '/');
 define('PATH_LAYOUT', PATH_INSTALL . 'layout');
 define('BASE_FILE', str_replace('\\', '/', __FILE__));
@@ -71,16 +58,6 @@ require_once __DIR__ . '/classes/installer.class.php';
 require_once __DIR__ . '/classes/db.class.php';
 require_once __DIR__ . '/../../siteconfig.php';
 require_once $_CONF['path'] . 'db-config.php';
-
-// Set PHP error reporting
-if ((isset($_CONF['developer_mode']) && ($_CONF['developer_mode'] === true)) &&
-    isset($_CONF['developer_mode_php'], $_CONF['developer_mode_php']['error_reporting'])) {
-    error_reporting((int) $_CONF['developer_mode_php']['error_reporting']);
-} else {
-    // Same setting as Geeklog - Prevent PHP from reporting uninitialized variables
-    error_reporting(E_ERROR | E_WARNING | E_PARSE | E_CORE_ERROR | E_COMPILE_ERROR | E_USER_ERROR | E_RECOVERABLE_ERROR);
-}
-
 $installer = new Installer();
 
 $db_server = $_DB_host;
@@ -125,7 +102,7 @@ if (function_exists("date_default_timezone_set") && function_exists("date_defaul
     @date_default_timezone_set(@date_default_timezone_get());
 }
 
-$content = '<h1>' . $LANG_MIGRATE[17] . '</h1>' . PHP_EOL;
+$content = '<h1 class="heading">' . $LANG_MIGRATE[17] . '</h1>' . PHP_EOL;
 
 $error = false;
 $file = false;
@@ -145,23 +122,23 @@ $upload_dir = __DIR__;
 $db = false;
 $dbConnection = false;
 $errorMessage = '';
-$args = [
+$args = array(
     'host'    => $_DB_host,
     'user'    => $_DB_user,
     'pass'    => $_DB_pass,
     'name'    => $_DB_name,
     'charset' => $db_connection_charset,
-];
+);
 
 if (!$error && !TESTMODE) {
     try {
         $dbConnection = Geeklog\Db::connect(Geeklog\Db::DB_MYSQLI, $args);
         $db = true;
-    } catch (Exception $e) {
+    } catch (\Exception $e) {
         try {
             $dbConnection = Geeklog\Db::connect(Geeklog\Db::DB_MYSQL, $args);
             $db = true;
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             $errorMessage = $e->getMessage();
             $dbConnection = false;
         }
@@ -333,7 +310,7 @@ if (!$error && isset($_REQUEST["start"]) && isset($_REQUEST["foffset"]) && preg_
                     if ($dbConnection->query(trim($query)) === false) {
                         $content .= $installer->getAlertMsg(
                             $LANG_BIGDUMP[17] . $lineNumber . ': ' . trim($dumpLine) . '.<br ' . PHP_EOL . '>'
-                            . $LANG_BIGDUMP[18] . trim(myNl2br(htmlentities($query))) . '<br ' . PHP_EOL . '>'
+                            . $LANG_BIGDUMP[18] . trim(Installer::nl2br(htmlentities($query))) . '<br ' . PHP_EOL . '>'
                             . $LANG_BIGDUMP[19] . $dbConnection->error()
                         );
                         $error = true;
@@ -403,7 +380,7 @@ if (!$error && isset($_REQUEST["start"]) && isset($_REQUEST["foffset"]) && preg_
                     $queries_tota = $totalQueries;
                 }
 
-                $pct_bar = '<progress class="uk-progress" value="' . $pct_done . '" max="100"></progress>';
+                $pct_bar = '<div style="height: 15px; width: ' . $pct_done . '% ;background-color: #000080; margin: 0;"></div>';
             } else {
                 $bytes_togo = ' ? ';
                 $bytes_tota = ' ? ';
@@ -419,27 +396,20 @@ if (!$error && isset($_REQUEST["start"]) && isset($_REQUEST["foffset"]) && preg_
                 $pct_bar = str_replace(' ', '&nbsp;', '<tt>[         ' . $LANG_BIGDUMP[21] . '          ]</tt>');
             }
 
-            $content .= '' . $LANG_BIGDUMP[22] . ': ' . $pct_done . '% ' . $pct_bar . PHP_EOL;
+            $content .= '
+        <table width="650" border="0" cellpadding="3" cellspacing="1">
+        <tr><th align="left" width="125">' . $LANG_BIGDUMP[22] . ': ' . $pct_done . '%</th><td colspan="4">' . $pct_bar . '</td></tr>
+        </table><br>' . PHP_EOL;
 
             // Finish message and restart the script
             if ($lineNumber < $_REQUEST["start"] + $linesPerSession) {
                 $content .= $installer->getAlertMsg($LANG_BIGDUMP[23], 'success');
                 /*** Go back to Geeklog installer ***/
-                $url = 'index.php?mode=migrate&step=4'
-                            . '&language=' . urlencode($installer->getLanguage())
-                            . '&site_url=' . urlencode($_REQUEST['site_url'])
-                            . '&site_admin_url=' . urlencode($_REQUEST['site_admin_url']);
-
-                $content .= "<script>
-                    window.setTimeout(function () {
-                        window.location.href=\""
-                            . $url . "\";
-                    }, 3000); // Wait 3 seconds before redirect
-                </script>\n";
-
-                // Add button since above javascript settimeout function doesn't seem to work in development enviroment for Firefox for some reason (at least in 2019)
-                $content .= '<button class="uk-button uk-button-primary uk-margin-small" onClick="location.href=' . "'" . $url . "'" . '">' . $LANG_INSTALL[62] . '</button>';
-
+                echo("<script language=\"JavaScript\" type=\"text/javascript\">window.setTimeout('location.href=\""
+                    . 'index.php?mode=migrate&step=4'
+                    . '&language=' . urlencode($installer->getLanguage())
+                    . '&site_url=' . urlencode($_REQUEST['site_url'])
+                    . '&site_admin_url=' . urlencode($_REQUEST['site_admin_url']) . "\";',3000);</script>\n");
             } else {
                 if ($delayPerSession != 0) {
                     $content .= '<p><b>' . $LANG_BIGDUMP[24] . $delayPerSession . $LANG_BIGDUMP[25] . PHP_EOL;
@@ -463,7 +433,7 @@ if (!$error && isset($_REQUEST["start"]) && isset($_REQUEST["foffset"]) && preg_
 // If there was an error, we offer a link to retry migration
 if ($error) {
     $error_gobackUrl .= '&site_url=' . urlencode($site_url) . '&site_admin_url=' . urlencode($site_admin_url);
-    $content .= '<p><a class="uk-button uk-button-primary" href="' . $error_gobackUrl . '">' . $LANG_BIGDUMP[30] . '</a></p><p>'
+    $content .= '<p><a class="uk-button uk-button-primary uk-button-large" href="' . $error_gobackUrl . '">' . $LANG_BIGDUMP[30] . '</a></p><p>'
         . $LANG_BIGDUMP[31] . '</p>' . PHP_EOL;
 }
 

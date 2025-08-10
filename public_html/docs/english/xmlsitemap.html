@@ -7,12 +7,12 @@
 </head>
 
 <body>
-<p><a href="https://www.geeklog.net/" style="background:transparent"><img src="../images/logo.gif" alt="Geeklog" width="243" height="90" /></a></p>
+<p><a href="https://www.geeklog.net/" style="background:transparent"><img src="../images/newlogo.gif" alt="Geeklog" width="243" height="90" /></a></p>
 <div class="menu"><a href="index.html">Geeklog Documentation</a> - XMLSitemap Plugin</div>
 
 <h1>XMLSitemap Plugin</h1>
 
-<p>The purpose of the XMLSitemap Plugin is to create <a href="https://www.sitemaps.org/">XML sitemap files</a> as supported by all major search engines.  Such a sitemap file is meant for use by search engines to make it easier to find all the content available on your site.  Basically, a sitemape.xml file is a list of the URLs of all content pages on your website. For more information, see <a href="https://www.sitemaps.org/">sitemaps.org</a>. For more information on the different tags available for your XML sitemap see the <a href="https://www.sitemaps.org/protocol.html">XML schema for the Sitemap protocol page</a>.</p>
+<p>The purpose of the XMLSitemap Plugin is to create <a href="http://www.sitemaps.org/">XML sitemap files</a> as supported by all major search engines.  Such a sitemap file is meant for use by search engines to make it easier to find all the content available on your site.  Basically, a sitemape.xml file is a list of the URLs of all content pages on your website.  For more information, see <a href="http://www.sitemaps.org/">sitemaps.org</a>.</p>
 
 <h2><a name="configuration">Configuration</a></h2>
 
@@ -30,25 +30,25 @@
   <td>sitemap.xml</td>
   <td>The file name of a <em>normal</em> XML sitemap file.  This file has to be located in the <strong>public_html</strong> directory (where lib-common.php resides) and be writable from the Web server.</td>
 </tr>
-<tr>
+<tr class="r2">
   <td><a name="desc_mobile_sitemap_file">mobile_sitemap_file</a></td>
-  <td>mobile_sitemap.xml</td>
-  <td>When enabled this is the file name of an XML sitemap file for contents optimized for mobile users. This file has to be located in the <strong>public_html</strong> directory (where lib-common.php resides) and be writable from the Web server. Note: This should only be used if you should have a separate mobile site. For example, when you have a feature-phone (WAP/WML, etc) version of your site. For an ordinary mobile-friendly web site a mobile sitemap is not needed and may actually cause confusion for the search engines.</td>
-</tr>
-<tr>
-  <td><a name="desc_include_homepage">include_homepage</a></td>
-  <td>False</td>
-  <td>If you set this to true, the XMLSitemap plugin will automatically include the homepage into the XML sitemap file (including the mobile sitemap but not the news sitemap file).</td>
+  <td>(empty)</td>
+  <td>The file name of an XML sitemap file for contents optimized for mobile users.  This file has to be located in the <strong>public_html</strong> directory (where lib-common.php resides) and be writable from the Web server.</td>
 </tr>
 <tr>
   <td><a name="desc_types">types</a></td>
   <td>article, calendar, polls, staticpages</td>
   <td>Types of contents you would like to set in the XML sitemap file(s).</td>
 </tr>
-<tr>
+<tr class="r2">
+  <td><a name="desc_exclude">exclude</a></td>
+  <td>links</td>
+  <td>Types of contents you would like to <strong>exclude</strong> from the XML sitemap file(s).</td>
+</tr>
+<tr class="r2">
   <td><a name="desc_lastmod">lastmod</a></td>
   <td>article, calendar, polls, staticpages</td>
-  <td>Content types to include lastmod element (last modification date) in the XML sitemap file(s). Please note that the timezone should be set for your Geeklog site or the lastmod value will contain just the date and no time. Either way it will still support the W3C Datetime format. You will find the timezone setting in the Geeklog configuration under "Language and Locale", on the Locale tab.</td>
+  <td>Content types to include lastmod element (last modification date) in the XML sitemap file(s).</td>
 </tr>
 </table>
 
@@ -74,10 +74,9 @@
     <th style="width: 50%;">Description</th>
 </tr>
 <tr>
-  <!-- Note: Added multiple anchors here as a workaround so tooltip would work in Geeklog configuration for at least the default options. Unfortunately will not work for any additional plugins. -->
-  <td><a name="desc_frequencies">frequencies</a><a name="desc_frequencies_article"></a><a name="desc_frequencies_polls"></a><a name="desc_frequencies_staticpages"></a><a name="desc_frequencies_calendar"></a></td>
+  <td><a name="desc_frequencies">frequencies</a></td>
   <td>'weekly' for staticpages, 'daily' for others</td>
-  <td>The frequency with which some type of contents are likely to be updated.  Valid values include 'always', 'hourly', 'daily', 'weekly', 'monthly', 'yearly', and 'never'.  This value will be used by search engine crawlers just to decide how often they should check the contents.  However, specifying 'always' doesn't mean that search engine crawlers will surely visit your site.  So, specifying 'daily' or 'weekly' would be better in most cases. Specifying 'hidden' means no frequency is displayed for the content.</td>
+  <td>The frequency with which some type of contents are likely to be updated.  Valid values include 'always', 'hourly', 'daily', 'weekly', 'monthly', 'yearly', and 'never'.  This value will be used by search engine crawlers just to decide how often they should check the contents.  However, specifying 'always' doesn't mean that search engine crawlers will surely visit your site.  So, specifiying 'daily' or 'weekly' would be better in most cases. Specifiying 'hidden' means no frequency is displayed for the content.</td>
 </tr>
 </table>
 
@@ -91,46 +90,12 @@
 <tr>
   <td><a name="desc_ping_google">ping_google</a></td>
   <td>True</td>
-  <td>If you set this to true, the XMLSitemap plugin will automatically inform Google crawlers when you update contents. For main Sitemap file only.</td>
+  <td>If you set this to true, the XMLSitemap plugin will automatically inform Google crawlers when you update contents.</td>
 </tr>
-<tr>
-  <td><a name="desc_indexnow">IndexNow</a></td>
-  <td>False</td>
-  <td>If you set this to true, the XMLSitemap plugin will automatically inform IndexNow by a ping that a URL and its content has been added, updated, or deleted. IndexNow will then inform search engines like Bing and Yandex of these changes.<br><br>To submit URLs, you must "prove" ownership of the website for which URLs are being submitted by hosting at least one text file within the website. Once you submit your URLs to search engines, search engines will crawl the key file to verify ownership. Only you and the search engines should know the key and your file key location.<br><br>Your key should be random numbers and letters at least 8 characters long. Create a ".txt" file with the name being your key and place it in the root directory of your website. If you choose you can specify that your key file is hosted in another folder on on your website.<br><br>For more documentation see <a href="https://www.indexnow.org/">IndexNow</a> or <a href="https://bing.com/indexnow">Bing IndexNow</a>.</td>
-</tr>
-<tr>
-  <td><a name="desc_indexnow_key">IndexNow Key</a></td>
-  <td></td>
-  <td>A key is needed to match the ownership of the domain along with submitted URLs. It should be random numbers and letters and be a minimum of 8 characters long.</td>
-</tr>
-<tr>
-  <td><a name="desc_indexnow_key_location">IndexNow Key Location</a></td>
-  <td></td>
-  <td>If blank, the root URL for your site is assumed as the location for the txt file which allows search engines to verify ownership. If needed you can specify a different folder within your website. The location if specified needs to be a valid URL that includes the text file name.</td>
-</tr>
-</table>
-
-<h3><a name="ping">News Sitemap</a></h3>
-
-<table>
-<tr><th style="width: 25%;">Variable</th>
-    <th style="width: 25%;">Default Value</th>
-    <th style="width: 50%;">Description</th>
-</tr>
-<tr>
-  <td><a name="desc_news_sitemap_file">news_sitemap_file</a></td>
-  <td>news_sitemap.xml</td>
-  <td>When enabled this is the file name of an XML sitemap file for Google News. A Google News sitemap lets you control which content you submit to Google News. This file has to be located in the <strong>public_html</strong> directory (where lib-common.php resides) and be writable from the Web server.</td>
-</tr>
-<tr>
-  <td><a name="desc_news_sitemap_topics">news_sitemap_topics</a></td>
-  <td>(empty)</td>
-  <td>A list of topic ids. Only articles that belong to 1 or more of these topics (either directly or inherited) will be included in the news sitemap. If no topics ids are included then all topics are included.</td>
-</tr>
-<tr>
-  <td><a name="desc_news_sitemap_age">news_sitemap_age</a></td>
-  <td>172800</td>
-  <td>The maximum age in seconds of the articles to include in the news sitemap. If 0, then age is not a factor. Currently Google News recommends articles with a max age of 2 days (or 172800 seconds).</td>
+<tr class="r2">
+  <td><a name="desc_ping_bing">ping_bing</a></td>
+  <td>True</td>
+  <td>If you set this to true, the XMLSitemap plugin will automatically inform Bing crawlers when you update contents.</td>
 </tr>
 </table>
 

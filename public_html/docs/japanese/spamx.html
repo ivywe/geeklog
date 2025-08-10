@@ -1,18 +1,18 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" lang="ja">
 <head>
-    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
-    <meta http-equiv="Content-Style-Type" content="text/css" />
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+    <meta http-equiv="Content-Style-Type" content="text/css"/>
     <title>Spam-Xプラグイン | Geeklogドキュメント</title>
-    <link rel="stylesheet" type="text/css" href="../docstyle.css" title="Dev Stylesheet" />
-    <link rel="stylesheet" type="text/css" href="docstyle.css" title="Dev Stylesheet" />
-    <meta name="robots" content="noindex" />
+    <link rel="stylesheet" type="text/css" href="../docstyle.css" title="Dev Stylesheet"/>
+    <link rel="stylesheet" type="text/css" href="docstyle.css" title="Dev Stylesheet"/>
+    <meta name="robots" content="noindex"/>
 </head>
 
 <body>
-<p><a href="https://www.geeklog.jp" style="background:transparent"><img src="../images/logo.gif"
+<p><a href="http://www.geeklog.jp" style="background:transparent"><img src="../images/newlogo.gif"
                                                                        alt="Geeklog Documentation" width="243"
-                                                                       height="90" /></a></p>
+                                                                       height="90"/></a></p>
 <div class="menu"><a href="index.html">Geeklogドキュメント</a> - Geeklog Spam-Xプラグイン</div>
 
 <h1>Geeklog Spam-Xプラグイン</h1>
@@ -50,6 +50,7 @@
 <p>Geeklogには次の検出モジュールが同梱されています。</p>
 
 <ul>
+    <li><a href="#slv">スパムリンク検証(SLV: Spam Link Verification)</a></li>
     <li><a href="#personal">パーソナルブラックリスト(Personal Blacklist)</a></li>
     <li><a href="#ip">IPフィルター(IP Filter)</a></li>
     <li><a href="#ipofurl">URLのIPフィルター(IP of URL Filter)</a></li>
@@ -58,6 +59,29 @@
     <li><a href="#snl">Spam Number of Links (SNL)</a></li>
     <li><a href="#akismet">Akismet</a></li>
 </ul>
+
+<h3><a name="slv">スパムリンク検証(SLV: Spam Link Verification)</a></h3>
+
+<p>
+    SLVは集約されたサーバを拠点としたサービスで、Webサイトに投稿されたものを検証し、特定のリンクが異常なほど多く見られる場合にそれを検出します。言い換えれば、スパム送信者が多くのサイトに同一URLを含むスパムを送信し始め、これらのサイトすべてがSLVに報告した場合、SLVシステムはこの傾向をスパムと認識し、該当URLを含む投稿をスパムと判定します。</p>
+
+<p>
+    さらに言い換えると、SLVは、スパム送信者がサイトにスパムを送信し始めたときに、自動的に更新されるブラックリストであると言えます。SLVを使用するサイトが増えれば増えるほど（正確さと反応速度という点では）、ますますその質が高まります。</p>
+
+<p>SLVはRuss Jonesが<a href="http://www.linksleeve.org/">www.linksleeve.org</a>で運営している無料のサービスです。</p>
+
+<p><strong><a name="slvprivacy">プライバシーポリシーの表示</a></strong><br/>
+    SLVを使用しているということは、自分のサイトから第三者のサイトに情報を送信していることになるということを強調しておいた方がよいでしょう。法体系によっては、ユーザーにこの事実を告知する必要があるかもしれません。ご自分の地域のプライバシーに関する法律を確認してください。
+</p>
+
+<p>運用している状況によっては（たとえば、企業のイントラネットなど）、情報を外部のサイトに送信することが望ましくない場合もあるでしょう。その場合は、 <span
+        class="tt">SLV.Examine.class.php</span>, <span class="tt">SLVbase.class.php</span>, <span class="tt">SLVreport.Action.class.php</span>,
+    <span class="tt">SLVwhitelist.Admin.class.php</span> の4つのファイルをSpam-Xのディレクトリ(<span class="tt">/path/to/geeklog/plugins/spamx</span>)から削除すれば、SLVを無効にできます。単にSpam-Xプラグインを無効にする（または、アンインストールする）だけでもよいです。
+</p>
+
+<p>
+    SLV検証モジュールとアクションモジュールは、投稿されたデータからすべてのURLを抽出し、SLVへ送信するだけです(つまり、投稿されたデータのURL以外の部分は送信されません。)。また、自分のGeeklogサイトのURLを含むリンクはすべて除外します。投稿されたデータに外部リンクが含まれていない場合、これらのモジュールはSLVと通信を行いません。</p>
+
 
 <h3><a name="personal">パーソナルブラックリスト(Personal Blacklist)</a></h3>
 
@@ -78,10 +102,6 @@
 
 <p>
     IPアドレスが実際にはあまりよい判断基準にはならないということに注意してください。インターネットサービスプロバイダやホスティングサービスの中にはスパムの温床として知られているものもありますが、それらのIPアドレスをブロックしてもあまり役には立たないでしょう。スパム送信者はインターネットへ接続し直すときに新しいIPアドレスを取得するのに対し、ブロックされたIPアドレスは他の罪もないユーザーが使用することがよくあるからです。</p>
-
-<h4>情報更新!</h4>
-<p>Geeklog 2.2.1でIPv6のアドレスをサポートしました。</p>
-
 
 <h3><a name="ipofurl">URLのIPフィルター(IP of URL Filter)</a></h3>
 
@@ -129,11 +149,10 @@
 <h3><a id="akismet">Akismet</a></h3>
 
 <p>このモジュールを有効にすると、
-    <a href="https://akismet.com/">https://akismet.com/</a>で提供されているAkismetサービスを利用して、投稿される情報内容(コンテンツ)がスパムかどうかをチェックできるようになります。
-    このモジュールを有効にするには、<a href="https://akismet.com/plans/">このページ</a>で登録を行い、
-    APIキーを取得して、設定 &gt; Spam-X &gt; モジュール &gt;
-    Akismet &gt; APIキー に設定してください。このモジュールは、著者名、IPアドレス、投稿される情報内容のテキストを受け取ってAkismetサービスへ送信し、
-    スパムかどうかを判定する応答を受け取ります。
+    <a href="https://akismet.com/">https://akismet.com/</a>で提供されているサービスを利用できます。しかしながら、このモジュールを有効にするには、
+    <a href="https://akismet.com/plans/">このページ</a>でサインアップして、
+    APIキーを取得し、そのキーを コンフィギュレーション &gt; Spam-X &gt; モジュール &gt;
+    Akismet &gt; APIキー で有効にする必要があります。
 </p>
 
 <h2><a name="action">アクションモジュール</a></h2>
@@ -152,12 +171,20 @@
 
 <p>削除アクションモジュールの数字は 128、管理者メールアクションモジュールは 8 です。両方のモジュールを有効にするには、128 + 8 = 136 を入力します。</p>
 
+<p>SLV検出モジュールは、他の検出モジュールが捕捉したスパム投稿を確実にSLVに通知します。<strong>SLVアクション(SLV Action)</strong>
+    モジュールによって補完されています。このモジュールは削除アクションモジュールと連動しているので、削除アクションモジュールを有効にすると、SLVアクションモジュールも有効になります。</p>
+
+
 <h2><a name="admin">管理モジュール</a></h2>
 
 <p><a href="#personal">パーソナルブラックリスト</a>、<a href="#ip">IPフィルター</a>、<a href="#ipofurl">URLのIPフィルター</a>、<a href="#header">HTTPヘッダーフィルター</a>モジュール用の管理モジュールは新しい項目を追加するためのフォームを提供します。既存の項目を削除するには、単にその項目をクリックするだけです。
 </p>
 
-<p><strong>ログ閲覧</strong>モジュールを使用すれば、Spam-Xログファイルの閲覧・クリアができます。ログファイルには、スパム送信元のIPアドレスやユーザーID(登録ユーザーがスパムを投稿した場合)、検出モジュール名などの追加情報が含まれています。
+<p><strong>SLVホワイトリスト</strong>管理モジュールを使えば、SLVに通報したくないURLを追加できます。サイトに投稿されるデータにたまたまある特定のURLが頻繁に含まれているが、SLVにスパムと判定されてほしくないときに役に立ちます。<br/>自分のサイトのURL(つまり、「管理者用メニュー
+    - コンフィギュレーション - Geeklog - サイト」の「<a href="config.html#desc_site_url">サイトURL</a>」)は自動的にホワイトリストに登録されるので、このモジュールで新たに登録する必要はありません。
+</p>
+
+<p><strong>ログ閲覧</strong>モジュールを使用すれば、Spam-Xログファイルの閲覧・クリアができます。ログファイルには、スパム送信元のIPアドレスやユーザーID（登録ユーザーがスパムを投稿した場合）、検出モジュール名などの追加情報が含まれています。
 </p>
 
 <p>多数のスパムが投稿されても検出されなかった場合は、<strong>一括コメント削除</strong>モジュールと<strong>一括トラックバック削除</strong>モジュールがスパムの削除に役立つでしょう。これらのモジュールを使用する前に、スパムに含まれるURLやキーワードをパーソナルブラックリストに忘れずに追加してください。
@@ -197,8 +224,8 @@
     </tr>
     <tr>
         <td><a name="desc_timeout">タイムアウト(timeout)</a></td>
-        <td>5(秒)</td>
-        <td>外部サービスと通信する際のタイムアウトとなる秒数を指定します。</td>
+        <td>5（秒）</td>
+        <td>SLVなどの外部サービスと通信する際のタイムアウトとなる秒数を指定します。</td>
     </tr>
     <tr>
         <td><a name="desc_notification_email">メールで通知する(notification_email)</a></td>
@@ -216,7 +243,7 @@
     <tr>
         <td><a name="desc_max_age">スパム記録の保存日数(max_age)</a></td>
         <td>0</td>
-        <td>Spam-Xの記録をデータベースに保存する最大の日数を指定します(0 = 無制限に保存)。</td>
+        <td>Spam-Xの記録をデータベースに保存する最大の日数を指定します(0 = 無制限に保存)。SLVホワイトリストの記録は削除しません。</td>
     </tr>
     </tr>
     <tr>
@@ -229,6 +256,7 @@
                 <li>'IP' = IPフィルター</li>
                 <li>'IPofUrl' = URLのIPフィルター</li>
                 <li>'email' = Stop Forum Spamのブラックリスト</li>
+                <li>'SLVwhitelist' = SLVホワイトリスト</li>
             </ul>
         </td>
     </tr>
@@ -246,8 +274,7 @@
         <td><a name="desc_sfs_enabled">Stop Forum Spamモジュールを有効(sfs_enabled)</a></td>
         <td><code>いいえ(false)</code></td>
         <td>Stop Forum Spam
-            (SFS)モジュールを有効にするかどうかを指定します。有効にすると、ユーザー新規登録時にユーザーのメールアドレスとIPアドレスをStopForumSpam.comに照会してスパム判定を行います。 
-             For more information see the <a href="#sfs">SFS introduction</a>.
+            (SFS)モジュールを有効にするかどうかを指定します。有効にすると、ユーザー新規登録時にユーザーのメールアドレスとIPアドレスをStopForumSpam.comに照会してスパム判定を行います。
         </td>
     </tr>
     <tr>
@@ -260,8 +287,7 @@
         <td><a name="desc_snl_enabled">Spam Number of Linksモジュールを有効(snl_enabled)</a></td>
         <td><code>いいえ(false)</code></td>
         <td>Spam Number of Links
-            (SNL)モジュールを有効にするかどうかを指定します。有効にすると、ユーザーが投稿したり、プロフィールを作成・更新したりする際に、含まれるリンクの数を指定された数に制限するようになります。 
-             For more information see the <a href="#snl">SNL introduction</a>.
+            (SNL)モジュールを有効にするかどうかを指定します。有効にすると、ユーザーが投稿したり、プロフィールを作成・更新したりする際に、含まれるリンクの数を指定された数に制限するようになります。
         </td>
     </tr>
     <tr>
@@ -272,9 +298,7 @@
     <tr>
         <td><a name="desc_akismet_enabled">Akismetモジュールを有効にする</a></td>
         <td><code>いいえ</code></td>
-        <td>Akismetモジュールを有効にするかどうかを指定します。有効にすると、Akismetサービスを用いて、
-            投稿されるコンテンツがスパムかどうかを判定します(著者名、IPアドレス、投稿される情報内容のテキストを使用します)。詳しくは、
-            <a href="#akismet">Akismetの紹介</a>をご覧ください。
+        <td>Akismetを有効にするかどうかを指定します。有効にすると、Akismetサービスを利用します。
         </td>
     </tr>
     <tr>
@@ -288,10 +312,10 @@
 <h2><a name="more">詳細情報</a></h2>
 
 <p>Spam-Xプラグインの詳細情報とサポート掲示板は、<a href="http://www.pigstye.net/gplugs/staticpages/index.php/spamx" rel="nofollow">Spam-Xプラグインのホームページ</a>と<a
-        href="https://wiki.geeklog.net/wiki/index.php/Dealing_with_Spam">Geeklog Wiki</a>にあります。</p>
+        href="http://wiki.geeklog.net/wiki/index.php/Dealing_with_Spam">Geeklog Wiki</a>にあります。</p>
 
 <div class="footer">
-    <a href="https://wiki.geeklog.net/">Geeklogドキュメント作成プロジェクト</a>、<a href="https://wiki.geeklog.jp/">Geeklogドキュメント日本語版作成プロジェクト</a><br/>
+    <a href="http://wiki.geeklog.net/">Geeklogドキュメント作成プロジェクト</a>、<a href="http://wiki.geeklog.jp/">Geeklogドキュメント日本語版作成プロジェクト</a><br/>
     本ページのすべての商標と著作権はそれぞれの所有者に帰属します。Geeklogはコピーレフトです。
 </div>
 </body>

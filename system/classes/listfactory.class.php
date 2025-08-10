@@ -322,12 +322,7 @@ class ListFactory
         $num_rows = DB_numRows($result);
         if ($num_rows <= 1) {
             $B = DB_fetchArray($result, true);
-
-            if (is_array($B) && (count($B) > 0)) {
-                $num_rows = $B[0];
-            } else {
-                $num_rows = 0;
-            }
+            $num_rows = $B[0];
         }
 
         return $num_rows ? $num_rows : 0;

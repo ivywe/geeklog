@@ -31,8 +31,6 @@
 
 global $_CONF, $LANG_ADMIN;
 
-use Geeklog\Input;
-
 // Geeklog common function library
 require_once './../lib-common.php';
 
@@ -49,7 +47,7 @@ require_once $_CONF['path_system'] . 'classes/language.class.php';
 Language::checkAccessRights();
 
 // Main
-$mode = Input::post('mode', Input::get('mode', ''));
+$mode = \Geeklog\Input::post('mode', \Geeklog\Input::get('mode', ''));
 
 switch ($mode) {
     case 'list':

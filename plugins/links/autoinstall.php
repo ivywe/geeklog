@@ -8,7 +8,7 @@
 // |                                                                           |
 // | This file provides helper functions for the automatic plugin install.     |
 // +---------------------------------------------------------------------------+
-// | Copyright (C) 2008-2020 by the following authors:                         |
+// | Copyright (C) 2008-2010 by the following authors:                         |
 // |                                                                           |
 // | Authors: Dirk Haun         - dirk AT haun-online DOT de                   |
 // +---------------------------------------------------------------------------+
@@ -51,8 +51,8 @@ function plugin_autoinstall_links($pi_name)
     $info = array(
         'pi_name'         => $pi_name,
         'pi_display_name' => $pi_display_name,
-        'pi_version'      => '2.1.8',
-        'pi_gl_version'   => '2.2.2',
+        'pi_version'      => '2.1.6',
+        'pi_gl_version'   => '2.1.1',
         'pi_homepage'     => 'https://www.geeklog.net/'
     );
 
@@ -113,23 +113,26 @@ function plugin_load_configuration_links($pi_name)
 
     $base_path = $_CONF['path'] . 'plugins/' . $pi_name . '/';
 
+    require_once $_CONF['path_system'] . 'classes/config.class.php';
     require_once $base_path . 'install_defaults.php';
 
     return plugin_initconfig_links();
 }
 
 /**
- * Plugin postinstall
- *
- * We're inserting our default data here since it depends on other stuff that
- * has to happen first ...
- *
- * @param  string $pi_name
- * @return bool            true = proceed with install, false = an error occurred
- */
+* Plugin postinstall
+*
+* We're inserting our default data here since it depends on other stuff that
+* has to happen first ...
+*
+* @return   boolean     true = proceed with install, false = an error occurred
+*
+*/
 function plugin_postinstall_links($pi_name)
 {
     global $_CONF, $_TABLES;
+
+    require_once $_CONF['path_system'] . 'classes/config.class.php';
 
     $li_config = config::get_instance();
     $_LI_CONF = $li_config->get_config('links');
@@ -201,3 +204,5 @@ function plugin_compatible_with_this_version_links($pi_name)
 
     return true;
 }
+
+?>

@@ -44,8 +44,6 @@
  * @author    Michael Jervis, mike AT fuckingbrit DOT com
  */
 
-use Geeklog\Autoload;
-
 /**
  * Constants for stories:
  * Loading from database:
@@ -116,9 +114,7 @@ class Article
     var $_uid;
     var $_draft_flag;
     var $_date;
-    var $_modified;
     var $_hits;
-    var $_numpages;
     var $_numemails;
     var $_comment_expire;
     var $_comments;
@@ -127,7 +123,6 @@ class Article
     var $_featured;
     var $_show_topic_icon;
     var $_commentcode;
-    var $_structured_data_type;
     var $_trackbackcode;
     var $_statuscode;
     var $_expire;
@@ -182,7 +177,6 @@ class Article
         'uid'                  => 1,
         'draft_flag'           => 1,
         'date'                 => 1,
-        'modified'             => 1,
         'title'                => 1,
         'page_title'           => 1,
         'meta_description'     => 1,
@@ -191,7 +185,6 @@ class Article
         'bodytext'             => 1,
         'text_version'         => 1,
         'hits'                 => 1,
-        'numpages'             => 1,
         'numemails'            => 1,
         'comments'             => 1,
         'trackbacks'           => 1,
@@ -199,7 +192,6 @@ class Article
         'featured'             => 1,
         'show_topic_icon'      => 1,
         'commentcode'          => 1,
-        'structured_data_type' => 1,
         'comment_expire'       => 1,
         'trackbackcode'        => 1,
         'statuscode'           => 1,
@@ -272,10 +264,6 @@ class Article
             STORY_AL_NUMERIC,
             '_commentcode',
         ),
-        'structured_data_type' => array(
-            STORY_AL_ALPHANUM,
-            '_structured_data_type',
-        ),
         'trackbackcode'    => array(
             STORY_AL_NUMERIC,
             '_trackbackcode',
@@ -342,7 +330,7 @@ class Article
      */
     public function __construct($mode = 'admin')
     {
-        Autoload::load('gltext');
+        \Geeklog\Autoload::load('gltext');
         $this->mode = $mode;
     }
 
@@ -432,33 +420,29 @@ class Article
      */
     public function loadFromDatabase($sid, $mode = 'edit')
     {
-        global $_TABLES, $_CONF, $_GROUPS, $_USER;
+        global $_TABLES, $_CONF, $_GROUPS, $_USER, $topic;
 
         $sid = DB_escapeString(COM_applyFilter($sid));
 
-        $current_topic = TOPIC_currentTopic();
-
         $sql = array();
         if (!empty($sid) && (($mode === 'edit') || ($mode === 'view') || ($mode === 'clone'))) {
-            if (empty($current_topic)) {
+            if (empty($topic)) {
                 $topic_sql = ' AND ta.tdefault = 1';
             } else {
-                $topic_sql = " AND ta.tid = '{$current_topic}'";
+                $topic_sql = " AND ta.tid = '{$topic}'";
             }
 
             /* Original
             $sql['mysql'] = "SELECT STRAIGHT_JOIN s.*, UNIX_TIMESTAMP(s.date) AS unixdate, UNIX_TIMESTAMP(s.expire) AS expireunix, UNIX_TIMESTAMP(s.comment_expire) AS cmt_expire_unix, "
                 . "u.username, u.fullname, u.photo, u.email, t.topic, t.imageurl " . "FROM {$_TABLES['stories']} AS s, {$_TABLES['users']} AS u, {$_TABLES['topics']} AS t " . "WHERE (s.uid = u.uid) AND (s.tid = t.tid) AND (sid = '$sid')";
             */
-            $sql['mysql'] = "SELECT s.*, UNIX_TIMESTAMP(s.date) AS unixdate, UNIX_TIMESTAMP(s.modified) AS unixmodified, UNIX_TIMESTAMP(s.expire) AS expireunix, UNIX_TIMESTAMP(s.comment_expire) AS cmt_expire_unix, u.username, u.fullname, u.photo, u.email, t.tid, t.topic, t.imageurl
+            $sql['mysql'] = "SELECT s.*, UNIX_TIMESTAMP(s.date) AS unixdate, UNIX_TIMESTAMP(s.expire) AS expireunix, UNIX_TIMESTAMP(s.comment_expire) AS cmt_expire_unix, u.username, u.fullname, u.photo, u.email, t.tid, t.topic, t.imageurl
                 FROM {$_TABLES['stories']} AS s, {$_TABLES['users']} AS u, {$_TABLES['topics']} AS t, {$_TABLES['topic_assignments']} AS ta
                 WHERE ta.type = 'article' AND ta.id = sid {$topic_sql} AND (s.uid = u.uid) AND (ta.tid = t.tid) AND (sid = '$sid')";
 
-            $sql['pgsql'] = "SELECT s.*, UNIX_TIMESTAMP(s.date) AS unixdate, UNIX_TIMESTAMP(s.modified) AS unixmodified, UNIX_TIMESTAMP(s.expire) as expireunix, UNIX_TIMESTAMP(s.comment_expire) as cmt_expire_unix, u.username, u.fullname, u.photo, u.email, t.tid, t.topic, t.imageurl
+            $sql['pgsql'] = "SELECT s.*, UNIX_TIMESTAMP(s.date) AS unixdate, UNIX_TIMESTAMP(s.expire) as expireunix, UNIX_TIMESTAMP(s.comment_expire) as cmt_expire_unix, u.username, u.fullname, u.photo, u.email, t.tid, t.topic, t.imageurl
                 FROM {$_TABLES['stories']} AS s, {$_TABLES['users']} AS u, {$_TABLES['topics']} AS t, {$_TABLES['topic_assignments']} AS ta
-                WHERE ta.type = 'article' AND ta.id = sid AND ta.tdefault = 1 AND (s.uid = u.uid) AND (ta.tid = t.tid) AND (sid = '$sid')
-                GROUP BY s.sid, s.uid, s.title, s.page_title, s.draft_flag, s.introtext, s.bodytext, s.date, s.numemails, s.comments, s.modified, s.featured, s.comment_expire, s.commentcode, s.trackbacks, s.trackbackcode, s.related, s.hits, s.numpages, s.show_topic_icon, s.frontpage, s.statuscode, s.postmode, s.expire, s.advanced_editor_mode, s.owner_id, s.group_id, s.perm_owner, s.perm_group, s.perm_members, s.perm_anon, s.meta_description, s.meta_keywords, s.text_version, s.cache_time, s.structured_data_type,
-                u.username, u.fullname, u.photo, u.email, t.tid, t.topic, t.imageurl ";
+                WHERE ta.type = 'article' AND ta.id = sid AND ta.tdefault = 1 AND (s.uid = u.uid) AND (ta.tid = t.tid) AND (sid = '$sid')";
         } elseif (!empty($sid) && ($mode === 'editsubmission')) {
             /* Original
             $sql['mysql'] = 'SELECT STRAIGHT_JOIN s.*, UNIX_TIMESTAMP(s.date) AS unixdate, '
@@ -466,17 +450,17 @@ class Article
             $sql['pgsql'] = 'SELECT  s.*, UNIX_TIMESTAMP(s.date) AS unixdate, '
                 . 'u.username, u.fullname, u.photo, u.email, t.topic, t.imageurl, t.group_id, ' . 't.perm_owner, t.perm_group, t.perm_members, t.perm_anon ' . 'FROM ' . $_TABLES['storysubmission'] . ' AS s, ' . $_TABLES['users'] . ' AS u, ' . $_TABLES['topics'] . ' AS t WHERE (s.uid = u.uid) AND' . ' (s.tid = t.tid) AND (sid = \'' . $sid . '\')';
             */
-            $sql['mysql'] = "SELECT s.*, UNIX_TIMESTAMP(s.date) AS unixdate, u.username, u.fullname, u.photo, u.email, t.tid, t.topic, t.imageurl
+            $sql['mysql'] = "SELECT s.*, UNIX_TIMESTAMP(s.date) AS unixdate, u.username, u.fullname, u.photo, u.email, t.tid, t.topic, t.imageurl, t.group_id, t.perm_owner, t.perm_group, t.perm_members, t.perm_anon
                 FROM {$_TABLES['storysubmission']} AS s, {$_TABLES['users']} AS u, {$_TABLES['topics']} AS t, {$_TABLES['topic_assignments']} AS ta
                 WHERE (s.uid = u.uid) AND  (ta.tid = t.tid) AND (sid = '$sid')
                 AND ta.type = 'article' AND ta.id = sid AND ta.tdefault = 1";
 
-            $sql['pgsql'] = "SELECT  s.*, UNIX_TIMESTAMP(s.date) AS unixdate, u.username, u.fullname, u.photo, u.email, t.tid, t.topic, t.imageurl
+            $sql['pgsql'] = "SELECT  s.*, UNIX_TIMESTAMP(s.date) AS unixdate, u.username, u.fullname, u.photo, u.email, t.tid, t.topic, t.imageurl, t.group_id, t.perm_owner, t.perm_group, t.perm_members, t.perm_anon
                 FROM {$_TABLES['storysubmission']} AS s, {$_TABLES['users']} AS u, {$_TABLES['topics']} AS t, {$_TABLES['topic_assignments']} AS ta
                 WHERE (s.uid = u.uid) AND  (ta.tid = t.tid) AND (sid = '$sid')
                 AND ta.type = 'article' AND ta.id = sid AND ta.tdefault = 1";
         } elseif ($mode === 'edit') {
-            $this->_sid = COM_makesid(true);
+            $this->_sid = COM_makesid();
             $this->_old_sid = $this->_sid;
 
             if (isset($_CONF['draft_flag'])) {
@@ -510,7 +494,6 @@ class Article
                 $this->_comment_expire = 0;
             }
             $this->_commentcode = $_CONF['comment_code'];
-            $this->_structured_data_type = $_CONF['structured_data_type_default'];
             $this->_trackbackcode = $_CONF['trackback_code'];
             $this->_title = '';
             $this->_page_title = '';
@@ -527,7 +510,6 @@ class Article
 
             $this->_text_version = GLTEXT_LATEST_VERSION;
             $this->_hits = 0;
-            $this->_numpages = 1;
             $this->_comments = 0;
             $this->_trackbacks = 0;
             $this->_numemails = 0;
@@ -594,17 +576,11 @@ class Article
                 if (!isset($story['owner_id'])) {
                     $story['owner_id'] = 1;
                 }
-				
-				if ($mode === 'editsubmission') {
-					// Submissions have no permissions stored with record
-					$access = 3;
-				} else {
-					$access = SEC_hasAccess(
-						$story['owner_id'], $story['group_id'],
-						$story['perm_owner'], $story['perm_group'],
-						$story['perm_members'], $story['perm_anon']
-					);
-				}
+                $access = SEC_hasAccess(
+                    $story['owner_id'], $story['group_id'],
+                    $story['perm_owner'], $story['perm_group'],
+                    $story['perm_members'], $story['perm_anon']
+                );
 
                 //$this->_access = min($access, SEC_hasTopicAccess($this->_tid));
                 //$this->_access = min($access, TOPIC_hasMultiTopicAccess('article', $sid));
@@ -613,7 +589,7 @@ class Article
                     $this->_access = min($access, TOPIC_hasMultiTopicAccess('article', $sid));
                 } else {
                     // When viewing a article we only care about if it has access to the current topic and article
-                    $this->_access = min($access, TOPIC_hasMultiTopicAccess('article', $sid, $current_topic));
+                    $this->_access = min($access, TOPIC_hasMultiTopicAccess('article', $sid, $topic));
                 }
 
                 if ($this->_access == 0) {
@@ -642,7 +618,6 @@ class Article
             }
 
             $this->_commentcode = $_CONF['comment_code'];
-            $this->_structured_data_type = $_CONF['structured_data_type_default'];
             $this->_trackbackcode = $_CONF['trackback_code'];
             $this->_featured = 0;
             $this->_cache_time = $_CONF['default_cache_time_article'];
@@ -660,19 +635,6 @@ class Article
                 $this->_frontpage = 1;
             }
 
-            if (isset($_GROUPS['Story Admin'])) {
-                $this->_group_id = $_GROUPS['Story Admin'];
-            } else {
-                $this->_group_id = SEC_getFeatureGroup('story.edit');
-            }
-
-            $array = array();
-            SEC_setDefaultPermissions($array, $_CONF['default_permissions_story']);
-            $this->_perm_owner = $array['perm_owner'];
-            $this->_perm_group = $array['perm_group'];
-            $this->_perm_anon = $array['perm_anon'];
-            $this->_perm_members = $array['perm_members'];
-
             $this->_text_version = GLTEXT_LATEST_VERSION;
             $this->_comments = 0;
             $this->_trackbacks = 0;
@@ -681,7 +643,7 @@ class Article
             $this->_owner_id = $this->_uid;
         } elseif ($mode === 'clone') {
             // new story, new sid ...
-            $this->_sid = COM_makeSid(true);
+            $this->_sid = COM_makeSid();
             $this->_old_sid = $this->_sid;
 
             // assign ownership to current user
@@ -702,7 +664,6 @@ class Article
 
             // reset counters
             $this->_hits = 0;
-            $this->_numpages = 1;
             $this->_comments = 0;
             $this->_trackbacks = 0;
             $this->_numemails = 0;
@@ -790,9 +751,6 @@ class Article
                 // Move trackbacks
                 $sql = "UPDATE {$_TABLES['trackback']} SET sid='{$newSid}' WHERE sid='{$checkSid}' AND type='article'";
                 DB_query($sql);
-
-                // Move any Likes
-                LIKES_moveActions('article', '', $checkSid, $newSid);
             }
         }
 
@@ -824,9 +782,6 @@ class Article
         $values = '';
         reset($this->_dbFields);
 
-        // Count number of pages so we can figure out which page to put the comments on
-        $this->_numpages = (count(explode('[page_break]', $this->displayElements('bodytext'))));
-
         $this->_text_version = GLTEXT_LATEST_VERSION;
 
         // Apply HTML filter to the text just before save
@@ -852,13 +807,9 @@ class Article
             if ($save === 1) {
                 $varName = '_' . $fieldName;
                 $fields .= $fieldName . ', ';
-                if (($fieldName === 'date') || ($fieldName === 'modified') || ($fieldName === 'expire') || ($fieldName === 'comment_expire')) {
-                    if ($fieldName === 'modified') {
-                        $values .= 'CURRENT_TIMESTAMP, ';
-                    } else {
-                        // let the DB server do this conversion (cf. timezone hack)
-                        $values .= 'FROM_UNIXTIME(' . $this->{$varName} . '), ';
-                    }
+                if (($fieldName === 'date') || ($fieldName === 'expire') || ($fieldName === 'comment_expire')) {
+                    // let the DB server do this conversion (cf. timezone hack)
+                    $values .= 'FROM_UNIXTIME(' . $this->{$varName} . '), ';
                 } else {
                     if ($this->{$varName} === '') {
                         $values .= "'', ";
@@ -958,13 +909,11 @@ class Article
         }
 
         // Load up the topic name and icon
-        $result = DB_query("SELECT tid, topic, imageurl FROM {$_TABLES['topics']} WHERE tid='" . TOPIC_getTopicDefault('topic') . "'");
-		if ($result && (DB_numRows($result) > 0)) {
-			$topic = DB_fetchArray($result);
-			$this->_tid = $topic['tid'];
-			$this->_topic = $topic['topic'];
-			$this->_imageurl = $topic['imageurl'];
-		}
+        $topic = DB_query("SELECT tid, topic, imageurl FROM {$_TABLES['topics']} WHERE tid='" . TOPIC_getTopicDefault('topic') . "'");
+        $topic = DB_fetchArray($topic);
+        $this->_tid = $topic['tid'];
+        $this->_topic = $topic['topic'];
+        $this->_imageurl = $topic['imageurl'];
 
         // Load the title, page title
         $this->_title = $this->_applyTitleFilter($array['title']);
@@ -1003,15 +952,13 @@ class Article
      */
     public function initSubmission()
     {
-        global $_USER, $_CONF, $_TABLES;
+        global $_USER, $_CONF, $_TABLES, $topic;
 
         if (COM_isAnonUser()) {
             $this->_uid = 1;
         } else {
             $this->_uid = $_USER['uid'];
         }
-
-        $current_topic = TOPIC_currentTopic();
 
         // initialize the GLText version to the latest version
         $this->_text_version = GLTEXT_LATEST_VERSION;
@@ -1023,19 +970,22 @@ class Article
         // if we still don't have one...
 
         // Have we specified a permitted topic?
-        // Dobule check
-        if (!empty($current_topic)) {
-            $current_topic = TOPIC_setTopic($current_topic);
+        if (!empty($topic)) {
+            $allowed = DB_getItem($_TABLES['topics'], 'tid', "tid = '" . DB_escapeString($topic) . "'" . COM_getTopicSql('AND'));
+
+            if ($allowed != $topic) {
+                $topic = '';
+            }
         }
 
         // Do we now not have a topic?
-        if (empty($current_topic)) {
-            // Get default permitted. User should have access to this...
-            $current_topic = TOPIC_setTopic(DB_getItem($_TABLES['topics'], 'tid', 'is_default = 1' . COM_getPermSQL('AND')));
+        if (empty($topic)) {
+            // Get default permitted:
+            $topic = DB_getItem($_TABLES['topics'], 'tid', 'is_default = 1' . COM_getPermSQL('AND'));
         }
 
         // Use what we have:
-        $this->_tid = $current_topic;
+        $this->_tid = $topic;
         $this->_date = time();
     }
 
@@ -1057,6 +1007,11 @@ class Article
                 ($_CONF['article_comment_close_days'] * 86400);
         } else {
             $this->_comment_expire = 0;
+        }
+
+        // Handle Magic GPC Garbage:
+        foreach ($array as $key => $value) {
+            $array[$key] = COM_stripslashes($value);
         }
 
         // initialize the GLText version to the latest version
@@ -1139,7 +1094,7 @@ class Article
     {
         global $_USER, $_CONF, $_TABLES;
 
-        $this->_sid = COM_makeSid(true);
+        $this->_sid = COM_makeSid();
 
         if (COM_isAnonUser()) {
             $this->_uid = 1;
@@ -1147,33 +1102,18 @@ class Article
             $this->_uid = $_USER['uid'];
         }
 
+        // Remove any autotags the user doesn't have permission to use
+        $introText = PLG_replaceTags($this->_introtext, '', true);
+        $bodyText = PLG_replaceTags($this->_bodytext, '', true);
+        $metaDescription = PLG_replaceTags($this->_meta_description, '', true);
+        $metaKeyWords = PLG_replaceTags($this->_meta_keywords, '', true);
+
         if (!TOPIC_hasMultiTopicAccess('topic')) {
             // user doesn't have access to one or more topics - bail
             return STORY_NO_ACCESS_TOPIC;
         }
 
         if (($_CONF['storysubmission'] == 1) && !SEC_hasRights('story.submit')) {
-            // Apply HTML filter to the text just before save
-            // with the permissions of current editor
-            $this->_introtext = GLText::applyHTMLFilter(
-                $this->_introtext,
-                $this->_postmode,
-                'story.edit',
-                $this->_text_version
-            );
-            $this->_bodytext = GLText::applyHTMLFilter(
-                $this->_bodytext,
-                $this->_postmode,
-                'story.edit',
-                $this->_text_version
-            );
-
-            // Remove any autotags the user doesn't have permission to use
-            $introText = PLG_replaceTags($this->_introtext, '', true);
-            $bodyText = PLG_replaceTags($this->_bodytext, '', true);
-            $metaDescription = PLG_replaceTags($this->_meta_description, '', true);
-            $metaKeyWords = PLG_replaceTags($this->_meta_keywords, '', true);
-
             $sid = DB_escapeString($this->_sid);
             $title = DB_escapeString($this->_title);
 
@@ -1200,11 +1140,20 @@ class Article
             if (!isset($_CONF['show_topic_icon'])) {
                 $_CONF['show_topic_icon'] = 1;
             }
+            /*
+                        if (DB_getItem($_TABLES['topics'], 'archive_flag', "tid = '{$tmptid}'") == 1) { // A bug using undefined variable $tmptid
+                            $this->_frontpage = 0;
+                        } elseif (isset($_CONF['frontpage'])) {
+                            $this->_frontpage = $_CONF['frontpage'];
+                        } else {
+                            $this->_frontpage = 1;
+                        }
 
+                        $this->_oldsid = $this->_sid; // dead code
+            */
             $this->_date = mktime();
             $this->_featured = 0;
             $this->_commentcode = $_CONF['comment_code'];
-            $this->_structured_data_type = $_CONF['structured_data_type_default'];
             $this->_trackbackcode = $_CONF['trackback_code'];
             $this->_statuscode = 0;
             $this->_show_topic_icon = $_CONF['show_topic_icon'];
@@ -1287,7 +1236,7 @@ class Article
             $storyTpl = 'articletext.thtml';
         }
 
-        $article = COM_newTemplate(CTL_core_templatePath($_CONF['path_layout'] . 'article/'));
+        $article = COM_newTemplate(CTL_core_templatePath($_CONF['path_layout']));
         $article->set_file(array(
             'article'          => $article_filevar
         ));
@@ -1850,9 +1799,7 @@ class Article
                 $return = GLText::getDisplayText(
                     $return,
                     $this->_postmode,
-                    $this->_text_version,
-                    'article',
-                    $this->_sid);
+                    $this->_text_version);
                 $return = $this->renderImageTags($return);
 
                 break;
@@ -1878,12 +1825,12 @@ class Article
                 break;
 
             case 'shortdate':
-                $return = COM_strftime($_CONF['shortdate'], $this->_date);
+                $return = strftime($_CONF['shortdate'], $this->_date);
 
                 break;
 
             case 'dateonly':
-                $return = COM_strftime($_CONF['dateonly'], $this->_date);
+                $return = strftime($_CONF['dateonly'], $this->_date);
 
                 break;
 
@@ -1894,19 +1841,8 @@ class Article
 
                 break;
 
-            case 'modified':
-                if (!empty($this->_modified)) {
-                    $return = COM_getUserDateTimeFormat($this->_modified);
-
-                    $return = $return[0];
-                } else {
-                    $return = "";
-                }
-
-                break;
-
             case 'datetime':
-                $return = COM_strftime('%FT%T', $this->_date);
+                $return = strftime('%FT%T', $this->_date);
 
                 break;
 
@@ -1915,29 +1851,13 @@ class Article
 
                 break;
 
-            case 'unixmodified':
-                $return = $this->_modified;
-
-                break;
-
             case 'hits':
                 $return = COM_numberFormat($this->_hits);
 
                 break;
 
-            case 'numpages':
-                if (empty($this->_numpages)) {
-                    $return = 1; // If not calculated (like for article preview in editor) assume 1
-                } else {
-                    $return = $this->_numpages;
-                }
-
-                break;
-
             case 'topic':
-				if (!empty($this->_topic)) {
-					$return = htmlspecialchars($this->_topic);
-				}
+                $return = htmlspecialchars($this->_topic);
 
                 break;
 
@@ -1992,9 +1912,7 @@ class Article
             $text,
             $this->_postmode,
             'story.edit',
-            $this->_text_version,
-            'article',
-            $this->_sid);
+            $this->_text_version);
         $text = $this->renderImageTags($text);
 
         return $text;
@@ -2031,19 +1949,15 @@ class Article
      *
      * @param  string $articleId
      * @param  string $keywordList a comma-separated list of keywords
-     * @param  int    $limit       max number of related articles returned
+     * @param  int    $limit       max number od related articles
      * @return array
      * @link   http://www.enkeladress.com/article/20110315104621317
      */
-    public function getRelatedArticlesByKeywords($articleId, $keywordList, $limit = 5)
+    public static function getRelatedArticlesByKeywords($articleId, $keywordList, $limit = 5)
     {
         global $_CONF, $LANG24, $_TABLES;
 
         $work = array();
-
-		// Lets search the 50 latest articles that match the keyword
-		// This will return the most related
-		$searchlimit = 50;
 
         $articleId = trim($articleId);
         $keywords = explode(',', $keywordList);
@@ -2067,15 +1981,14 @@ class Article
             $sql = "SELECT sid, title FROM {$_TABLES['stories']} "
                 . "WHERE (sid  <> '{$escapedArticleId}') "
                 . "AND (draft_flag = 0) AND (date <= NOW()) "
-                . "AND LOWER(meta_keywords) LIKE LOWER('%{$escapedKeyword}%') "
+                . "AND meta_keywords LIKE '%{$escapedKeyword}%' "
                 . "GROUP BY sid, title "
-				. "ORDER BY date DESC "
-                . "LIMIT $searchlimit ";
+                . "LIMIT 5 ";
             $resultSet = DB_query($sql);
 
             while (($A = DB_fetchArray($resultSet, false)) !== false) {
                 $sid = $A['sid'];
-                $title = $A['title'];
+                $title = stripslashes($A['title']);
                 $found = false;
 
                 foreach ($work as &$item) {
@@ -2098,7 +2011,7 @@ class Article
         }
 
         $retval = '';
-        if (count($work) > 0) {
+        if ($found) {
             if (count($work) > 1) {
                 usort($work, array(__CLASS__, 'getRelatedArticlesSort'));
             }
@@ -2111,11 +2024,14 @@ class Article
             $retval = array();
 
             foreach ($work as $item) {
-                $retval[] = '<a href="' . COM_buildURL($_CONF['site_url'] . '/article.php?story=' . $item['sid'])
-                    . '">' . $this->_displayEscape($item['title']). '</a>';
+                $retval[] = '<li>'
+                    . '<a href="' . COM_buildURL($_CONF['site_url'] . '/article.php?story=' . $item['sid'])
+                    . '">' . htmlspecialchars($item['title'], ENT_QUOTES, $encoding) . '</a>'
+                    . '</li>' . PHP_EOL;
             }
 
-            $retval = COM_makeList($retval, PLG_getThemeItem('article-css-list-related-articles', 'core'));
+            $retval = '<h3>' . $LANG24[92] . '</h3>' . PHP_EOL
+                . '<ul>' . PHP_EOL . implode('', $retval) . '</ul>' . PHP_EOL;
         }
 
         return $retval;
@@ -2173,7 +2089,7 @@ class Article
         }
 
         // SID's are a special case:
-        $sid = COM_sanitizeID($array['sid'], true, true);
+        $sid = COM_sanitizeID($array['sid']);
         if (isset($array['old_sid'])) {
             $oldSid = COM_sanitizeID($array['old_sid'], false);
         } else {
@@ -2185,7 +2101,7 @@ class Article
         }
 
         if (empty($sid)) {
-            $sid = COM_makeSid(true);
+            $sid = COM_makeSid();
         }
 
         $this->_sid = $sid;
@@ -2373,12 +2289,10 @@ class Article
     }
 
     /**
-     * Perform some basic cleanups of data, dealing with empty required, default table fields.
+     * Perform some basic cleanups of data, dealing with empty required, defaultable fields.
      */
     public function sanitizeData()
     {
-		global $_CONF, $LANG_structureddatatypes;
-
         if (empty($this->_hits)) {
             $this->_hits = 0;
         }
@@ -2406,19 +2320,6 @@ class Article
         } elseif ($this->_show_topic_icon != 1) {
             $this->_show_topic_icon = 0;
         }
-
-		// Only Core Structured Data Types supported
-		if (!empty($this->_structured_data_type) && !isset($LANG_structureddatatypes[$this->_structured_data_type])) {
-			if ($_CONF['structured_data_type_default'] != 'none') {
-				$this->_structured_data_type = $_CONF['structured_data_type_default'];
-			} else {
-				// If default 'none' then store as a empty string in db
-				$this->_structured_data_type = '';
-			}
-		} elseif ($this->_structured_data_type == 'none') {
-			// If select passes 'none' then store as a empty string in db
-			$this->_structured_data_type = '';
-		}
     }
 
     /**

@@ -5,7 +5,7 @@
 // +---------------------------------------------------------------------------+
 // | geeklog/plugins/recaptcha/language/english.php                            |
 // +---------------------------------------------------------------------------+
-// | Copyright (C) 2014-2020 mystral-kk - geeklog AT mystral-kk DOT net        |
+// | Copyright (C) 2014-2017 mystral-kk - geeklog AT mystral-kk DOT net        |
 // |                                                                           |
 // | Based on the CAPTCHA Plugin by Ben                                        |
 // |                                                - ben AT geeklog DOT fr    |
@@ -33,63 +33,58 @@ if (stripos($_SERVER['PHP_SELF'], basename(__FILE__)) !== false) {
     die('This file cannot be used on its own!');
 }
 
-$LANG_RECAPTCHA = [
+$LANG_RECAPTCHA = array(
     'plugin'      => 'reCAPTCHA',
     'admin'       => 'reCAPTCHA',
     'msg_error'   => 'Error, reCAPTCHA was invalid.',
     'entry_error' => 'An invalid reCAPTCHA string was entered in %1s - IP Address: %2s - Error Codes: %3s',    // %1s = $type, %2s = $ip, %3s = $errorCode
-];
+);
 
 // Localization of the Admin Configuration UI
-$LANG_configsections['recaptcha'] = [
+$LANG_configsections['recaptcha'] = array(
     'label' => 'reCAPTCHA',
     'title' => 'reCAPTCHA Configuration',
-];
+);
 
-$LANG_confignames['recaptcha'] = [
-    'site_key'             => 'reCAPTCHA V2 Site Key',
-    'secret_key'           => 'reCAPTCHA V2 Secret Key',
+$LANG_confignames['recaptcha'] = array(
+    'site_key'             => 'reCAPTCHA v2 Site Key',
+    'secret_key'           => 'reCAPTCHA v2 Secret Key',
     'invisible_site_key'   => 'Invisible reCAPTCHA Site Key',
     'invisible_secret_key' => 'Invisible reCAPTCHA Secret Key',
-    'site_key_v3'          => 'reCAPTCHA V3 Site Key',
-    'secret_key_v3'        => 'reCAPTCHA V3 Secret Key',
     'logging'              => 'Log invalid reCAPTCHA attempts',
     'anonymous_only'       => 'Anonymous Only',
     'remoteusers'          => 'Force reCAPTCHA for all Remote Users',
     'enable_comment'       => 'Enable Comment Support',
     'enable_contact'       => 'Enable Contact Support',
     'enable_emailstory'    => 'Enable Email Story Support',
+    'enable_forum'         => 'Enable Forum Support',
     'enable_registration'  => 'Enable Registration Support',
     'enable_loginform'     => 'Enable Login Form Support',
     'enable_getpassword'   => 'Enable Get Password Form Support',
+    'enable_mediagallery'  => 'Enable Media Gallery (Postcards) Support',
+    'enable_rating'        => 'Enable Rating Plugin Support',
     'enable_story'         => 'Enable Story Support',
-    'score_comment'        => 'Score Threshold for Comment',
-    'score_contact'        => 'Score Threshold for Contact',
-    'score_emailstory'     => 'Score Threshold for Email Story',
-    'score_registration'   => 'Score Threshold for Registration',
-    'score_loginform'      => 'Score Threshold for Login Form',
-    'score_getpassword'    => 'Score Threshold for Get Password Form',
-    'score_story'          => 'Score Threshold for Story',
-];
+    'enable_calendar'      => 'Enable Calendar Plugin Support',
+    'enable_links'         => 'Enable Links Plugin Support',
+);
 
-$LANG_configsubgroups['recaptcha'] = [
+$LANG_configsubgroups['recaptcha'] = array(
     'sg_main' => 'Main Settings',
-];
+);
 
-$LANG_tab['recaptcha'] = [
+$LANG_tab['recaptcha'] = array(
     'tab_general'     => 'reCAPTCHA Settings',
     'tab_integration' => 'Geeklog Integration',
-    'tab_score'       => 'Score Thresholds',
-];
+);
 
-$LANG_fs['recaptcha'] = [
-    'fs_system'      => 'System',
-    'fs_integration' => 'Geeklog Integration',
-    'fs_score'       => 'Score Thresholds',
-];
+$LANG_fs['recaptcha'] = array(
+    'fs_system'         => 'System',
+    'fs_location'       => 'Where to use reCAPTCHA',
+    'fs_integration'    => 'Geeklog Integration'
+);
 
 // Note: entries 0, 1, 9, and 12 are the same as in $LANG_configselects['Core']
-$LANG_configselects['recaptcha'] = [
-    0 => ['Yes' => 1, 'No' => 0],
-    2 => ['Disabled' => 0, 'reCAPTCHA V2' => 1, 'reCAPTCHA V2 Invisible' => 2, 'reCAPTCHA V3' => 4],
-];
+$LANG_configselects['recaptcha'] = array(
+    0 => array('Yes' => 1, 'No' => 0),
+    2 => array('Disabled' => 0, 'reCAPTCHA v2' => 1, 'Invisible reCAPTCHA' => 2),
+);

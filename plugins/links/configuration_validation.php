@@ -2,13 +2,13 @@
 
 /* Reminder: always indent with 4 spaces (no tabs). */
 // +---------------------------------------------------------------------------+
-// | Links                                                                     |
+// | Links                                                              |
 // +---------------------------------------------------------------------------+
 // | configuration_validation.php                                              |
 // |                                                                           |
-// | List of validation rules for the Links plugin configurations              |
+// | List of validation rules for the Links plugin configurations                          |
 // +---------------------------------------------------------------------------+
-// | Copyright (C) 2007-2020 by the following authors:                         |
+// | Copyright (C) 2007-2010 by the following authors:                         |
 // |                                                                           |
 // | Authors: Akeda Bagus       - admin AT gedex DOT web DOT id                |
 // |          Tom Homer         - tomhomer AT gmail DOT com                    |
@@ -41,8 +41,6 @@ $_CONF_VALIDATE['links']['linksperpage'] = array('rule' => 'numeric');
 $_CONF_VALIDATE['links']['show_top10'] = array('rule' => 'boolean');
 $_CONF_VALIDATE['links']['show_category_descriptions'] = array('rule' => 'boolean');
 $_CONF_VALIDATE['links']['new_window'] = array('rule' => 'boolean');
-$_CONF_VALIDATE['links']['recaptcha'] = ['rule' => ['inList', ['0', '1', '2', '4'], true]];
-$_CONF_VALIDATE['links']['recaptcha_score'] = ['rule' => ['range', 0, 1]];
 
 // Links Admin Settings
 $_CONF_VALIDATE['links']['hidenewlinks'] = array('rule' => 'boolean');
@@ -97,3 +95,5 @@ $_CONF_VALIDATE['links']['autotag_permissions_link[2]'] = array(
 $_CONF_VALIDATE['links']['autotag_permissions_link[3]'] = array(
     'rule' => array('inList', array(0, 2), true)
 );
+
+?>

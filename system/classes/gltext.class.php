@@ -2,13 +2,13 @@
 
 /* Reminder: always indent with 4 spaces (no tabs). */
 // +---------------------------------------------------------------------------+
-// | Geeklog 2.2                                                               |
+// | Geeklog 2.1                                                               |
 // +---------------------------------------------------------------------------+
 // | gltext.class.php                                                          |
 // |                                                                           |
 // | Geeklog Text Abstraction.                                                 |
 // +---------------------------------------------------------------------------+
-// | Copyright (C) 2006-2019 by the following authors:                         |
+// | Copyright (C) 2006-2013 by the following authors:                         |
 // |                                                                           |
 // | Authors: Michael Jervis, mike AT fuckingbrit DOT com                      |
 // +---------------------------------------------------------------------------+
@@ -28,8 +28,6 @@
 // | Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.           |
 // |                                                                           |
 // +---------------------------------------------------------------------------+
-
-require_once __DIR__ . '/htmLawed/htmLawed.php';
 
 /**
  * Constants for GLText
@@ -77,9 +75,7 @@ class GLText
             $text = self::_displayEscape($text);
         } else {
             // latest version
-            if (!empty($text)) {
-                $text = htmlspecialchars($text, ENT_QUOTES, COM_getEncodingt());
-            }
+            $text = htmlspecialchars($text, ENT_QUOTES, COM_getEncodingt());
         }
 
         return $text;
@@ -88,14 +84,13 @@ class GLText
     /**
      * Returns text ready for display.
      *
-     * @param   string  $text      Text to prepare for display
-     * @param   string  $postMode  Indicates if text is html, adveditor, wikitext or plaintext
-     * @param   int     $version   Version of GLText engine
-     * @param   string  $type      Content type
-     * @param   string  $id        Content Id
-     * @return  string             Escaped String
+     * @param   string $text     Text to prepare for display
+     * @param   string $postMode Indicates if text is html, adveditor, wikitext or plaintext
+     * @param   int    $version  version of GLText engine
+     * @return  string  Escaped String
+     * @access  public
      */
-    public static function getDisplayText($text, $postMode, $version, $type = NULL, $id = NULL)
+    public static function getDisplayText($text, $postMode, $version)
     {
         if ($version == GLTEXT_FIRST_VERSION) {
             // first version
@@ -141,11 +136,7 @@ class GLText
             $text = COM_checkWords($text, 'story');
         }
 
-        if (isset($type, $id)) {
-            $text = PLG_replaceTags(self::_displayEscape($text), '', false, $type, $id);
-        } else {
-            $text = PLG_replaceTags(self::_displayEscape($text));
-        }
+        $text = PLG_replaceTags(self::_displayEscape($text));
 
         return $text;
     }
@@ -153,7 +144,7 @@ class GLText
     /**
      * Apply HTML filter to the text
      *
-     * @param   string $text        Text to prepare for store to database
+     * @param   string $text        Text to prepare for store to databese
      * @param   string $postMode    Indicates if text is html, adveditor, wikitext or plaintext
      * @param   string $permissions comma-separated list of rights which identify the current user as an "Admin"
      * @param   int    $version     version of GLText engine
@@ -202,17 +193,17 @@ class GLText
     /**
      * Returns text ready for preview.
      *
-     * @param   string $text        Text to prepare for store to database
+     * @param   string $text        Text to prepare for store to databese
      * @param   string $postMode    Indicates if text is html, adveditor, wikitext or plaintext
      * @param   string $permissions comma-separated list of rights which identify the current user as an "Admin"
      * @param   int    $version     version of GLText engine
      * @return  string  Escaped String
      * @access  public
      */
-    public static function getPreviewText($text, $postMode, $permissions, $version, $type = NULL, $id = NULL)
+    public static function getPreviewText($text, $postMode, $permissions, $version)
     {
         $text = self::applyHTMLFilter($text, $postMode, $permissions, $version);
-        $text = self::getDisplayText($text, $postMode, $version, $type, $id);
+        $text = self::getDisplayText($text, $postMode, $version);
 
         return $text;
     }
@@ -229,7 +220,7 @@ class GLText
      */
     public static function checkHTML($str, $permissions = 'story.edit')
     {
-        global $_CONF;
+        global $_CONF, $_USER;
 
         //        $str = COM_stripslashes($str); // it should not be here
 
@@ -293,184 +284,38 @@ class GLText
         return $wiki->transform($wikiText, 'Xhtml');
     }
 
-    /**
-     * Fix relative URLs in HTML and make them absolute
-     *
-     * @param    string 			HTML formated text
-     * @return   string             HTML formatted text
-     */
-	 public static function htmlFixURLs($string) 
-	{
-		// Fix internal links if needed
-		$string = preg_replace_callback('/<a\s+.*?href="(.*?)".*?>/i', 'COM_emailUserTopicsUrlRewriter', $string);
-		// Fix Images if needed
-		$string = preg_replace_callback('/<img\s+.*?src="(.*?)".*?>/i', 'COM_emailUserTopicsUrlRewriter', $string);		
-		
-		// return the string
-		return $string;
-	} 
-
-    /**
-     * Convert HTML to plain text for emails. Attempts to keep line spacing and adds some markup
-	 * Some code used from https://github.com/RobQuistNL/SimpleHtmlToText
-     *
-     * @param    string 			HTML formatted text
-     * @return   string             Marked up plain text
-     */
-	public static function html2Text($string) 
-	{
-		global $LANG31;
-
-		//Remove HTML's whitespaces
-		$string = preg_replace('/\s+/', ' ', $string);
-		
-		//Parse images
-		$string = preg_replace('/<(img)\b[^>]*src=\"([^>"]+)\"[^>]*>/Uis', '($2)', $string);
-		
-		/* - Not needed as we are just showing URL of images instead 
-		//Parse image tags with alt
-		$string = preg_replace('/<(img)\b[^>]*alt=\"([^>"]+)\"[^>]*>/Uis', '($2)', $string);
-		// Remove image tags without alt
-		$string = preg_replace('/<(img)\b[^>][^>]*>/Uis', '', $string);
-		*/
-		
-		//Parse links
-		$string = preg_replace('/<a(.*)href=[\'"](.*)[\'"]>(.*)<\/a>/Uis', '$3 ($2)', $string);
-		//Parse lines
-		$string = preg_replace('/<hr(.*)>/Uis', "\n" . $LANG31['email_divider'] . "\n", $string);
-		//Parse breaklines
-		$string = preg_replace('/<br(.*)>/Uis', "\n", $string);
-		//Parse broken breaklines
-		$string = preg_replace('/<(.*)br>/Uis', "\n", $string);
-		//Parse alineas
-		$string = preg_replace('/<p(.*)>(.*)<\/p>/Uis', "\n$2\n", $string);
-
-		//Lists
-		$string = preg_replace('/(<ul\b[^>]*>|<\/ul>)/i', "\n\n", $string);
-		$string = preg_replace('/(<ol\b[^>]*>|<\/ol>)/i', "\n\n", $string);
-		$string = preg_replace('/(<dl\b[^>]*>|<\/dl>)/i', "\n\n", $string);
-
-		$string = preg_replace('/<li\b[^>]*>(.*?)<\/li>/i', "\t* $1\n", $string);
-		$string = preg_replace('/<dd\b[^>]*>(.*?)<\/dd>/i', "$1\n", $string);
-		$string = preg_replace('/<dt\b[^>]*>(.*?)<\/dt>/i', "\t* $1", $string);
-		$string = preg_replace('/<li\b[^>]*>/i', "\n\t* ", $string);
-
-		//Parse table columns
-		$string = preg_replace('/<tr>(.*)<\/tr>/Uis', "\n$1", $string);
-		$string = preg_replace('/<td>(.*)<\/td>/Uis', "$1\t", $string);
-		$string = preg_replace('/<th>(.*)<\/th>/Uis', "$1\t", $string);
-		
-		//Parse markedup text
-		$string = preg_replace('/<em\b[^>]*>(.*?)<\/em>/i', "$2", $string);
-		$string = preg_replace('/<b>(.*)<\/b>/Uis', '**$1**', $string);
-		$string = preg_replace('/<strong(.*)>(.*)<\/strong>/Uis', '**$2**', $string);
-		$string = preg_replace('/<i>(.*)<\/i>/Uis', '*$1*', $string);
-		$string = preg_replace('/<u>(.*)<\/u>/Uis', '_$1_', $string);
-		
-		//Headers
-		$string = preg_replace('/<h1(.*)>(.*)<\/h1>/Uis', "\n### $2 ###\n", $string);
-		$string = preg_replace('/<h2(.*)>(.*)<\/h2>/Uis', "\n## $2 ##\n", $string);
-		$string = preg_replace('/<h3(.*)>(.*)<\/h3>/Uis', "\n## $2 ##\n", $string);
-		$string = preg_replace('/<h4(.*)>(.*)<\/h4>/Uis', "\n## $2 ##\n", $string);
-		$string = preg_replace('/<h5(.*)>(.*)<\/h5>/Uis', "\n# $2 #\n", $string);
-		$string = preg_replace('/<h6(.*)>(.*)<\/h6>/Uis', "\n# $2 #\n", $string);
-		
-		//Surround tables with newlines
-		$string = preg_replace('/<table(.*)>(.*)<\/table>/Uis', "\n$2\n", $string);
-
-		// decode any entities
-		$string = html_entity_decode($string);
-
-		//Strip remaining tags
-		$string = strip_tags($string);
-
-		//Fix double whitespaces
-		$string = preg_replace('/(  *)/', ' ', $string);
-
-		//Newlines with a space behind it - don't need that. (except in some cases, in which you'll miss 1 whitespace.
-		// Well, too bad for you. File a PR <3
-		$string = preg_replace('/\n /', "\n", $string);
-		$string = preg_replace('/ \n/', "\n", $string);
-
-		//Remove tabs before newlines
-		$string = preg_replace('/\t /', "\t", $string);
-		$string = preg_replace('/\t \n/', "\n", $string);
-		$string = preg_replace('/\t\n/', "\n", $string);
-
-		//Replace all \n with \r\n because some clients prefer that
-		//$string = preg_replace('/\n/', "\r\n", $string);
-		
-		// strip any remaining HTML tags
-		$string = strip_tags($string);	
-
-		// return the string
-		return $string;
-	}
-
-    /**
-     * Remove all HTML tags and attributes
-     *
-     * @param  string  $text
-     * @return string
-     */
-    public static function removeAllHTMLTagsAndAttributes($text)
-    {
-        // Use htmLawed to remove all HTML tags
-        // http://www.bioinformatics.org/phplabware/forum/viewtopic.php?id=88
-        $config = [
-            'elements' => '-*',
-            'keep_bad' => 0,
-        ];
-        $text = htmLawed($text, $config);
-
-        return $text;
-    }
-
     private static function _htmLawed($str, $permissions)
     {
         global $_CONF, $_USER;
 
-        // Sets config options for htmLawed.
-        // See http://www.bioinformatics.org/phplabware/internal_utilities/htmLawed/htmLawed_README.htm
+        // Sets config options for htmLawed.  See http://www.bioinformatics.org/
+        // phplabware/internal_utilities/htmLawed/htmLawed_README.htm
         $config = array(
-            'abs_url'            => 0, // No action
-            'anti_link_spam'     => 0, // No measure taken
-            'anti_mail_spam'     => 0, // No measure taken
-            'balance'            => 1, // Balance tags for well-formedness and proper nesting
-            'cdata'              => 3, // Allow CDATA sections
-            'clean_ms_char'      => 0, // Don't replace discouraged characters introduced by Microsoft Word, etc.
-            'comment'            => 3, // Allow HTML comment
-            'css_expression'     => 1, // Allow dynamic CSS expression in "style" attributes
-            'deny_attribute'     => 0, // No denied HTML attributes
-            'direct_nest_list'   => 0, // Don' allow direct nesting of a list within another without requiring it to be a list item
-            'hexdec_entity'      => 1, // Allow hexadecimal numeric entities
-            'hook'               => 0, // No hook function
-            'hook_tag'           => 0, // No hook function
-            'keep_bad'           => 4, // Remove tags but neutralize element content if text (pcdata) is invalid in parent element
-            'lc_std_val'         => 1, // Yes
-            'make_tag_strict'    => 0, // No
-            'named_entity'       => 1, // Allow non-universal named HTML entities
-            'no_deprecated_attr' => 1, // Transform deprecated attributes, but name attributes for a and map are retained
-            'safe'               => 0, // No
-            'style_pass'         => 0, // Don't ignore style attribute values
-            'tidy'               => 0, // Don't beautify or compact HTML code
-            'unique_ids'         => 1, // Remove duplicate and/or invalid ids
-            'valid_xhtml'        => 1, // Magic parameter to make input the most valid XHTML
-            'xml:lang'           => 0, // Don't auto-add xml:lang attribute
+            'balance'        => 1, // Balance tags for well-formedness and proper nesting
+            'comment'        => 3, // Allow HTML comment
+            'css_expression' => 1, // Allow dynamic CSS expression in "style" attributes
+            //            'keep_bad'       => 1, // Neutralize both tags and element content
+            'keep_bad'       => 0, // Neutralize both tags and element content
+            'tidy'           => 0, // Don't beautify or compact HTML code
+            'unique_ids'     => 1, // Remove duplicate and/or invalid ids
+            'valid_xhtml'    => 1, // Magic parameter to make input the most valid XHTML
         );
 
-        if (isset($_CONF['allowed_protocols']) && is_array($_CONF['allowed_protocols']) &&
+        if (isset($_CONF['allowed_protocols']) &&
+            is_array($_CONF['allowed_protocols']) &&
             (count($_CONF['allowed_protocols']) > 0)
         ) {
             $schemes = $_CONF['allowed_protocols'];
         } else {
-            $schemes = array('http:', 'https:', 'ftp:', 'ftps:');
+            $schemes = array('http:', 'https:', 'ftp:');
         }
 
         $schemes = str_replace(':', '', implode(', ', $schemes));
         $config['schemes'] = 'href: ' . $schemes . '; *: ' . $schemes;
 
-        if (empty($permissions) || !SEC_hasRights($permissions) || empty($_CONF['admin_html'])) {
+        if (empty($permissions) || !SEC_hasRights($permissions) ||
+            empty($_CONF['admin_html'])
+        ) {
             $html = $_CONF['user_html'];
         } else {
             if ($_CONF['advanced_editor'] && $_USER['advanced_editor']) {
@@ -544,7 +389,7 @@ class GLText
 
         // Raw and code blocks need entity decoding. Other areas do not.
         // otherwise, annoyingly, &lt; will end up as < on preview 1, on
-        // preview 2 it'll be stripped by KSES. Can't believe I missed that
+        // preview 2 it'll be stripped by KSES. Can't beleive I missed that
         // in rewrite phase 1.
         //
         // First, raw
@@ -753,7 +598,7 @@ class GLText
                 }
 
                 $part = substr($text, 0, $posEnd);
-                $marker = sprintf(self::SCRIPT_MARKER, self::_getUniqueStr());
+                $marker = sprintf(self::SCRIPT_MARKER, self::_getUnqiueStr());
                 $marker = str_replace('.', '', $marker);
                 $markers[] = array(
                     'text'   => $part,
@@ -803,12 +648,12 @@ class GLText
     }
 
     /**
-     * Generate unique string
+     * Generate unqiue string
      *
      * @param  int  $length length of string to generate
      * @return string
      */
-    private static function _getUniqueStr($length = 8)
+    private static function _getUnqiueStr($length = 8)
     {
         static $chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJLKMNOPQRSTUVWXYZ0123456789';
         $str = '';

@@ -8,7 +8,7 @@
 // |                                                                           |
 // | Geeklog database library.                                                 |
 // +---------------------------------------------------------------------------+
-// | Copyright (C) 2000-2021 by the following authors:                         |
+// | Copyright (C) 2000-2011 by the following authors:                         |
 // |                                                                           |
 // | Authors: Tony Bibbs, tony AT tonybibbs DOT com                            |
 // +---------------------------------------------------------------------------+
@@ -35,10 +35,6 @@
  * NOTE: As of Geeklog 1.3.5 you should not have to edit this file any more.
  */
 
-use Geeklog\Database\DbMysql;
-use Geeklog\Database\DbMysqli;
-use Geeklog\Database\DbPgsql;
-
 if (stripos($_SERVER['PHP_SELF'], basename(__FILE__)) !== false) {
     die('This file can not be used on its own!');
 }
@@ -62,12 +58,13 @@ $_TABLES['commentnotifications'] = $_DB_table_prefix . 'commentnotifications';
 $_TABLES['comments'] = $_DB_table_prefix . 'comments';
 $_TABLES['commentsubmissions'] = $_DB_table_prefix . 'commentsubmissions';
 $_TABLES['conf_values'] = $_DB_table_prefix . 'conf_values';
+$_TABLES['cookiecodes'] = $_DB_table_prefix . 'cookiecodes';
+$_TABLES['dateformats'] = $_DB_table_prefix . 'dateformats';
 $_TABLES['features'] = $_DB_table_prefix . 'features';
 $_TABLES['group_assignments'] = $_DB_table_prefix . 'group_assignments';
 $_TABLES['groups'] = $_DB_table_prefix . 'groups';
-$_TABLES['ip_addresses'] = $_DB_table_prefix . 'ip_addresses';
 $_TABLES['language_items'] = $_DB_table_prefix . 'language_items';
-$_TABLES['likes'] = $_DB_table_prefix . 'likes'; // As of Geeklog 2.2.1
+$_TABLES['maillist'] = $_DB_table_prefix . 'maillist';
 $_TABLES['pingservice'] = $_DB_table_prefix . 'pingservice';
 $_TABLES['plugins'] = $_DB_table_prefix . 'plugins';
 $_TABLES['routes'] = $_DB_table_prefix . 'routes';
@@ -80,8 +77,10 @@ $_TABLES['tokens'] = $_DB_table_prefix . 'tokens';
 $_TABLES['topic_assignments'] = $_DB_table_prefix . 'topic_assignments';
 $_TABLES['topics'] = $_DB_table_prefix . 'topics';
 $_TABLES['trackback'] = $_DB_table_prefix . 'trackback';
-$_TABLES['user_attributes'] = $_DB_table_prefix . 'user_attributes';
-$_TABLES['userautologin'] = $_DB_table_prefix . 'userautologin';
+$_TABLES['usercomment'] = $_DB_table_prefix . 'usercomment';
+$_TABLES['userindex'] = $_DB_table_prefix . 'userindex';
+$_TABLES['userinfo'] = $_DB_table_prefix . 'userinfo';
+$_TABLES['userprefs'] = $_DB_table_prefix . 'userprefs';
 $_TABLES['users'] = $_DB_table_prefix . 'users';
 $_TABLES['vars'] = $_DB_table_prefix . 'vars';
 
@@ -121,46 +120,33 @@ $_TABLES['staticpage'] = $_DB_table_prefix . 'staticpage';
 
 // These tables aren't used by Geeklog any more, but the table names are still
 // needed when upgrading from old versions
-if (defined('GL_INSTALL_ACTIVE')) {
-	$_TABLES['commentspeedlimit'] = $_DB_table_prefix . 'commentspeedlimit';
-	$_TABLES['submitspeedlimit'] = $_DB_table_prefix . 'submitspeedlimit';
-	$_TABLES['tzcodes'] = $_DB_table_prefix . 'tzcodes';
-	$_TABLES['userevent'] = $_DB_table_prefix . 'userevent';
-
-	// Removed as of Geeklog 2.2.2
-	$_TABLES['cookiecodes'] = $_DB_table_prefix . 'cookiecodes';
-	$_TABLES['dateformats'] = $_DB_table_prefix . 'dateformats';
-	$_TABLES['maillist'] = $_DB_table_prefix . 'maillist';
-	$_TABLES['usercomment'] = $_DB_table_prefix . 'usercomment';
-	$_TABLES['userindex'] = $_DB_table_prefix . 'userindex';
-	$_TABLES['userinfo'] = $_DB_table_prefix . 'userinfo';
-	$_TABLES['userprefs'] = $_DB_table_prefix . 'userprefs';
-}
+$_TABLES['commentspeedlimit'] = $_DB_table_prefix . 'commentspeedlimit';
+$_TABLES['submitspeedlimit'] = $_DB_table_prefix . 'submitspeedlimit';
+$_TABLES['tzcodes'] = $_DB_table_prefix . 'tzcodes';
+$_TABLES['userevent'] = $_DB_table_prefix . 'userevent';
 
 // +---------------------------------------------------------------------------+
 // | DO NOT TOUCH ANYTHING BELOW HERE                                          |
 // +---------------------------------------------------------------------------+
 
-// Set the appropriate database character set
-if (empty($_DB_charset)) {
-    $_DB_charset = $_CONF['default_charset'];
-}
-
-if (!class_exists('Geeklog\\Autoload')) {
-    include_once __DIR__ . '/classes/Autoload.php';
-    Geeklog\Autoload::initialize();
-}
-
-if ($_DB_dbms === 'mysql') {
-    if (class_exists('MySQLi')) {
-        $_DB = new Geeklog\Database\DbMysqli($_DB_host, $_DB_name, $_DB_user, $_DB_pass, $_DB_table_prefix, '\COM_errorLog', $_DB_charset);
-    } else {
-        $_DB = new Geeklog\Database\DbMysql($_DB_host, $_DB_name, $_DB_user, $_DB_pass, $_DB_table_prefix, '\COM_errorLog', $_DB_charset);
-    }
-} elseif ($_DB_dbms === 'pgsql') {
-    $_DB = new Geeklog\Database\DbPgsql($_DB_host, $_DB_name, $_DB_user, $_DB_pass, $_DB_table_prefix, '\COM_errorLog', $_DB_charset);
+/**
+ * Include appropriate DBMS object
+ */
+if (($_DB_dbms === 'mysql') && class_exists('MySQLi')) {
+    require_once $_CONF['path_system'] . 'databases/mysqli.class.php';
 } else {
-    throw new InvalidArgumentException(sprintf('Unknown database driver "%s" was specified', $_DB_dbms));
+    require_once $_CONF['path_system'] . 'databases/' . $_DB_dbms . '.class.php';
+}
+
+// Instantiate the database object
+if (!empty($_DB_charset)) {
+    $_DB = new Database(
+        $_DB_host, $_DB_name, $_DB_user, $_DB_pass, $_DB_table_prefix, 'COM_errorLog', $_DB_charset
+    );
+} else {
+    $_DB = new Database(
+        $_DB_host, $_DB_name, $_DB_user, $_DB_pass, $_DB_table_prefix, 'COM_errorLog', $_CONF['default_charset']
+    );
 }
 
 if (isset($_CONF['rootdebug']) && $_CONF['rootdebug']) {
@@ -209,9 +195,9 @@ function DB_displayError($flag)
  * Executes a query on the db server
  * This executes the passed SQL and returns the recordset or errors out
  *
- * @param    mixed       $sql           String or array of strings of SQL to be executed
- * @param    int         $ignore_errors If 1 this function supresses any error messages
- * @return   object|bool                Returns results from query
+ * @param    mixed $sql           String or array of strings of SQL to be executed
+ * @param    int   $ignore_errors If 1 this function supresses any error messages
+ * @return   object  Returns results from query
  */
 function DB_query($sql, $ignore_errors = 0)
 {
@@ -278,14 +264,12 @@ function DB_delete($table, $id, $value, $return_page = '')
 /**
  * Gets a single item from the database
  *
- * @param        string $table        Table to get item from
- * @param        string $what         field name to get
- * @param        string $selection    Where clause to use in SQL
- * @param        mixed  $defaultValue will be returned when there is no row in the dataset
- * @return       mixed                Returns value sought
- * @note         $defaultValue argument since Geeklog 2.2.1
+ * @param        string $table     Table to get item from
+ * @param        string $what      field name to get
+ * @param        string $selection Where clause to use in SQL
+ * @return       mixed       Returns value sought
  */
-function DB_getItem($table, $what, $selection = '', $defaultValue = false)
+function DB_getItem($table, $what, $selection = '')
 {
     if (!empty($selection)) {
         $result = DB_query("SELECT {$what} FROM {$table} WHERE {$selection}");
@@ -294,7 +278,7 @@ function DB_getItem($table, $what, $selection = '', $defaultValue = false)
     }
     $ITEM = DB_fetchArray($result, true);
 
-    return (is_array($ITEM) && (count($ITEM) > 0)) ? $ITEM[0] : $defaultValue;
+    return $ITEM[0];
 }
 
 /**
@@ -441,7 +425,7 @@ function DB_affectedRows($recordSet)
  *
  * @param        mixed   $recordSet The record set to operate on
  * @param        boolean $both      get both assoc and numeric indices
- * @return       array|false        Returns data for a record in an array or false if there is no more row
+ * @return       array      Returns data for a record in an array
  */
 function DB_fetchArray($recordSet, $both = true)
 {
@@ -505,10 +489,10 @@ function DB_doDatabaseUpgrade($current_gl_version)
 }
 
 /**
- * Lock a table/tables
- * Locks a table/tables for write operations
+ * Lock a table
+ * Locks a table for write operations
  *
- * @param    string|string[] $table Table to lock
+ * @param    string $table Table to lock
  * @see DB_unlockTable
  */
 function DB_lockTable($table)
@@ -519,10 +503,10 @@ function DB_lockTable($table)
 }
 
 /**
- * Unlock a table/tables
- * Unlocks a table/tables after DB_lockTable
+ * Unlock a table
+ * Unlocks a table after DB_lockTable
  *
- * @param    string|string[] $table Table to unlock
+ * @param    string $table Table to unlock
  * @see DB_lockTable
  */
 function DB_unlockTable($table)
@@ -634,10 +618,6 @@ function DB_getVersion()
 function DB_escapeString($str)
 {
     global $_DB;
-	
-	if (is_null($str)) {
-		$str = '';
-	}
 
     return $_DB->dbEscapeString($str);
 }
@@ -704,75 +684,4 @@ function DB_rollBack()
     global $_DB;
 
     return $_DB->dbRollback();
-}
-
-/**
- * Return if InnoDB storage engine is supported
- *
- * @return bool
- */
-function DB_innoDbSupported()
-{
-    global $_DB_dbms, $_DB;
-
-    if ($_DB_dbms === 'mysql') {
-        return $_DB->isInnodbSupported();
-    } else {
-        return false;
-    }
-}
-
-/**
- * Return a list of tables used for the Geeklog installation
- *
- * @return string[]
- * @since  Geeklog 2.2.2
- */
-function DB_getAllTables()
-{
-    global $_DB;
-
-    return $_DB->dbGetAllTables();
-}
-
-/**
- * Return the structure of a table given
- *
- * @param  string  $tableName
- * @return string
- * @since  Geeklog 2.2.2
- */
-function DB_getTableStructure($tableName)
-{
-    global $_DB;
-
-    return $_DB->dbGetTableStructure($tableName);
-}
-
-/**
- * Escape an identifier like a database name or a table name
- *
- * @param  string  $identifier
- * @return string
- * @since  Geeklog 2.2.2
- */
-function DB_escapeIdentifier($identifier)
-{
-    global $_DB;
-
-    return $_DB->dbEscapeIdentifier($identifier);
-}
-
-/**
- * Optimize a table
- *
- * @param  string  $tableName
- * @return bool
- * @since  Geeklog 2.2.2
- */
-function DB_optimizeTable($tableName)
-{
-    global $_DB;
-
-    return $_DB->dbOptimizeTable($tableName);
 }

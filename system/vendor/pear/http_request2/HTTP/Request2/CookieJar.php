@@ -13,13 +13,13 @@
  * @category  HTTP
  * @package   HTTP_Request2
  * @author    Alexey Borzov <avb@php.net>
- * @copyright 2008-2022 Alexey Borzov <avb@php.net>
+ * @copyright 2008-2016 Alexey Borzov <avb@php.net>
  * @license   http://opensource.org/licenses/BSD-3-Clause BSD 3-Clause License
  * @link      http://pear.php.net/package/HTTP_Request2
  */
 
-// pear-package-only /** Class representing a HTTP request message */
-// pear-package-only require_once 'HTTP/Request2.php';
+/** Class representing a HTTP request message */
+require_once 'HTTP/Request2.php';
 
 /**
  * Stores cookies and passes them between HTTP requests
@@ -47,36 +47,32 @@ class HTTP_Request2_CookieJar implements Serializable
      *
      * @var array
      */
-    protected $cookies = [];
+    protected $cookies = array();
 
     /**
      * Whether session cookies should be serialized when serializing the jar
-     *
      * @var bool
      */
     protected $serializeSession = false;
 
     /**
      * Whether Public Suffix List should be used for domain matching
-     *
      * @var bool
      */
     protected $useList = true;
 
     /**
      * Whether an attempt to store an invalid cookie should be ignored, rather than cause an Exception
-     *
      * @var bool
      */
     protected $ignoreInvalid = false;
 
     /**
      * Array with Public Suffix List data
-     *
      * @var  array
      * @link http://publicsuffix.org/
      */
-    protected static $psl = [];
+    protected static $psl = array();
 
     /**
      * Class constructor, sets various options
@@ -129,13 +125,13 @@ class HTTP_Request2_CookieJar implements Serializable
      *                         {@link HTTP_Request2_Response::getCookies()}
      * @param Net_URL2 $setter URL of the document that sent Set-Cookie header
      *
-     * @return array    Updated cookie array
-     * @throws HTTP_Request2_LogicException
-     * @throws HTTP_Request2_MessageException
+     * @return   array    Updated cookie array
+     * @throws   HTTP_Request2_LogicException
+     * @throws   HTTP_Request2_MessageException
      */
     protected function checkAndUpdateFields(array $cookie, Net_URL2 $setter = null)
     {
-        if ($missing = array_diff(['name', 'value'], array_keys($cookie))) {
+        if ($missing = array_diff(array('name', 'value'), array_keys($cookie))) {
             throw new HTTP_Request2_LogicException(
                 "Cookie array should contain 'name' and 'value' fields",
                 HTTP_Request2_Exception::MISSING_VALUE
@@ -153,7 +149,7 @@ class HTTP_Request2_CookieJar implements Serializable
                 HTTP_Request2_Exception::INVALID_ARGUMENT
             );
         }
-        $cookie += ['domain' => '', 'path' => '', 'expires' => null, 'secure' => false];
+        $cookie += array('domain' => '', 'path' => '', 'expires' => null, 'secure' => false);
 
         // Need ISO-8601 date @ UTC timezone
         if (!empty($cookie['expires'])
@@ -227,10 +223,10 @@ class HTTP_Request2_CookieJar implements Serializable
             && (is_null($cookie['expires']) || $cookie['expires'] > $this->now())
         ) {
             if (!isset($this->cookies[$cookie['domain']])) {
-                $this->cookies[$cookie['domain']] = [];
+                $this->cookies[$cookie['domain']] = array();
             }
             if (!isset($this->cookies[$cookie['domain']][$cookie['path']])) {
-                $this->cookies[$cookie['domain']][$cookie['path']] = [];
+                $this->cookies[$cookie['domain']][$cookie['path']] = array();
             }
             $this->cookies[$cookie['domain']][$cookie['path']][$cookie['name']] = $cookie;
 
@@ -246,8 +242,8 @@ class HTTP_Request2_CookieJar implements Serializable
      *
      * @param HTTP_Request2_Response $response HTTP response message
      * @param Net_URL2               $setter   original request URL, needed for
-     *                                         setting default domain/path. If not given,
-     *                                         effective URL from response will be used.
+     *                               setting default domain/path. If not given,
+     *                               effective URL from response will be used.
      *
      * @return bool whether all cookies were successfully stored
      * @throws HTTP_Request2_LogicException
@@ -290,7 +286,7 @@ class HTTP_Request2_CookieJar implements Serializable
         $path   = $url->getPath();
         $secure = 0 == strcasecmp($url->getScheme(), 'https');
 
-        $matched = $ret = [];
+        $matched = $ret = array();
         foreach (array_keys($this->cookies) as $domain) {
             if ($this->domainMatch($host, $domain)) {
                 foreach (array_keys($this->cookies[$domain]) as $cPath) {
@@ -326,7 +322,7 @@ class HTTP_Request2_CookieJar implements Serializable
      */
     public function getAll()
     {
-        $cookies = [];
+        $cookies = array();
         foreach (array_keys($this->cookies) as $domain) {
             foreach (array_keys($this->cookies[$domain]) as $path) {
                 foreach ($this->cookies[$domain][$path] as $name => $cookie) {
@@ -341,8 +337,6 @@ class HTTP_Request2_CookieJar implements Serializable
      * Sets whether session cookies should be serialized when serializing the jar
      *
      * @param boolean $serialize serialize?
-     *
-     * @return void
      */
     public function serializeSessionCookies($serialize)
     {
@@ -353,9 +347,6 @@ class HTTP_Request2_CookieJar implements Serializable
      * Sets whether invalid cookies should be silently ignored or cause an Exception
      *
      * @param boolean $ignore ignore?
-     *
-     * @return void
-     *
      * @link http://pear.php.net/bugs/bug.php?id=19937
      * @link http://pear.php.net/bugs/bug.php?id=20401
      */
@@ -383,9 +374,7 @@ class HTTP_Request2_CookieJar implements Serializable
      *
      * @param boolean $useList use the list?
      *
-     * @return void
-     *
-     * @link http://publicsuffix.org/learn/
+     * @link     http://publicsuffix.org/learn/
      */
     public function usePublicSuffixList($useList)
     {
@@ -397,19 +386,9 @@ class HTTP_Request2_CookieJar implements Serializable
      *
      * @return string
      *
-     * @see Serializable::serialize()
+     * @see    Serializable::serialize()
      */
     public function serialize()
-    {
-        return serialize($this->__serialize());
-    }
-
-    /**
-     * Returns an associative array of key/value pairs that represent the serialized form of the object
-     *
-     * @return array
-     */
-    public function __serialize()
     {
         $cookies = $this->getAll();
         if (!$this->serializeSession) {
@@ -419,12 +398,12 @@ class HTTP_Request2_CookieJar implements Serializable
                 }
             }
         }
-        return [
+        return serialize(array(
             'cookies'          => $cookies,
             'serializeSession' => $this->serializeSession,
             'useList'          => $this->useList,
             'ignoreInvalid'    => $this->ignoreInvalid
-        ];
+        ));
     }
 
     /**
@@ -432,23 +411,12 @@ class HTTP_Request2_CookieJar implements Serializable
      *
      * @param string $serialized string representation
      *
-     * @return void
+     * @see   Serializable::unserialize()
      */
     public function unserialize($serialized)
     {
-        $this->__unserialize(unserialize($serialized));
-    }
-
-    /**
-     * Constructs the object from array serialized form
-     *
-     * @param array $data serialized form (as generated by {@see __serialize()}
-     *
-     * @return void
-     */
-    public function __unserialize(array $data)
-    {
-        $now = $this->now();
+        $data = unserialize($serialized);
+        $now  = $this->now();
         $this->serializeSessionCookies($data['serializeSession']);
         $this->usePublicSuffixList($data['useList']);
         if (array_key_exists('ignoreInvalid', $data)) {
@@ -459,10 +427,10 @@ class HTTP_Request2_CookieJar implements Serializable
                 continue;
             }
             if (!isset($this->cookies[$cookie['domain']])) {
-                $this->cookies[$cookie['domain']] = [];
+                $this->cookies[$cookie['domain']] = array();
             }
             if (!isset($this->cookies[$cookie['domain']][$cookie['path']])) {
-                $this->cookies[$cookie['domain']][$cookie['path']] = [];
+                $this->cookies[$cookie['domain']][$cookie['path']] = array();
             }
             $this->cookies[$cookie['domain']][$cookie['path']][$cookie['name']] = $cookie;
         }
@@ -478,7 +446,7 @@ class HTTP_Request2_CookieJar implements Serializable
      * @param string $requestHost  request host
      * @param string $cookieDomain cookie domain
      *
-     * @return bool    match success
+     * @return   bool    match success
      */
     public function domainMatch($requestHost, $cookieDomain)
     {
@@ -522,7 +490,7 @@ class HTTP_Request2_CookieJar implements Serializable
             $path = '@data_dir@' . DIRECTORY_SEPARATOR . 'HTTP_Request2';
             if (0 === strpos($path, '@' . 'data_dir@')) {
                 $path = realpath(
-                    __DIR__ . DIRECTORY_SEPARATOR . '..'
+                    dirname(__FILE__) . DIRECTORY_SEPARATOR . '..'
                     . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . 'data'
                 );
             }
@@ -555,7 +523,8 @@ class HTTP_Request2_CookieJar implements Serializable
      */
     protected static function checkDomainsList(array $domainParts, $listNode)
     {
-        $sub = array_pop($domainParts);
+        $sub    = array_pop($domainParts);
+        $result = null;
 
         if (!is_array($listNode) || is_null($sub)
             || array_key_exists('!' . $sub, $listNode)
@@ -572,7 +541,7 @@ class HTTP_Request2_CookieJar implements Serializable
             return $sub;
         }
 
-        return (strlen($result ?: '') > 0) ? ($result . '.' . $sub) : null;
+        return (strlen($result) > 0) ? ($result . '.' . $sub) : null;
     }
 }
 ?>

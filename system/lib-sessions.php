@@ -8,7 +8,7 @@
 // |                                                                           |
 // | Geeklog session library.                                                  |
 // +---------------------------------------------------------------------------+
-// | Copyright (C) 2000-2021 by the following authors:                         |
+// | Copyright (C) 2000-2010 by the following authors:                         |
 // |                                                                           |
 // | Authors: Tony Bibbs       - tony AT tonybibbs DOT com                     |
 // |          Mark Limburg     - mlimburg AT users DOT sourceforge DOT net     |
@@ -33,37 +33,30 @@
 /**
 * This is the session management library for Geeklog.  Some of this code was
 * borrowed from phpBB 1.4.x which is also GPL'd
+*
 */
-
-use Geeklog\Input;
-use Geeklog\Session;
 
 // Turn this on if you want to see various debug messages from this library
 $_SESS_VERBOSE = COM_isEnableDeveloperModeLog('session');
 
-if (stripos($_SERVER['PHP_SELF'], 'lib-sessions.php') !== false) {
+if (strpos(strtolower($_SERVER['PHP_SELF']), 'lib-sessions.php') !== false) {
     die('This file can not be used on its own!');
 }
 
-if (empty($_CONF['cookiedomain'])) {
-    preg_match("/\/\/([^\/:]*)/", $_CONF['site_url'], $server);
-    if (substr($server[1], 0, 4) === 'www.') {
-        $_CONF['cookiedomain'] = substr($server[1], 3);
+if (empty ($_CONF['cookiedomain'])) {
+    preg_match ("/\/\/([^\/:]*)/", $_CONF['site_url'], $server);
+    if (substr ($server[1], 0, 4) == 'www.') {
+        $_CONF['cookiedomain'] = substr ($server[1], 3);
     } else {
-		// Issue #465 - Fix for cookie not getting set for Chrome browsers if domain is IP address
-		if (($_DEVICE->browser() == 'Chrome') && (filter_var($server[1], FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) || filter_var($server[1], FILTER_VALIDATE_IP, FILTER_FLAG_IPV6))) {
-			// For Chrome browsers when IP detected instead of domain name
-			$_CONF['cookiedomain'] = '';
-        } elseif (strpos($server[1], '.') === false) {
-            // For 'localhost' or other local names
+        if (strchr ($server[1], '.') === false) {
+            // e.g. 'localhost' or other local names
             $_CONF['cookiedomain'] = '';
         } else {
-			// For regular domain names or IPs
-			$_CONF['cookiedomain'] = '.' . $server[1];
+            $_CONF['cookiedomain'] = '.' . $server[1];
         }
     }
     if ($_SESS_VERBOSE) {
-        COM_errorLog("Setting cookiedomain = '" . $_CONF['cookiedomain'] . "'", 1);
+        COM_errorLog ("Setting cookiedomain = '" . $_CONF['cookiedomain'] . "'", 1);
     }
 }
 
@@ -72,6 +65,9 @@ if (empty($_CONF['cookiedomain'])) {
 *
 * Much of this code if from phpBB (www.phpbb.org).  This checks the session
 * cookie and long term cookie to get the users state.
+*
+* @return   void
+*
 */
 function SESS_sessionCheck()
 {
@@ -81,139 +77,118 @@ function SESS_sessionCheck()
         COM_errorLog("*** Inside SESS_sessionCheck ***",1);
     }
 
-    $_USER = array(
-        'uid'      => Session::ANON_USER_ID,
-        'username' => 'Anonymous'               // $LANG01[24] is still not defined here
-    );
+    $_USER = array();
 
     // Check for a cookie on the users's machine.  If the cookie exists, build
     // an array of the users info and setup the theme.
 
-    // Flag indicates if session cookie exists on users device and session data exist on server
-    $validUserSessionExists = Session::init(array(
-        'debug'           => COM_isEnableDeveloperModeLog('session'),
-        'logger'          => 'COM_errorLog',
-        'cookie_disabled' => false,
-        'cookie_lifetime' => $_CONF['session_cookie_timeout'],
-        'cookie_path'     => $_CONF['cookie_path'],
-        'cookie_domain'   => $_CONF['cookiedomain'],
-        'cookie_secure'   => $_CONF['cookiesecure'],
-        'session_name'    => $_CONF['cookie_session'],
-    ));
-    $sessId = Session::getSessionId();
-    $escSessionId = DB_escapeString($sessId);
-    $status = -1;
+    // Flag indicates if session cookie and session data exist
+    $session_exists = true;
 
-    // See if session database record is expired (it is okay if missing as it can be a brand new session)
-    // Need to do this check here since deleting of expired sessions and auto login keys is handled in SESS_newSession which may not have been run for a while
-    if ($validUserSessionExists) {
-        $lifespan =  $_CONF['session_cookie_timeout'];
-        $ctime = time();
-        $currentTime = (string) ($ctime);
-        $expiryTime = (string) ($ctime - $lifespan);
-        $sql = "SELECT start_time, autologin_key_hash FROM {$_TABLES['sessions']} WHERE sess_id = '$escSessionId'";
-        $result = DB_query($sql);
-        $numRows = DB_numRows($result);
-
-        if ($numRows) {
-            $A = DB_fetchArray($result);
-            $sessionStartTime = $A['start_time'];
-
-            if (empty($sessionStartTime) || ($sessionStartTime < $expiryTime)) {
-                // Session found but should have been deleted since expired so delete it now then
-                $validUserSessionExists = false;
-                $escSessionAutoLoginKeyHash = DB_escapeString($A['autologin_key_hash']);
-                $seq = DB_getItem($_TABLES['sessions'], 'seq', "sess_id = '$escSessionId'", \Geeklog\IP::INVALID_SEQ);
-                DB_query("DELETE FROM {$_TABLES['sessions']} WHERE sess_id = '$escSessionId'");
-
-                if ($seq !== \Geeklog\IP::INVALID_SEQ) {
-                    DB_query("DELETE FROM {$_TABLES['sessions']} WHERE seq = $seq");
-                }
-
-                // Also delete auto login key associated with session if key expired
-                if (!empty($sessionAutoLoginKeyHash)) {
-                    DB_query("DELETE FROM {$_TABLES['userautologin']} WHERE autologin_key_hash  = '$escSessionAutoLoginKeyHash' AND expiry_time < $currentTime");
-                }
-            }
-        } else {
-            // Treat as a brand new session since our db session record not found
-            $validUserSessionExists = false;
-        }
-    }
-
-    // For valid session required data on server, user session cookie, and our session record in table.
-    if ($validUserSessionExists) {
+    if (isset($_COOKIE[$_CONF['cookie_session']])) {
+        $sessid = COM_applyFilter($_COOKIE[$_CONF['cookie_session']]);
         if ($_SESS_VERBOSE) {
-            COM_errorLog("Got {$sessId} as the session ID",1);
+            COM_errorLog("Got $sessid as the session ID",1);
         }
 
-        $userId = Session::getUid();
+        $userid = SESS_getUserIdFromSession($sessid, $_CONF['session_cookie_timeout'],
+            $_SERVER['REMOTE_ADDR'], $_CONF['cookie_ip']);
+
         if ($_SESS_VERBOSE) {
-            COM_errorLog("Got {$userId} as User ID from the session ID",1);
+            COM_errorLog("Got $userid as User ID from the session ID",1);
         }
 
-        if ($userId > Session::ANON_USER_ID) {
+        if ($userid > 1) {
             // Check user status
-            $status = SEC_checkUserStatus($userId);
+            $status = SEC_checkUserStatus($userid);
             if (($status == USER_ACCOUNT_ACTIVE) ||
                     ($status == USER_ACCOUNT_AWAITING_ACTIVATION ||
                     $status == USER_ACCOUNT_LOCKED ||
                     $status == USER_ACCOUNT_NEW_EMAIL ||
                     $status == USER_ACCOUNT_NEW_PASSWORD)) {
-                SESS_updateSessionTime($sessId);
-                $_USER = SESS_getUserDataFromId($userId);
+                SESS_updateSessionTime($sessid, $_CONF['cookie_ip']);
+                $_USER = SESS_getUserDataFromId($userid);
                 if ($_SESS_VERBOSE) {
                     $str = "Got " . count($_USER) . " pieces of data from userdata \n";
-                    foreach ($_USER as $k => $v) {
+                    foreach ($_USER as $k => $v)
                         $str .= sprintf("%15s [%s] \n", $k, $v);
-                    }
                     COM_errorLog($str, 1);
                 }
-
-                SESS_issueAutoLogin($userId);
+                $_USER['auto_login'] = false;
             }
-        } elseif ($userId === Session::ANON_USER_ID) {
-            // Check if the permanent cookie exists
-            $userId = SESS_handleAutoLogin();
-
-            if ($userId > Session::ANON_USER_ID) {
-                SESS_newSession($userId, \Geeklog\IP::getIPAddress());
-                $_USER = SESS_getUserDataFromId($userId);
-                SESS_issueAutoLogin($userId);
-            } else {
-                // Anonymous User has session so update any information
-                SESS_updateSessionTime($sessId);
-            }
+        } elseif ($userid == 1) {
+            // Anonymous User has session so update any information
+            SESS_updateSessionTime($sessid, $_CONF['cookie_ip']);
+        } else {
+            // Session probably expired
+            $session_exists = false;
         }
     } else {
-        // Session cookie was not found, but the Session class was initialized.
         if ($_SESS_VERBOSE) {
-            COM_errorLog("Session cookie, and/or session data on server, and/or session record in DB not found",1);
+            COM_errorLog("Session cookie not found",1);
+        }
+        $session_exists = false;
+    }
+
+    if ($session_exists === false) {
+        // Check if the permanent cookie exists
+        $userid = '';
+        if (isset($_COOKIE[$_CONF['cookie_name']])) {
+            $userid = COM_applyFilter($_COOKIE[$_CONF['cookie_name']], true);
         }
 
-        // Check if the permanent cookie exists
-        $userId = SESS_handleAutoLogin();
-
-        if ($userId > Session::ANON_USER_ID) {
+        if (!empty($userid)) {
             // Session cookie or session data don't exist, but a permanent cookie does.
+            // Start a new session cookie and session data;
             if ($_SESS_VERBOSE) {
-                COM_errorLog("Got {$userId} as User ID from the permanent cookie", 1);
+                COM_errorLog("Got $userid as User ID from the permanent cookie",1);
             }
 
-            Session::setUid($userId);
-
-            // Check user status
-            $status = SEC_checkUserStatus($userId);
-            if (($status == USER_ACCOUNT_ACTIVE) ||
-                ($status == USER_ACCOUNT_AWAITING_ACTIVATION)) {
+            $cookie_password = '';
+            $userpass = '';
+            if (($userid > 1) &&
+                    isset($_COOKIE[$_CONF['cookie_password']])) {
+                $cookie_password = $_COOKIE[$_CONF['cookie_password']];
+                $userpass = DB_getItem($_TABLES['users'], 'passwd',
+                                       "uid = $userid");
+            }
+            if (empty($cookie_password) || ($cookie_password <> $userpass)) {
                 if ($_SESS_VERBOSE) {
-                    COM_errorLog('Create new session', 1);
+                    COM_errorLog("Password comparison failed or cookie password missing",1);
                 }
 
-                // Create new session and write cookie since user is now logged in
-                SESS_newSession($userId, \Geeklog\IP::getIPAddress());
-                $_USER = SESS_getUserDataFromId($userId);
-				SESS_issueAutoLogin($userId); // New session here so auto login key will be new
+                // Invalid or manipulated cookie data
+                $ctime = time() - 10000;
+                SEC_setCookie($_CONF['cookie_session'], '', $ctime);
+                SEC_setCookie($_CONF['cookie_password'], '', $ctime);
+                SEC_setCookie($_CONF['cookie_name'], '', $ctime);
+
+                COM_clearSpeedlimit($_CONF['login_speedlimit'], 'login');
+                if (COM_checkSpeedlimit('login', $_CONF['login_attempts']) > 0) {
+                    if (! defined('XHTML')) { define('XHTML', ''); }
+                    COM_displayMessageAndAbort(82, '', 403, 'Access denied');
+                }
+                COM_updateSpeedlimit('login');
+            } elseif ($userid > 1) {
+                if ($_SESS_VERBOSE) {
+                    COM_errorLog("Password comparison passed",1);
+                }
+                // Check user status
+                $status = SEC_checkUserStatus($userid);
+                if (($status == USER_ACCOUNT_ACTIVE) ||
+                        ($status == USER_ACCOUNT_AWAITING_ACTIVATION)) {
+                    if ($_SESS_VERBOSE) {
+                        COM_errorLog("Create new session and write cookie",1);
+                    }
+                    // Create new session and write cookie
+                    $sessid = SESS_newSession($userid, $_SERVER['REMOTE_ADDR'],
+                        $_CONF['session_cookie_timeout'], $_CONF['cookie_ip']);
+                    SESS_setSessionCookie($sessid, $_CONF['session_cookie_timeout'],
+                        $_CONF['cookie_session'], $_CONF['cookie_path'],
+                        $_CONF['cookiedomain'], $_CONF['cookiesecure']);
+                    $_USER = SESS_getUserDataFromId($userid);
+                    $_USER['auto_login'] = true;
+                }
             }
         } else {
             if ($_SESS_VERBOSE) {
@@ -222,7 +197,12 @@ function SESS_sessionCheck()
 
             // Anonymous user has session id but it has been expired and wiped from the db so reset.
             // Or new anonymous user so create new session and write cookie.
-            SESS_newSession($userId, \Geeklog\IP::getIPAddress());
+            $userid = 1;
+            $sessid = SESS_newSession($userid, $_SERVER['REMOTE_ADDR'],
+                $_CONF['session_cookie_timeout'], $_CONF['cookie_ip']);
+            SESS_setSessionCookie($sessid, $_CONF['session_cookie_timeout'],
+                $_CONF['cookie_session'], $_CONF['cookie_path'],
+                $_CONF['cookiedomain'], $_CONF['cookiesecure']);
         }
     }
 
@@ -230,31 +210,33 @@ function SESS_sessionCheck()
         COM_errorLog("*** Leaving SESS_sessionCheck ***",1);
     }
 
+    $_USER['session_id'] = $sessid;
+    
     // Check to see if user status is set to something we have to redirect the user too
-    if (isset($_USER['uid']) && $_USER['uid'] > Session::ANON_USER_ID) {
+    if (isset($_USER['uid']) && $_USER['uid'] > 1) {
         // Check if active user has email account and if required
         // Doesn't matter if remote account or not
         if ($_CONF['require_user_email'] && empty($_USER['email']) && $_USER['status'] == USER_ACCOUNT_ACTIVE) {
             $_USER['status'] = USER_ACCOUNT_NEW_EMAIL;
             DB_change($_TABLES['users'], 'status', USER_ACCOUNT_NEW_EMAIL, 'uid', $_USER['uid']);
         }
-
+        
         if ($_USER['status'] == USER_ACCOUNT_LOCKED) {
             // Account is locked so user shouldn't be logged in
-            if ($_SERVER['PHP_SELF'] !== '/users.php') {
-                COM_redirect($_CONF['site_url'] . '/users.php?mode=logout&msg=17');
+            if ($_SERVER['PHP_SELF'] != '/users.php') {
+                COM_redirect($_CONF['site_url'] . '/users.php?mode=logout&msg=17');  
             }
         } elseif ($_USER['status']  == USER_ACCOUNT_NEW_EMAIL || $_USER['status'] == USER_ACCOUNT_NEW_PASSWORD) {
             // Account requires additional info so get it
-            if ($_SERVER['PHP_SELF'] !== '/users.php') {
+            if ($_SERVER['PHP_SELF'] != '/users.php') {
                 if ($_USER['status']  == USER_ACCOUNT_NEW_EMAIL) {
                     COM_redirect($_CONF['site_url'] . '/users.php?mode=newemailstatus');
                 } elseif ($status == USER_ACCOUNT_NEW_PASSWORD) {
                     COM_redirect($_CONF['site_url'] . '/users.php?mode=newpwdstatus');
                 }
             }
-
-        }
+            
+        }      
     }
 }
 
@@ -264,459 +246,358 @@ function SESS_sessionCheck()
 * Adds a new session to the database for the given userid and returns a new session ID.
 * Also deletes all expired sessions from the database, based on the given session lifespan.
 *
-* @param   int     $userId     User ID to create session for
-* @param   string  $remote_ip  IP address user is connected from
-* @return  string              Session ID
+* @param        int         $userid         User ID to create session for
+* @param        string      $remote_ip      IP address user is connected from
+* @param        string      $lifespan       How long (seconds) this cookie should persist
+* @param        string      $md5_based      If 1 session will be MD5 hash of ip address
+* @return       string      Session ID
+*
 */
-function SESS_newSession($userId, $remote_ip)
+function SESS_newSession($userid, $remote_ip, $lifespan, $md5_based=0)
 {
     global $_TABLES, $_CONF, $_SESS_VERBOSE;
 
     if ($_SESS_VERBOSE) {
-        COM_errorLog("*** Inside SESS_newSession ***", 1);
-        COM_errorLog(
-            "Args to SESS_newSession: userid = {$userId}, remote_ip = {$remote_ip}",
-            1
-        );
+        COM_errorLog("*** Inside SESS_newSession ***",1);
+        COM_errorLog("Args to SESS_newSession: userid = $userid, "
+            . "remote_ip = $remote_ip, lifespan = $lifespan, "
+            . "md5_based = $md5_based",1);
+    }
+    $sessid = mt_rand();
+
+    // For added security we are adding the option to build a IP-based
+    // session ID.  This has the advantage of better security but it may
+    // required dialed users to login every time.  You can turn the below
+    // code on in the configuration (it's turned off by default)
+    $md5_sessid = '';
+    if ($md5_based == 1) {
+        $ip = str_replace('.','',$remote_ip);
+        $md5_sessid = md5($ip + $sessid);
     }
 
-    // ******************************************************
-    // Note this check obviously only runs when a new session happens not with existing sessions
-    // Assumed done this way to prevent check happening with every single page load
-
-    // Check to delete expired sessions from database
-    $lifespan =  $_CONF['session_cookie_timeout'];
     $ctime = time();
-    $currentTime = (string) $ctime;
-    $expiryTime = (string) ($ctime - $lifespan);
-    $deleteResult1 = true;
-    $deleteResult2 = true;
-    $retryMax = 3;
-    $wait = 50000; // 50 ms
-
-    for ($i = 0; $i < $retryMax; $i++) {
-        DB_lockTable([$_TABLES['sessions'], $_TABLES['ip_addresses']]);
-        $sql = "SELECT sess_id, {$_TABLES['sessions']}.seq FROM {$_TABLES['sessions']} "
-            . "LEFT JOIN {$_TABLES['ip_addresses']} "
-            . "ON {$_TABLES['sessions']}.seq = {$_TABLES['ip_addresses']}.seq "
-            . "WHERE (start_time < {$expiryTime})";
-        $result = DB_query($sql);
-        $sessIds = [];
-        $seqs = [];
-
-        while (($A = DB_fetchArray($result, false)) !== false) {
-            $sessIds[] = $A['sess_id'];
-            $seqs[] = (int) $A['seq'];
+    $currtime = (string) ($ctime);
+    $expirytime = (string) ($ctime - $lifespan);
+    if (!isset($_COOKIE[$_CONF['cookie_session']])) {
+        // ok, delete any old sessons for this user
+        if ($userid > 1) {
+            DB_delete($_TABLES['sessions'], 'uid', $userid);
+        } else {
+            DB_delete($_TABLES['sessions'], array('uid', 'remote_ip'),
+                                            array(1, $remote_ip));
         }
-
-        if (!empty($sessIds)) {
-            $deleteSQL1 = "DELETE FROM {$_TABLES['sessions']} WHERE sess_id IN ('" . implode("', '", $sessIds) . "')";
-            $deleteResult1 = DB_query($deleteSQL1);
-            $deleteSQL2 = "DELETE FROM {$_TABLES['ip_addresses']} WHERE seq IN (" . implode(', ', $seqs) . ")";
-            $deleteResult2 = DB_query($deleteSQL2);
-        }
-
-        DB_unlockTable([$_TABLES['sessions'], $_TABLES['ip_addresses']]);
+    } else {
+        DB_lockTable($_TABLES['sessions']);
+        $deleteSQL = "DELETE FROM {$_TABLES['sessions']} WHERE (start_time < $expirytime)";
+        $delresult = DB_query($deleteSQL);
+        DB_unlockTable($_TABLES['sessions']);
 
         if ($_SESS_VERBOSE) {
-            COM_errorLog("Attempted to delete rows from session table with following SQL\n$deleteSQL1\n",1);
-            COM_errorLog("Got $deleteResult1 as a result from the query",1);
-            COM_errorLog("Attempted to delete rows from session table with following SQL\n$deleteSQL2\n",1);
-            COM_errorLog("Got $deleteResult2 as a result from the query",1);
+            COM_errorLog("Attempted to delete rows from session table with following SQL\n$deleteSQL\n",1);
+            COM_errorLog("Got $delresult as a result from the query",1);
         }
 
-        if ($deleteResult1 && $deleteResult2) {
-            break;
+        if (!$delresult) {
+            die("Delete failed in SESS_newSession()");
         }
-
-        usleep($wait);
     }
-
-    if (!$deleteResult1 || !$deleteResult2) {
-        die("Delete failed in SESS_newSession()");
+    // Remove the anonymous session for this user
+    if ($userid > 1) {
+        // Retrieve any session variables that we need to add to the new logged in session
+        // To come
+        // Delete record
+        DB_delete($_TABLES['sessions'], array('uid', 'remote_ip'),
+                                        array(1, $remote_ip));
     }
-
-    // Delete Expired User Auto Login Keys as long as the expired key is not tied to an active session
-    // If active session then need to keep expired autologin key info since we do not want to create a new key until this current session has expired since we want to force an actual manual login
-    DB_query("DELETE FROM {$_TABLES['userautologin']} WHERE autologin_key_hash NOT IN (SELECT autologin_key_hash FROM {$_TABLES['sessions']}) AND expiry_time < $currentTime");
-    // ******************************************************
-
-    $oldSessionId = Session::getSessionId();
-    $escOldSessionId = DB_escapeString($oldSessionId);
-
-    // Delete old session from database
-    $seq = DB_getItem($_TABLES['sessions'], 'seq', "sess_id = '$escOldSessionId'");
-    DB_query("DELETE FROM {$_TABLES['sessions']} WHERE sess_id = '{$escOldSessionId}'");
-    \Geeklog\IP::deleteIpAddressBySeq($seq);
-
-    // Create new session ID and insert it into database
-    $sessId = Session::regenerateId();
-    $escSessionId = DB_escapeString($sessId);
-    $seq = \Geeklog\IP::getSeq($remote_ip);
 
     // Create new session
-    Session::setUid($userId);
-    $sql = "INSERT INTO {$_TABLES['sessions']} (sess_id, uid, start_time, seq, whos_online) "
-        . "VALUES ('{$escSessionId}', {$userId}, {$currentTime}, {$seq}, 1)";
+    if ($md5_based == 1) {
+        $sql = "INSERT INTO {$_TABLES['sessions']} "
+            . "(sess_id, md5_sess_id, uid, start_time, remote_ip, whos_online) "
+            . "VALUES ($sessid, '$md5_sessid', $userid, $currtime, '$remote_ip', 1)";
+    } else {
+        $sql = "INSERT INTO {$_TABLES['sessions']} "
+            . "(sess_id, uid, start_time, remote_ip, whos_online) "
+            . "VALUES ($sessid, $userid, $currtime, '$remote_ip', 1)";
+    }
     $result = DB_query($sql);
     if (!$result) {
-        echo DB_error() . ': ' . DB_error() . '<br' . XHTML . '>';
-        die('Insert failed in SESS_newSession()');
+        echo DB_error().": ".DB_error()."<br" . XHTML . ">";
+        die("Insert failed in SESS_newSession()");
     }
 
-    if ($_CONF['lastlogin']) {
+    if ($_CONF['lastlogin'] == true) {
         // Update userinfo record to record the date and time as lastlogin
-        DB_query("UPDATE {$_TABLES['user_attributes']} SET lastlogin = UNIX_TIMESTAMP() WHERE uid = {$userId}");
+        DB_query("UPDATE {$_TABLES['userinfo']} SET lastlogin = UNIX_TIMESTAMP() WHERE uid=$userid");
     }
     if ($_SESS_VERBOSE) {
-        COM_errorLog("Assigned the following session id: {$sessId}", 1);
-        COM_errorLog("*** Leaving SESS_newSession ***", 1);
+        COM_errorLog("Assigned the following session id: $sessid",1);
+        COM_errorLog("*** Leaving SESS_newSession ***",1);
     }
-
-    return $sessId;
+    if ($md5_based == 1) {
+        return $md5_sessid;
+    }
+    return $sessid;
 }
 
 /**
-* Updates a session cookie's timeout and the session id
+* Sets the session cookie
+*
+* This saves the session ID to the session cookie on client's machine for
+* later use
+*
+* @param        string      $sessid         Session ID to save to cookie
+* @param        int         $cookietime     Cookie timeout value (not used)
+* @param        string      $cookiename     Name of cookie to save sessiond ID to
+* @param        string      $cookiepath     Path in which cookie should be sent to server for
+* @param        string      $cookiedomain   Domain in which cookie should be sent to server for
+* @param        int         $cookiesecure   if =1, set cookie only on https connection
+*
+*/
+function SESS_setSessionCookie($sessid, $cookietime, $cookiename, $cookiepath, $cookiedomain, $cookiesecure)
+{
+    global $_SESS_VERBOSE;
+
+    // This sets a cookie that will persist until the user closes their browser
+    // window. since session expiry is handled on the server-side, cookie expiry
+    // time isn't a big deal.
+    if ($_SESS_VERBOSE) {
+        COM_errorLog("Setting session cookie: setcookie($cookiename, $sessid, 0, "
+            . "$cookiepath, $cookiedomain, $cookiesecure);", 1);
+    }
+
+    if (SEC_setCookie($cookiename, $sessid, 0, $cookiepath, $cookiedomain,
+                      $cookiesecure) === false) {
+        COM_errorLog("Failed to set session cookie.", 1);
+    }
+}
+
+/**
+* Gets the user id from Session ID
+*
+* Returns the userID associated with the given session, based on
+* the given session lifespan $cookietime and the given remote IP
+* address. If no match found, returns 0.
+*
+* @param        string      $sessid         Session ID to get user ID from
+* @param        string      $cookietime     Used to query DB for valid sessions
+* @param        string      $remote_ip      Used to pull session we need
+* @param        int         $md5_based      Let's us now if we need to take MD5 hash into consideration
+* @return       int         User ID
+*/
+function SESS_getUserIdFromSession($sessid, $cookietime, $remote_ip, $md5_based=0)
+{
+    global $_CONF, $_TABLES, $_SESS_VERBOSE;
+
+    if ($_SESS_VERBOSE) {
+        COM_errorLog("*** Inside SESS_getUserIdFromSession ***",1);
+    }
+
+    $mintime = (string) (time() - $cookietime);
+
+    if ($md5_based == 1) {
+        $sql_where = "md5_sess_id = '$sessid'";
+    } else {
+        $sql_where = "sess_id = '$sessid'";
+    }
+    $sql = "SELECT uid FROM {$_TABLES['sessions']} WHERE "
+        . "($sql_where) AND (start_time > $mintime) AND (remote_ip = '$remote_ip')";
+
+    if ($_SESS_VERBOSE) {
+        COM_errorLog("SQL in SESS_getUserIdFromSession is: \n$sql \n", 1);
+    }
+
+    $result = DB_query($sql);
+    $numrows = DB_numRows($result);
+
+    if ($_SESS_VERBOSE) {
+        COM_errorLog("*** Leaving SESS_getUserIdFromSession ***",1);
+    }
+
+    if ($numrows == 1) {
+        $row = DB_fetchArray($result);
+        return $row['uid'];
+    }
+    return 0;
+}
+
+/**
+* Updates a session cookies timeout
 *
 * Refresh the start_time of the given session in the database.
 * This is called whenever a page is hit by a user with a valid session.
 *
-* @param   string  $sessId  Session ID to update time for
+* @param        string      $sessid     Session ID to update time for
+* @param        int         $md5_based  Indicates if sessid is MD5 hash
+* @return       boolean     always true for some reason
+*
 */
-function SESS_updateSessionTime($sessId)
+function SESS_updateSessionTime($sessid, $md5_based=0)
 {
     global $_TABLES;
 
-    $escSessionId = DB_escapeString($sessId);
-    $newTime = (string) time();
-    $sql = "UPDATE {$_TABLES['sessions']} SET start_time = {$newTime}, whos_online = 1 "
-        . "WHERE sess_id = '{$escSessionId}'";
-    DB_query($sql);
-}
+    $newtime = (string) time();
 
-/**
-* This ends the current user session and converts it to an anonymous session
-*
-* Delete the given session from the database. Used to logout the current user (by the logout page).
-*
-* @return  bool           Always true for some reason
-*/
-function SESS_endCurrentUserSession()
-{
-    global $_TABLES;
-
-    SESS_deleteAutoLoginKey();
-
-    $oldSessionId = DB_escapeString(Session::getSessionId());
-    $newSessionId = Session::regenerateId();
-    $newSessionId = DB_escapeString($newSessionId);
-    $sql = "UPDATE {$_TABLES['sessions']} SET uid = " . Session::ANON_USER_ID . ", sess_id = '{$newSessionId}' "
-        . " WHERE sess_id = '{$oldSessionId}'";
-    DB_query($sql);
-
-    Session::setUid(Session::ANON_USER_ID);
-    // uid_to_check is used by CSRF token to make sure same person.
-	// Update uid_to_check back to anonymous user id since user is logging out.
-	Session::setVar('uid_to_check', Session::ANON_USER_ID); // Fix for issue #1116 (If do not do this then same IP address cannot log into different user accounts since session will always be tied to last successful login uid)
+    if ($md5_based == 1) {
+        $sql_where = "md5_sess_id = '$sessid'";
+    } else {
+        $sql_where = "sess_id = '$sessid'";
+    }
+    DB_query("UPDATE {$_TABLES['sessions']} "
+        . "SET start_time = $newtime, whos_online = 1 WHERE ($sql_where)");
 
     return 1;
 }
 
 /**
-* This deletes all sessions and auto keys for a user
+* This ends a user session
 *
-* This should not be used by the current user (instead use SESS_endCurrentUserSession).
+* Delete the given session from the database. Used by the logout page.
 *
-* @param   int   $userId  User ID to end session of
-* @return  bool           Always true for some reason
+* @param        int     $userid     User ID to end session of
+* @return       boolean     Always true for some reason
+*
 */
-function SESS_deleteUserSessions($userId)
+function SESS_endUserSession($userid)
 {
     global $_TABLES;
 
-    SESS_deleteUserAutoLoginKeys($userId);
-    $seq = DB_getItem($_TABLES['sessions'], 'seq', "uid = $userId", \Geeklog\IP::INVALID_SEQ);
-    $sql = "DELETE FROM {$_TABLES['sessions']} WHERE uid = $userId";
-    DB_query($sql);
-    \Geeklog\IP::deleteIpAddressBySeq($seq);
+    if (!(isset($_CONF['demo_mode']) && $_CONF['demo_mode'])) {
+        DB_delete($_TABLES['sessions'], 'uid', $userid);
+    }
 
     return 1;
 }
 
 /**
+* Gets a user's data
+*
+* Gets user's data based on their username
+*
+* @param        string     $username        Username of user to get data for
+* @return       array       returns user's data in an array
+*
+*/
+function SESS_getUserData($username)
+{
+    global $_TABLES;
+
+    $sql = "SELECT *,format FROM {$_TABLES['users']}, {$_TABLES['userprefs']}, {$_TABLES['dateformats']} "
+        . "WHERE {$_TABLES['dateformats']}.dfid = {$_TABLES['userprefs']}.dfid AND "
+        . "{$_TABLES['userprefs']}.uid = {$_TABLES['users']}.uid AND username = '$username'";
+
+    if (!$result = DB_query($sql)) {
+        COM_errorLog("Error in SESS_getUserData", 1);
+    }
+
+    if (!$myrow = DB_fetchArray($result)) {
+        COM_errorLog("Error in SESS_getUserData", 1);
+    }
+
+    return $myrow;
+}
+
+/**
+* Gets user's data
+*
 * Gets user's data based on their user id
 *
-* @param   int    $userId  User ID of user to get data for
-* @return  array           returns user's data in an array
+* @param    int     $userid     User ID of user to get data for
+* @return   array               returns user's data in an array
+*
 */
-function SESS_getUserDataFromId($userId)
+function SESS_getUserDataFromId($userid)
 {
-    global $_TABLES, $_USER, $LANG01;
+    global $_TABLES;
 
-    $userId = (int) $userId;
-    if ($userId <= Session::ANON_USER_ID) {
-        return array(
-            'uid'      => Session::ANON_USER_ID,
-            'username' => $LANG01[24] // Anonymous
-        );
+    $sql = "SELECT *,format FROM {$_TABLES['dateformats']},{$_TABLES['users']},{$_TABLES['userprefs']} "
+        . "WHERE {$_TABLES['dateformats']}.dfid = {$_TABLES['userprefs']}.dfid AND "
+        . "{$_TABLES['userprefs']}.uid = $userid AND {$_TABLES['users']}.uid = $userid";
+
+    if (!$result = DB_query($sql)) {
+        $userdata = array('error' => '1');
+        return $userdata;
     }
 
-    $sql = "SELECT * FROM {$_TABLES['users']},{$_TABLES['user_attributes']} "
-        . "WHERE {$_TABLES['user_attributes']}.uid = $userId AND {$_TABLES['users']}.uid = {$userId}";
-
-    if ((!$result = DB_query($sql)) || (!$myRow = DB_fetchArray($result, false))) {
-        return array(
-            'uid'      => $userId,
-            'username' => $LANG01[24], // Anonymous
-            'error'    => '1',
-        );
+    if (!$myrow = DB_fetchArray($result, false)) {
+        $userdata = array('error' => '1');
+        return $userdata;
     }
 
-    // Get date time format from the Locale class
-    $myRow['format'] = \Geeklog\Locale::dateFormatIdToString($myRow['dfid']);
+    return $myrow;
+}
 
-    // Need to store auto login key this time so it can be reused for current session
-    if (isset($_USER['auto_login']) && $_USER['auto_login']) {
-        $myRow['auto_login'] = true;
-        $myRow['autoLoginKeyHash'] = $_USER['autoLoginKeyHash'];
+
+/**
+* Gets the Session ID from the User Id
+*
+* Returns the session id associated with the user if available.
+* This is not for anonymous users. If no match found, returns an empty string.
+*
+* @param        int      $uid         User Id to retrieve session Id for
+* @return       string                Session ID
+*/
+function SESS_getSessionIdFromUserId($uid)
+{
+    global $_TABLES;
+
+    $retval = '';
+    if ($uid > 1) {
+        $retval = DB_getItem($_TABLES['sessions'], "sess_id", "uid = $uid");
     }
 
-    return $myRow;
+    return $retval;
 }
 
 /**
 * Retrieves a session variable from the db
 *
-* @param   string  $name  Variable name to retrieve
-* @return  mixed          data from variable
+* @param        string      $variable   Variable name to retrieve
+* @return       string     data from variable
+*
 */
-function SESS_getVariable($name)
+function SESS_getVariable($variable)
 {
-    return Session::getVar($name, '');
+    global $_TABLES, $_CONF, $_USER;
+
+    $session_id = $_USER['session_id'];
+
+    if ($_CONF['cookie_ip'] == 1) { // $md5_based  Indicates if sessid is MD5 hash
+        $sql_where = "md5_sess_id = '$session_id'";
+    } else {
+        $sql_where = "sess_id = '$session_id'";
+    }
+    $retval = DB_getItem($_TABLES['sessions'], $variable, $sql_where);
+
+    return $retval;
 }
 
 /**
 * Updates a session variable from the db
 *
-* @param   string  $name   Variable name to update
-* @param   mixed   $value  Value of variable
-* @return  bool            Always true for some reason
+* @param        string      $variable   Variable name to update
+* @param        string      $value      Value of variable
+* @param        string      $session_id Session ID of variable to update (0 = current session)
+* @return       boolean     always true for some reason
+*
 */
-function SESS_setVariable($name, $value)
+function SESS_setVariable($variable, $value, $session_id = 0)
 {
-    Session::setVar($name, $value);
+    global $_TABLES, $_CONF, $_USER;
+
+    if ($session_id == 0) {
+        $session_id = $_USER['session_id'];
+    }
+
+    if ($_CONF['cookie_ip'] == 1) { // $md5_based  Indicates if sessid is MD5 hash
+        $sql_where = "md5_sess_id = '$session_id'";
+    } else {
+        $sql_where = "sess_id = '$session_id'";
+    }
+    DB_query("UPDATE {$_TABLES['sessions']} "
+        . "SET $variable = '$value' WHERE ($sql_where)");
 
     return 1;
 }
 
-/**
- * Handle an auto-login key
- * Anonymous session should already be created
- *
- * @return  int  user id or 1 when no auto-login key was found
- */
-function SESS_handleAutoLogin()
-{
-    global $_CONF, $_TABLES;
-
-    // Get an auto-login key from cookie
-    $autoLoginKey = Input::cookie($_CONF['cookie_name'], '');
-    $autoLoginKey = preg_replace('/[^0-9a-f]/', '', $autoLoginKey);
-
-    if ($autoLoginKey === '') {
-        // No auto-login key was found in the permanent cookie
-        return 1;
-    }
-
-    // Try to get a record with the auto-login key from `gl_sessions` table that is not expired (as expired keys are not checked for on every page load)
-    $salt = '';
-    $autoLoginKeyHash = SEC_encryptPassword($autoLoginKey, $salt, $_CONF['pass_alg'], $_CONF['pass_stretch']);
-    $escAutoLoginKeyHash = DB_escapeString($autoLoginKeyHash);
-    $currentTime = (string) time();
-    $sql = "SELECT uid FROM {$_TABLES['userautologin']} WHERE autologin_key_hash = '{$escAutoLoginKeyHash}' AND expiry_time > $currentTime";
-    $result = DB_query($sql);
-    if (DB_error()) {
-        return 1;
-    }
-
-    if (DB_numRows($result) == 1) {
-        $A = DB_fetchArray($result, false);
-        $uid = (int) $A['uid'];
-
-        // Delete old original session record tied to this auto login key if it exists (this only may happen if the server has been rebooted or something which flushed all the sesions) as actual PHP Session doesn't exist anymore
-        // from the current anonymous session to a new actual user session
-        $seq = DB_getItem($_TABLES['sessions'], 'seq', "autologin_key_hash = '{$escAutoLoginKeyHash}'", \Geeklog\IP::INVALID_SEQ);
-		DB_query("DELETE FROM {$_TABLES['sessions']} WHERE autologin_key_hash = '{$escAutoLoginKeyHash}'");
-        \Geeklog\IP::deleteIpAddressBySeq($seq);
-
-        // Auto login is successful. Update user array with new information (at this point user array is still for anonymous user and hasn't been loaded yet)
-        global $_USER;
-        $_USER['auto_login'] = true;
-        $_USER['autoLoginKeyHash'] = $autoLoginKeyHash;
-
-		// Note: A new logged in user session will be create after this function based on the uid
-        // At this point this anonymous user with an auto login key will be transferred over
-        return $uid;
-    } else {
-        // The auto-login key contained in the cookie was not found in the database.
-        // We should remove invalid auto-login key from both cookie and database
-        SESS_deleteAutoLoginKey();
-
-        return 1;
-    }
-}
-
-/**
- * Issue a cookie containing an auto-login key cookie and update session with auto-login key hash
- * User is already logged in and user data loaded at this point, and session has already been created
- *
- * @param  int     $userId
- * @return string|false  a newly created auto-login key hash or false on failure
- */
-function SESS_issueAutoLogin($userId)
-{
-    global $_CONF, $_TABLES, $_USER;
-
-    // We don't issue auto-login cookies for anonymous users
-    $userId = (int) $userId;
-    if ($userId <= Session::ANON_USER_ID) {
-        return false;
-    }
-
-    $lifeTime = COM_getUserCookieTimeout();
-    if ($lifeTime <= 0) {
-        // This user doesn't want auto-login feature
-        return false;
-    }
-
-    $sessionId = DB_escapeString(Session::getSessionId());
-
-    // Need to make sure cookie is the same as what is in the database so retrieve
-    $autoLoginKey = Input::cookie($_CONF['cookie_name'], '');
-    $autoLoginKey = preg_replace('/[^0-9a-f]/', '', $autoLoginKey);
-    $salt = ''; // no salt since must be same for all users. When user logsin in SESS_handleAutoLogin, we don't know user id  until it happens
-    if (!empty($autoLoginKey)) {
-        $cookieAutoLoginKeyHash = SEC_encryptPassword($autoLoginKey, $salt, $_CONF['pass_alg'], $_CONF['pass_stretch']);
-    } else {
-        $cookieAutoLoginKeyHash = '';
-    }
-
-    // If auto login happens we still have to update things as session id changes going from anoymous user to actual user
-    $auto_login = false;
-    if (isset($_USER['auto_login']) && $_USER['auto_login']) {
-        $auto_login = true;
-        $origAutoLoginKeyHash = $_USER['autoLoginKeyHash'];
-    } else {
-        $origAutoLoginKeyHash = DB_getItem($_TABLES['sessions'], 'autologin_key_hash', "sess_id = '$sessionId'");
-    }
-
-    // Either autologin happened and we have to update our new session record OR
-    // No autologin set yet for user session OR
-    // Something is not right since cookie does not match key stored in db so generate a new one since the user is already logged in by this point
-    // Make sure autologin key cookie still is the same as what is stored in the sessions table and both are not empty
-    if ($auto_login
-            || (empty($cookieAutoLoginKeyHash) || empty($origAutoLoginKeyHash)
-            || (!empty($cookieAutoLoginKeyHash) && !empty($origAutoLoginKeyHash) && $cookieAutoLoginKeyHash != $origAutoLoginKeyHash))) {
-        // Something is not right since cookie does not match key stored in db so generate a new one since the user is already logged in by this point
-
-        // If session has a auto login key hash already get expiry time
-        $expiry_time = '';
-        $escOrigAutoLoginKeyHash = '';
-        if (!empty($origAutoLoginKeyHash)) {
-            // So existing autologin key has been already set lets grab the expiry to use with this new one and delete existing hash records
-            // this also makes sure that the record exists in the userautologin table
-            $escOrigAutoLoginKeyHash = DB_escapeString($origAutoLoginKeyHash);
-            $expiry_time = DB_getItem($_TABLES['userautologin'], 'expiry_time', "autologin_key_hash = '$escOrigAutoLoginKeyHash'");
-
-            // If expiry time less than current time (give 10 second buffer) then record has not been delete.
-            // This can happen if a new session has not been created for a while by SESS_newSession which actually deletes expired sessions and auto login keys
-            // This can also happen if the users session is continuously active longer than the Auto Login Key expiry date (if for example the expiry is set to 1 hour this can happen easily)
-            // So lets keep key the way it is which will force a manual login if the session expires because of inactivity
-            $newTime = (string) (time() - 10);
-            if ($expiry_time < $newTime) {
-                return false;
-            }
-
-            // Make sure expiry is valid future date. This can sometimes happen if user logged in and then auto login key expired later during same session
-
-        } else {
-            // Include session time in expiry time so auto login key will not expire before session
-            $expiry_time = (string) (time() + $_CONF['session_cookie_timeout'] + $lifeTime);
-        }
-
-        if (!$auto_login) {
-            // This is the key we store as a cookie. If old key exists do not trust since not in DB and from user cookie which can be changed
-            $autoLoginKey = SEC_randomBytes(80);
-            $autoLoginKey = sha1($autoLoginKey);
-
-            // Extra bit of security. We store hash of key based on current Geeklog password encryption settings
-            // Calculate hash to store in database so actual key is only stored in cookie on users device
-            $salt = ''; // Can't use salt as we don't know the user at the point the auto login key is checked
-            $autoLoginKeyHash = SEC_encryptPassword($autoLoginKey, $salt, $_CONF['pass_alg'], $_CONF['pass_stretch']);
-
-            // Note setting cookie can return true even if cookie is not set by browser due to expiry time < current time on users device
-            if (!SEC_setCookie($_CONF['cookie_name'], $autoLoginKey, $expiry_time)) {
-                return false;
-            }
-        } else {
-            $autoLoginKeyHash = $origAutoLoginKeyHash;
-        }
-
-        $escAutoLoginKeyHash = DB_escapeString($autoLoginKeyHash);
-        $escSessionId = DB_escapeString($sessionId);
-        $sql = "UPDATE {$_TABLES['sessions']} SET autologin_key_hash = '{$escAutoLoginKeyHash}' "
-            . "WHERE (uid = {$userId}) AND (sess_id = '{$escSessionId}')";
-        DB_query($sql);
-
-        // Replace record or create a new one. Always replace if we can as we don't want extra records hanging around
-        if (!empty($origAutoLoginKeyHash) && !empty($expiry_time)) {
-            $sql = "UPDATE {$_TABLES['userautologin']} SET autologin_key_hash = '{$escAutoLoginKeyHash}',  expiry_time = $expiry_time "
-                . "WHERE (uid = {$userId}) AND (autologin_key_hash = '{$escOrigAutoLoginKeyHash}')";
-        } else {
-            $sql = "INSERT INTO {$_TABLES['userautologin']} (autologin_key_hash, expiry_time, uid) "
-                . "VALUES ('{$escAutoLoginKeyHash}', $expiry_time, $userId) ";
-        }
-        DB_query($sql);
-
-        return $autoLoginKeyHash;
-    } else {
-        return $origAutoLoginKeyHash;
-    }
-}
-
-/**
- * Delete an existing auto-login key for the current user (based on session id)
- */
-function SESS_deleteAutoLoginKey()
-{
-    global $_CONF, $_TABLES;
-
-    $sessionId = DB_escapeString(Session::getSessionId());
-    $autoLoginKeyHash = DB_escapeString(DB_getItem($_TABLES['sessions'], 'autologin_key_hash', "sess_id = '$sessionId'"));
-    $sql = "UPDATE {$_TABLES['sessions']} SET autologin_key_hash = '' WHERE sess_id = '{$sessionId}'";
-    DB_query($sql);
-
-    $sql = "DELETE FROM {$_TABLES['userautologin']} WHERE autologin_key_hash = '{$autoLoginKeyHash}' ";
-    DB_query($sql);
-
-    SEC_setCookie($_CONF['cookie_name'], '', time() - 10000);
-}
-
-/**
- * Delete any existing auto-login keys for a specified user
- *
- * @param  int     $uid
- */
-function SESS_deleteUserAutoLoginKeys($uid)
-{
-    global $_TABLES, $_USER;
-
-    if ($uid > 1) {
-        $sql = "UPDATE {$_TABLES['sessions']} SET autologin_key_hash = '' WHERE uid = $uid";
-        DB_query($sql);
-
-        $sql = "DELETE FROM {$_TABLES['userautologin']} WHERE uid = $uid";
-        DB_query($sql);
-    }
-}
+?>

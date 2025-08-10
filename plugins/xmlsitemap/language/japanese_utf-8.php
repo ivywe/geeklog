@@ -6,7 +6,7 @@
 // +---------------------------------------------------------------------------+
 // | japanese_utf-8.php                                                        |
 // +---------------------------------------------------------------------------+
-// | Copyright (C) 2009-2020 by the following authors:                         |
+// | Copyright (C) 2009-2014 by the following authors:                         |
 // |                                                                           |
 // | Authors: Kenji ITO         - geeklog AT mystral-kk DOT net                |
 // |          Dirk Haun         - dirk AT haun-online DOT de                   |
@@ -31,14 +31,7 @@ global $LANG32;
 
 $LANG_XMLSMAP = array(
     'plugin' => 'XMLSitemap',
-    'admin' => 'XMLSitemap管理',
-    'description' => 'ふつう、アイテムを追加・変更・削除するたびにサイトマップは自動的に更新されます。うまくいかない場合は、下のボタンをクリックして手動で更新してください。',
-    'filename' => 'ファイル名',
-    'updated' => '更新日時',
-    'not_saved' => '保存されていません',
-    'update_now' => 'すべてのサイトマップを更新する',
-    'update_success' => 'すべてのサイトマップを更新しました。',
-    'update_fail' => 'サイトマップを更新できませんでした。詳しくは "error.log" を参照してください。'
+    'admin' => 'XMLSitemap管理'
 );
 
 // Localization of the Admin Configuration UI
@@ -50,18 +43,13 @@ $LANG_configsections['xmlsitemap'] = array(
 $LANG_confignames['xmlsitemap'] = array(
     'sitemap_file' => 'サイトマップファイル名',
     'mobile_sitemap_file' => 'モバイルサイトマップ名',
-    'include_homepage' => 'トップページをサイトマップに含める',
     'types' => 'サイトマップの内容',
+    'exclude' => '除外するプラグイン',
     'lastmod' => '最終編集日',
     'priorities' => '優先度',
-    'frequencies' => '頻度',
+    'frequencies' => 'Frequency',
     'ping_google' => 'Googleにpingを送信する',
-    'indexnow' => 'IndexNowを有効にする',
-    'indexnow_key' => 'IndexNowのキー',
-    'indexnow_key_location' => 'IndexNowのキーの場所',
-    'news_sitemap_file' => 'ニュースサイトマップ名',
-    'news_sitemap_topics' => 'この話題の記事を含める',
-    'news_sitemap_age' => '記事の古さの最大値'
+    'ping_bing' => 'Bingにpingを送信する'
 );
 
 $LANG_configsubgroups['xmlsitemap'] = array(
@@ -72,16 +60,14 @@ $LANG_tab['xmlsitemap'] = array(
     'tab_main' => 'XMLSitemapの主要設定',
     'tab_pri' => '優先度',
     'tab_freq' => '更新頻度',
-    'tab_ping' => 'Ping送信',
-    'tab_news' => 'ニュースサイトマップ'
+    'tab_ping' => 'Ping送信'
 );
 
 $LANG_fs['xmlsitemap'] = array(
     'fs_main' => 'XMLSitemapのメイン設定',
     'fs_pri' => '優先度(既定値 = 0.5、0.0 = 最低、1.0 = 最高)',
     'fs_freq' => '更新頻度',
-    'fs_ping' => 'サイトマップ更新時にPingを送信する',
-    'fs_news' => 'ニュースサイトマップの設定'
+    'fs_ping' => 'サイトマップ更新時にPingを送信する'
 );
 
 // Note: entries 0, 1, 9, and 12 are the same as in $LANG_configselects['Core']

@@ -2,7 +2,6 @@
 
 namespace Geeklog;
 
-use LogicException;
 use RobThree\Auth\TwoFactorAuth;
 use RobThree\Auth\TwoFactorAuthException;
 
@@ -45,7 +44,7 @@ class TwoFactorAuthentication
     /**
      * TwoFactorAuthentication constructor.
      *
-     * @param  int  $uid  User ID
+     * @param  int $uid User ID
      */
     public function __construct($uid)
     {
@@ -71,12 +70,12 @@ class TwoFactorAuthentication
     /**
      * Check if two factor auth is enabled for the current user
      *
-     * @throws LogicException
+     * @throws \LogicException
      */
     private function checkEnabled()
     {
         if (!$this->isEnabled) {
-            throw new LogicException('Two factor auth is disabled for the current user.');
+            throw new \LogicException('Two factor auth is disabled for the current user.');
         }
     }
 
@@ -84,14 +83,11 @@ class TwoFactorAuthentication
      * Return the only object of two factor auth class
      *
      * @return TwoFactorAuth
-     * @throws TwoFactorAuthException
      */
     private function getTFAObject()
     {
         if (empty($this->tfa)) {
-            $this->tfa = new TwoFactorAuth(
-                'Geeklog', self::NUM_DIGITS, 30, 'sha1', new QRCodeProvider()
-            );
+            $this->tfa = new TwoFactorAuth('Geeklog', self::NUM_DIGITS);
         }
 
         return $this->tfa;
@@ -145,7 +141,7 @@ class TwoFactorAuthentication
     /**
      * Save a secret to database
      *
-     * @param  string  $secret
+     * @param  string $secret
      * @return bool   true on success, false otherwise
      */
     public function saveSecretToDatabase($secret)
@@ -169,8 +165,8 @@ class TwoFactorAuthentication
     /**
      * Return QR code as a data URI
      *
-     * @param  string  $secret
-     * @param  string  $email
+     * @param  string $secret
+     * @param  string $email
      * @return string
      */
     public function getQRCodeImageAsDataURI($secret, $email)
@@ -196,7 +192,7 @@ class TwoFactorAuthentication
 
         $this->checkEnabled();
 
-        $retval = [];
+        $retval = array();
         $sql = "SELECT code FROM {$_TABLES['backup_codes']} "
             . "WHERE (uid = {$this->uid}) AND (is_used = 0) "
             . "ORDER BY code";
@@ -228,6 +224,7 @@ class TwoFactorAuthentication
      * Create backup codes and save them into database
      *
      * @return array of string
+     * @throws TwoFactorAuthException
      */
     public function createBackupCodes()
     {
@@ -236,28 +233,23 @@ class TwoFactorAuthentication
         $this->checkEnabled();
 
         $this->invalidateBackupCodes();
-        $retval = [];
+        $retval = array();
+        $tfa = $this->getTFAObject();
 
-        try {
-            $tfa = $this->getTFAObject();
+        // RobThree\TwoFactorAuth::createSecret uses 5 bits for each byte
+        $bitsForBackupCode = self::NUM_DIGITS_OF_BACKUP_CODE * 5;
 
-            // RobThree\TwoFactorAuth::createSecret uses 5 bits for each byte
-            $bitsForBackupCode = self::NUM_DIGITS_OF_BACKUP_CODE * 5;
+        for ($i = 0; $i < self::NUM_BACKUP_CODES; $i++) {
+            do {
+                $code = $tfa->createSecret($bitsForBackupCode);
+                $done = (DB_count($_TABLES['backup_codes'], 'code', $code) == 0);
+            } while (!$done);
 
-            for ($i = 0; $i < self::NUM_BACKUP_CODES; $i++) {
-                do {
-                    $code = $tfa->createSecret($bitsForBackupCode);
-                    $done = (DB_count($_TABLES['backup_codes'], 'code', $code) == 0);
-                } while (!$done);
-
-                $escapedCode = DB_escapeString($code);
-                $sql = "INSERT INTO {$_TABLES['backup_codes']} (code, uid, is_used) "
-                    . "VALUES ('{$escapedCode}', {$this->uid}, 0)";
-                DB_query($sql);
-                $retval[] = $code;
-            }
-        } catch (TwoFactorAuthException $e) {
-            ;
+            $escapedCode = DB_escapeString($code);
+            $sql = "INSERT INTO {$_TABLES['backup_codes']} (code, uid, is_used) "
+                . "VALUES ('{$escapedCode}', {$this->uid}, 0)";
+            DB_query($sql);
+            $retval[] = $code;
         }
 
         return $retval;
@@ -266,7 +258,7 @@ class TwoFactorAuthentication
     /**
      * Authenticate the user
      *
-     * @param  string  $code
+     * @param  string $code
      * @return bool
      */
     public function authenticate($code)
@@ -279,16 +271,9 @@ class TwoFactorAuthentication
             case self::NUM_DIGITS:
                 $code = preg_replace('/[^0-9]/', '', $code);
                 $secret = $this->loadSecretFromDatabase();
-
-                if (empty($secret)) {
-                    $retval = false;
-                } else {
-                    try {
-                        $retval = $this->getTFAObject()->verifyCode($secret, $code);
-                    } catch (TwoFactorAuthException $e) {
-                        $retval = false;
-                    }
-                }
+                $retval = empty($secret)
+                    ? false
+                    : $this->getTFAObject()->verifyCode($secret, $code);
                 break;
 
             case self::NUM_DIGITS_OF_BACKUP_CODE:

@@ -2,7 +2,7 @@
 /*
  * file_oauth_client.php
  *
- * @(#) $Id: file_oauth_client.php,v 1.3 2021/12/21 09:23:55 mlemos Exp $
+ * @(#) $Id: file_oauth_client.php,v 1.2 2015/10/17 18:55:09 mlemos Exp $
  *
  */
 
@@ -50,18 +50,18 @@ class file_oauth_client_class extends oauth_client_class
 		if(!$this->opened_file)
 		{
 			if(!($this->opened_file = fopen($name, 'c+')))
-				return $this->SetPHPError('could not open the token file '.$name);
+				return $this->SetPHPError('could not open the token file '.$name, $php_error_message);
 		}
 		if(!flock($this->opened_file, LOCK_EX))
-			return $this->SetPHPError('could not lock the token file '.$name.' for writing');
+			return $this->SetPHPError('could not lock the token file '.$name.' for writing', $php_error_message);
 		if(fseek($this->opened_file, 0))
-			return $this->SetPHPError('could not rewind the token file '.$name.' for writing');
+			return $this->SetPHPError('could not rewind the token file '.$name.' for writing', $php_error_message);
 		if(!ftruncate($this->opened_file, 0))
-			return $this->SetPHPError('could not truncate the token file '.$name.' for writing');
+			return $this->SetPHPError('could not truncate the token file '.$name.' for writing', $php_error_message);
 		if(!fwrite($this->opened_file, json_encode($session)))
-			return $this->SetPHPError('could not write to the token file '.$name);
+			return $this->SetPHPError('could not write to the token file '.$name, $php_error_message);
 		if(!fclose($this->opened_file))
-			return $this->SetPHPError('could not close to the token file '.$name);
+			return $this->SetPHPError('could not close to the token file '.$name, $php_error_message);
 		$this->opened_file = false;
 		return true;
 	}
@@ -73,9 +73,9 @@ class file_oauth_client_class extends oauth_client_class
 		if(!file_exists($name))
 			return true;
 		if(!($this->opened_file = fopen($name, 'c+')))
-			return $this->SetPHPError('could not open the token file '.$name);
+			return $this->SetPHPError('could not open the token file '.$name, $php_error_message);
 		if(!flock($this->opened_file, LOCK_SH))
-			return $this->SetPHPError('could not lock the token file '.$name.' for reading');
+			return $this->SetPHPError('could not lock the token file '.$name.' for reading', $php_error_message);
 		$json = '';
 		while(!feof($this->opened_file))
 		{
@@ -83,7 +83,7 @@ class file_oauth_client_class extends oauth_client_class
 			if(!$data
 			&& !feof($this->opened_file))
 			{
-				$this->SetError('could not read the token file'.$name);
+				$this->SetError('could not read the token file'.$name, $php_error_message);
 				fclose($this->opened_file);
 				$this->opened_file = false;
 				return false;

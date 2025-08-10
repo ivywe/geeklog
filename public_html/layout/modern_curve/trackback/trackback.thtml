@@ -1,7 +1,7 @@
 {# begin {templatelocation} #}
 
 <div id="trackback">
-  <h2>{lang_trackback}</h2>
+  <h3>{lang_trackback}</h3>
   <div class="block-trackback-content">
     <dl>
       <dt>{lang_trackback_url}</dt>

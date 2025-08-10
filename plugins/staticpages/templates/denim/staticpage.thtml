@@ -4,9 +4,8 @@
 {block_start}
 {content}
 {block_end}
-{!if likes_control}<p class="uk-text-center">{likes_control}</p>{!endif}
 <p class="uk-text-center">
-    {!if lastupdate}{lastupdate}{!if hits}<span class="uk-margin-small-left uk-margin-small-right">|</span>{!endif}{!endif}
+    {!if lastupdate}{lastupdate}<span class="uk-margin-small-left uk-margin-small-right">|</span>{!endif}
     {!if hits}{hits}{!endif}
      {print_icon}{edit_icon}
 </p>

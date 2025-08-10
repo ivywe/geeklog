@@ -193,11 +193,7 @@ class FileSystem implements CacheInterface
     {
         $fileName = $this->getFileName($key);
 
-        if (is_readable($fileName)) {
-            return @unlink($fileName);
-        } else {
-            return true;
-        }
+        return @unlink($fileName);
     }
 
     /**
@@ -212,19 +208,5 @@ class FileSystem implements CacheInterface
         clearstatcache();
 
         return @is_file($fileName) && @is_readable($fileName);
-    }
-
-    /**
-     * Return the timestamp of cached item
-     *
-     * @param  string $key
-     * @return int|false    the timestamp when the item exists, false otherwise
-     */
-    public function getAge($key)
-    {
-        $fileName = $this->getFileName($key);
-        clearstatcache();
-
-        return @is_file($fileName) && @is_readable($fileName) ? filemtime($fileName) : false;
     }
 }

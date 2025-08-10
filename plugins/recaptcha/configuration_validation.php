@@ -5,7 +5,7 @@
 // +---------------------------------------------------------------------------+
 // | geeklog/plugins/recaptcha/autoinstall.php                                 |
 // +---------------------------------------------------------------------------+
-// | Copyright (C) 2014-2020 mystral-kk - geeklog AT mystral-kk DOT net        |
+// | Copyright (C) 2014-2017 mystral-kk - geeklog AT mystral-kk DOT net        |
 // |                                                                           |
 // | Based on the CAPTCHA Plugin by Ben                                        |
 // |                                                - ben AT geeklog DOT fr    |
@@ -35,30 +35,28 @@ if (stripos($_SERVER['PHP_SELF'], basename(__FILE__)) !== false) {
 }
 
 // reCAPTCHA Plugin Main Settings
-$_CONF_VALIDATE['recaptcha'] = [
-    'site_key'             => ['rule' => 'stringOrEmpty'],
-    'secret_key'           => ['rule' => 'stringOrEmpty'],
-    'invisible_site_key'   => ['rule' => 'stringOrEmpty'],
-    'invisible_secret_key' => ['rule' => 'stringOrEmpty'],
-    'logging'              => ['rule' => ['inList', ['0', '1'], true]],
-    'anonymous_only'       => ['rule' => ['inList', ['0', '1'], true]],
-    'remoteusers'          => ['rule' => ['inList', ['0', '1'], true]],
+$_CONF_VALIDATE['recaptcha'] = array(
+    'site_key'             => array('rule' => 'stringOrEmpty'),
+    'secret_key'           => array('rule' => 'stringOrEmpty'),
+    'invisible_site_key'   => array('rule' => 'stringOrEmpty'),
+    'invisible_secret_key' => array('rule' => 'stringOrEmpty'),
+    'logging'              => array('rule' => array('inList', array('0', '1'), true)),
+    'anonymous_only'       => array('rule' => array('inList', array('0', '1'), true)),
+    'remoteusers'          => array('rule' => array('inList', array('0', '1'), true)),
 
-    // '0' => Disabled, '1' => reCAPTCHA V2, '2' => reCAPTCHA V2 Invisible, '4' => reCAPTCHA V3
-    'enable_comment'       => ['rule' => ['inList', ['0', '1', '2', '4'], true]],
-    'enable_contact'       => ['rule' => ['inList', ['0', '1', '2', '4'], true]],
-    'enable_emailstory'    => ['rule' => ['inList', ['0', '1', '2', '4'], true]],
-    'enable_registration'  => ['rule' => ['inList', ['0', '1', '2', '4'], true]],
-    'enable_getpassword'   => ['rule' => ['inList', ['0', '1', '2', '4'], true]],
-    'enable_loginform'     => ['rule' => ['inList', ['0', '1', '2', '4'], true]],
-    'enable_story'         => ['rule' => ['inList', ['0', '1', '2', '4'], true]],
+    // '0' => Disabled, '1' => reCAPTCHA v2, '2' => Invisible reCAPTCHA
+    'enable_comment'       => array('rule' => array('inList', array('0', '1', '2'), true)),
+    'enable_contact'       => array('rule' => array('inList', array('0', '1', '2'), true)),
+    'enable_emailstory'    => array('rule' => array('inList', array('0', '1', '2'), true)),
+    'enable_registration'  => array('rule' => array('inList', array('0', '1', '2'), true)),
+    'enable_getpassword'   => array('rule' => array('inList', array('0', '1', '2'), true)),
+    'enable_loginform'     => array('rule' => array('inList', array('0', '1', '2'), true)),
+    'enable_story'         => array('rule' => array('inList', array('0', '1', '2'), true)),
+    'enable_calendar'      => array('rule' => array('inList', array('0', '1', '2'), true)),
+    'enable_links'         => array('rule' => array('inList', array('0', '1', '2'), true)),
 
-    // Score thresholds: 0.0 (even a bot will be accepted) - 1.0 (only humans will be accepted), default 0.5
-    'score_comment'        => ['rule' => ['range', 0, 1]],
-    'score_contact'        => ['rule' => ['range', 0, 1]],
-    'score_emailstory'     => ['rule' => ['range', 0, 1]],
-    'score_registration'   => ['rule' => ['range', 0, 1]],
-    'score_getpassword'    => ['rule' => ['range', 0, 1]],
-    'score_loginform'      => ['rule' => ['range', 0, 1]],
-    'score_story'          => ['rule' => ['range', 0, 1]],
-];
+    // The plugins below still don't support Invisible reCAPTCHA
+    'enable_forum'         => array('rule' => array('inList', array('0', '1', '2'), true)),
+    'enable_mediagallery'  => array('rule' => array('inList', array('0', '1'), true)),
+    'enable_rating'        => array('rule' => array('inList', array('0', '1'), true)),
+);

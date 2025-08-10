@@ -1,18 +1,7 @@
 {# begin {templatelocation} #}
 
-{# use h1 for title only for normal view. #}
-{# display_type possible values 0 = Normal, 1 = In Block, 2 = autotag #}
-{# Only display Topic Description as a Tooltip for when poll in block #}
-{!!if {display_type} == '0' !!}
-<h1>{poll_topic}</h1>
-{!if poll_topic_description}
+<span class="floatright">{edit_icon}</span><div class="poll-topic">{poll_topic}</div>
 <div class="poll-topic_description">{poll_topic_description}</div>
-{!endif}
-{!else}
-<div class="poll-topic">{poll_topic}{poll_topic_description_tooltip}</div>
-{!endif}
-<span class="uk-align-right">{edit_icon}</span>
-
 <form action="{poll_vote_url}" name="Vote" method="post" class="uk-form">
     <div>
     <input type="hidden" name="pid" value="{poll_id}"{xhtml}>
@@ -23,10 +12,11 @@
     </div>
 </form>
 
+{# display_type possible values 0 = Normal, 1 = In Block, 2 = autotag #}
 {!!if {display_type} == '0' !!}
-<p>
-    <a href="{site_url}/polls/index.php">{lang_polltopics}</a> | {num_votes} {lang_voters}{!if likes_control} | {likes_control}{!endif}
-</p>
+<div>
+    <a href="{site_url}/polls/index.php">{lang_polltopics}</a> | {num_votes} {lang_voters}
+</div>
 {!else}
 <div class="pluginTinyText">
     <a href="{site_url}/polls/index.php">{lang_polltopics}</a> | {num_votes} {lang_voters} {poll_comments}
@@ -35,7 +25,7 @@
 
 <!-- BEGIN poll_questions -->
 <div class="poll-questions">
-    <p class="poll-question">{lang_question}{lang_question_number} {poll_question}</p>
+    <p class="poll-question">{lang_question}{lang_question_number}{poll_question}</p>
     <p class="poll-description">{poll_description}</p>
     <ul>
     {poll_answers}

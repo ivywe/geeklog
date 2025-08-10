@@ -47,9 +47,9 @@ class MassDelete extends BaseAdmin
 
         $template = COM_newTemplate(CTL_plugin_templatePath('spamx'));
         $template->set_file('massdelete', 'massdelete.thtml');
-
-        $template->set_var('lang_title', $LANG_SX00['masshead']);
-
+        
+        $template->set_var('lang_title', $LANG_SX00['masshead']);        
+        
         $act = Geeklog\Input::fPost('action', '');
         $lmt = (int) Geeklog\Input::fPost('limit', 0);
 
@@ -74,12 +74,7 @@ class MassDelete extends BaseAdmin
                 closedir($dir);
             }
 
-            $result = DB_query(
-                "SELECT c.comment, c.cid, c.sid, c.type, UNIX_TIMESTAMP(c.date) AS date, i.ipaddress FROM {$_TABLES['comments']} AS c "
-                . "LEFT JOIN {$_TABLES['ip_addresses']} AS i "
-                . "ON c.seq = i.seq "
-                . "ORDER BY date DESC LIMIT $lmt"
-            );
+            $result = DB_query("SELECT comment,cid,sid,type,UNIX_TIMESTAMP(date) as date,ipaddress FROM {$_TABLES['comments']} ORDER BY date DESC LIMIT $lmt");
             $numRows = DB_numRows($result);
 
             for ($i = 0; $i < $numRows; $i++) {
@@ -109,7 +104,7 @@ class MassDelete extends BaseAdmin
             $template->set_var('lang_comments_deleted', $LANG_SX00['comdel']);
         } else {
             $template->set_var('lang_num_to_check', $LANG_SX00['numtocheck']);
-
+            
             $options = '<option value="10">10</option>' . LB
                 . '<option value="50">50</option>' . LB
                 . '<option value="100" selected="selected">100</option>'
@@ -125,8 +120,8 @@ class MassDelete extends BaseAdmin
             $template->set_var('lang_note4', $LANG_SX00['note4']);
             $template->set_var('lang_note5', $LANG_SX00['note5']);
             $template->set_var('lang_note6', $LANG_SX00['note6']);
-
-
+            
+            
             $template->set_var('lang_delete_spam', $LANG_SX00['deletespam']);
             $template->set_var('gltoken_name', CSRF_TOKEN);
             $template->set_var('gltoken', SEC_createToken());
@@ -142,6 +137,7 @@ class MassDelete extends BaseAdmin
      * @param    int    $cid  Comment ID
      * @param    string $sid  ID of object comment belongs to
      * @param    string $type Comment type (e.g. article, poll, etc)
+     * @return   string      Returns string needed to redirect page to right place
      */
     public function delcomment($cid, $sid, $type)
     {
@@ -149,9 +145,31 @@ class MassDelete extends BaseAdmin
 
         $type = COM_applyFilter($type);
         $sid = COM_applyFilter($sid);
-        $cid = COM_applyFilter($cid, true);
 
-        PLG_commentDelete($type, $cid, $sid, true);
+        switch ($type) {
+            case 'article':
+                $has_editPermissions = SEC_hasRights('story.edit');
+                $result = DB_query("SELECT owner_id,group_id,perm_owner,perm_group,perm_members,perm_anon FROM {$_TABLES['stories']} WHERE sid = '$sid'");
+                $A = DB_fetchArray($result);
+
+                if ($has_editPermissions && SEC_hasAccess($A['owner_id'],
+                        $A['group_id'], $A['perm_owner'], $A['perm_group'],
+                        $A['perm_members'], $A['perm_anon']) == 3
+                ) {
+                    CMT_deleteComment(COM_applyFilter($cid, true), $sid, 'article');
+                    $comments = DB_count($_TABLES['comments'],
+                        array('sid', 'type'), array($sid, 'article'));
+                    DB_change($_TABLES['stories'], 'comments', $comments, 'sid', $sid);
+                } else {
+                    COM_errorLog("User {$_USER['username']} (IP: {$_SERVER['REMOTE_ADDR']}) tried to illegally delete comment $cid from $type $sid");
+                }
+
+                break;
+
+            default: // assume plugin
+                PLG_commentDelete($type, COM_applyFilter($cid, true), $sid);
+                break;
+        }
 
         SPAMX_log($LANG_SX00['spamdeleted']);
     }

@@ -7,7 +7,7 @@
 // |                                                                           |
 // | This file provides helper functions for the automatic plugin install.     |
 // +---------------------------------------------------------------------------+
-// | Copyright (C) 2004-2019 by the following authors:                         |
+// | Copyright (C) 2004-2017 by the following authors:                         |
 // |                                                                           |
 // | Authors: Tom Willett       - tomw AT pigstye DOT net                      |
 // |          Dirk Haun         - dirk AT haun-online DOT de                   |
@@ -29,8 +29,6 @@
 // |                                                                           |
 // +---------------------------------------------------------------------------+
 
-use Geeklog\Log;
-
 if (stripos($_SERVER['PHP_SELF'], basename(__FILE__)) !== false) {
     die ('This file can not be used on its own.');
 }
@@ -51,6 +49,8 @@ Language::override(array(
 
 // Check and see if we need to load the plugin configuration
 if (!isset($_SPX_CONF['timeout'])) {
+    require_once $_CONF['path_system'] . 'classes/config.class.php';
+
     $spx_config = config::get_instance();
     $_SPX_CONF = $spx_config->get_config('spamx');
 }
@@ -112,6 +112,10 @@ function plugin_showstats_spamx($showSiteStats)
             array(
                 'label' => $LANG_SX00['stats_header'],
                 'stats' => COM_numberFormat(DB_count($_TABLES['spamx'], 'name', 'HTTPHeader')),
+            ),
+            array(
+                'label' => $LANG_SX00['slvwhitelist'],
+                'stats' => COM_numberFormat(DB_count($_TABLES['spamx'], 'name', 'SLVwhitelist')),
             ),
         );
         $retval .= ADMIN_simpleList("", $header_arr, $text_arr, $data_arr);
@@ -228,6 +232,8 @@ function plugin_upgrade_spamx()
     while (!$done) {
         switch ($current_version) {
             case '1.1.0':
+                require_once $_CONF['path_system'] . 'classes/config.class.php';
+
                 $plugin_path = $_CONF['path'] . 'plugins/spamx/';
                 require_once $plugin_path . 'install_defaults.php';
 
@@ -351,7 +357,7 @@ function plugin_upgrade_spamx()
                         DB_query($sql);
                     }
                 }
-
+                
                 $current_version = '1.3.2'; // Shipped with Geeklog-2.1.1
                 break;
 
@@ -361,19 +367,19 @@ function plugin_upgrade_spamx()
                     foreach ($_SQL as $sql) {
                         DB_query($sql);
                     }
-                }
-
+                } 
+                
                 $current_version = '1.3.3'; // Shipped with Geeklog-2.1.2
                 break;
-
+                
             case '1.3.3':
                 if (isset($_UPDATES[$current_version])) {
                     $_SQL = $_UPDATES[$current_version];
                     foreach ($_SQL as $sql) {
                         DB_query($sql);
                     }
-                }
-
+                }            
+            
                 $current_version = '1.3.4'; // Shipped with Geeklog-2.1.3
                 break;
 
@@ -390,19 +396,6 @@ function plugin_upgrade_spamx()
                 $current_version = '1.3.5'; // Shipped with Geeklog-2.2.0
                 break;
 
-            case '1.3.5':
-                    if (isset($_UPDATES[$current_version])) {
-                        $_SQL = $_UPDATES[$current_version];
-                        foreach ($_SQL as $sql) {
-                            DB_query($sql);
-                        }
-                    }
-
-                    //spamx_update_ConfValues_1_3_5();
-
-                    $current_version = '1.3.6'; // Shipped with Geeklog-2.2.1
-                    break;
-
             default:
                 $done = true;
         }
@@ -411,7 +404,7 @@ function plugin_upgrade_spamx()
     // update plugin version number and other info
     DB_query("UPDATE {$_TABLES['plugins']} SET pi_version = '$code_version', pi_gl_version = '{$inst_parms['info']['pi_gl_version']}', pi_homepage = '{$inst_parms['info']['pi_homepage']}' WHERE pi_name = 'spamx'");
 
-    COM_errorLog( "Updated spamx plugin from v$installed_version to v$code_version", 1 );
+    COM_errorLog( "Updated spamx plugin from v$installed_version to v$code_version", 1 );      
 
     return true;
 }
@@ -461,7 +454,7 @@ function plugin_migrate_spamx($old_conf)
  * @return int    either PLG_SPAM_NOT_FOUND, PLG_SPAM_FOUND or PLG_SPAM_UNSURE
  * @note As for valid value for $commentType, see system/classes/Akismet.php
  */
-function plugin_checkforSpam_spamx($comment, $action, $permanentLink,
+function plugin_checkforSpam_spamx($comment, $action = -1, $permanentLink,
                                    $commentType = Geeklog\Akismet::COMMENT_TYPE_COMMENT,
                                    $commentAuthor = null, $commentAuthorEmail = null, $commentAuthorURL = null)
 {
@@ -506,8 +499,7 @@ function plugin_checkforSpam_spamx($comment, $action, $permanentLink,
     if ($dir = @opendir($spamx_path)) {
         while (($file = readdir($dir)) !== false) {
             if (is_file($spamx_path . $file)) {
-                if ((strpos($file, 'SLV.') !== 0) &&
-                    (substr($file, -18) === '.Examine.class.php')) {
+                if (substr($file, -18) == '.Examine.class.php') {
                     $sourceFile = str_replace('.Examine.class.php', '', $file);
                     $spamxExaminerSources[] = $sourceFile;
                 }
@@ -561,7 +553,7 @@ function plugin_spamaction_spamx($comment, $action)
     if ($dir = @opendir($spamx_path)) {
         while (($file = readdir($dir)) !== false) {
             if (is_file($spamx_path . $file)) {
-                if (substr($file, -17) === '.Action.class.php') {
+                if (substr($file, -17) == '.Action.class.php') {
                     $sfile = str_replace('.Action.class.php', '', $file);
                     require_once $spamx_path . $file;
                     $CM = new $sfile;
@@ -594,7 +586,16 @@ function SPAMX_log($logEntry)
     global $_CONF, $LANG01, $_SPX_CONF;
 
     if ((!isset($_SPX_CONF['logging']) || ($_SPX_CONF['logging'] === true)) && !empty($logEntry)) {
-        Log::spamx($logEntry);
+        $logEntry = str_replace(array('<?', '?>'), array('(@', '@)'), $logEntry);
+        $timestamp = strftime('%c');
+        $logfile = $_CONF['path_log'] . 'spamx.log';
+
+        if (!$file = fopen($logfile, 'a')) {
+            COM_errorLog($LANG01[33] . $logfile . ' (' . $timestamp . ')', 1);
+        }
+
+        fputs($file, "$timestamp - $logEntry \n");
+        fclose($file);
     }
 }
 
@@ -707,24 +708,13 @@ function plugin_itemPreSave_spamx($type, $username)
 }
 
 /**
- * Lets Geeklog know the names of language variables and arrays that can be overridden if need be
- *
- * @return   array
- */
-function plugin_getlanguageoverrides_spamx()
-{
-
-    return array('LANG_SX00', 'PLG_spamx_MESSAGE128', 'PLG_spamx_MESSAGE8');
-}
-
-/**
  * Public APIs to provide the information the Spam-X has stored or to manipulate the data it has
  *
  * @since v2.2.0
  */
 
 /**
- * @param  string $ipToCheck (IPv4 or IPv6)
+ * @param  string $ipToCheck
  * @return bool
  */
 function SPAMX_isIPBanned($ipToCheck)

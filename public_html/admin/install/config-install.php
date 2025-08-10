@@ -8,7 +8,7 @@
 // |                                                                           |
 // | Initial configuration setup.                                              |
 // +---------------------------------------------------------------------------+
-// | Copyright (C) 2007-2021 by the following authors:                         |
+// | Copyright (C) 2007-2010 by the following authors:                         |
 // |                                                                           |
 // | Authors: Aaron Blankstein  - kantai AT gmail DOT com                      |
 // +---------------------------------------------------------------------------+
@@ -29,23 +29,17 @@
 // |                                                                           |
 // +---------------------------------------------------------------------------+
 
-use Geeklog\ConfigInterface;
-
 if (stripos($_SERVER['PHP_SELF'], basename(__FILE__)) !== false) {
     die('This file can not be used on its own!');
 }
 
-/**
- * Install configuration values
- *
- * @param  ConfigInterface  $c
- */
-function install_config(ConfigInterface $c)
+function install_config()
 {
     global $_CONF, $_TABLES;
 
     // Parameters for add function:  $param_name, $default_value, $type, $subgroup, $fieldset=null, $selection_array=null, $sort=0, $set=true, $group='Core', $tab=null
     $me = 'Core';
+    $c = config::get_instance();
 
     // Subgroup: Site
     $c->add('sg_site', NULL, 'subgroup', 0, 0, NULL, 0, TRUE, $me, 0);
@@ -55,7 +49,6 @@ function install_config(ConfigInterface $c)
     $c->add('site_url','','text',0,0,NULL,20,TRUE, $me, 0);
     $c->add('site_admin_url','','text',0,0,NULL,30,TRUE, $me, 0);
     $c->add('site_name','','text',0,0,NULL,60,TRUE, $me, 0);
-    $c->add('path_site_logo','','text',0,0,NULL,65,TRUE, $me, 0);
     $c->add('site_slogan','','text',0,0,NULL,70,TRUE, $me, 0);
     $c->add('site_disabled_msg','Geeklog Site is down. Please come back soon.','textarea',0,0,NULL,510,TRUE, $me, 0);
     $c->add('owner_name','','text',0,0,NULL,1000,TRUE, $me, 0);
@@ -66,11 +59,6 @@ function install_config(ConfigInterface $c)
     $c->add('meta_tags',0,'select',0,0,23,2000,TRUE, $me, 0);
     $c->add('meta_description','Geeklog - The secure Content Management System.','textarea',0,0,NULL,2010,TRUE, $me, 0);
     $c->add('meta_keywords','Geeklog, Content Management System, CMS, Open Source, Secure, Security, Blog, Weblog','textarea',0,0,NULL,2020,TRUE, $me, 0);
-    $c->add('cookie_consent',true,'select',0,0,1,2030,true, $me, 0);
-    $c->add('about_cookies_link','','text',0,0,NULL,2040,TRUE, $me, 0);
-    $c->add('terms_of_use_link','','text',0,0,NULL,2050,TRUE, $me, 0);
-    $c->add('privacy_policy_link','','text',0,0,NULL,2060,TRUE, $me, 0);
-    $c->add('ip_anonymization',\Geeklog\IP::POLICY_NEVER_ANONYMIZE,'text',0,0,NULL,2070,TRUE, $me, 0);
 
     $c->add('tab_mail', NULL, 'tab', 0, 1, NULL, 0, TRUE, $me, 1);
     $c->add('fs_mail', NULL, 'fieldset', 0, 1, NULL, 0, TRUE, $me, 1);
@@ -108,7 +96,7 @@ function install_config(ConfigInterface $c)
 
     $c->add('tab_database', NULL, 'tab', 0, 5, NULL, 0, TRUE, $me, 5);
     $c->add('fs_database_backup', NULL, 'fieldset', 0, 5, NULL, 0, TRUE, $me, 5);
-    $c->add('dbdump_filename_prefix','geeklog_db_backup','text',0,5,NULL,170,TRUE, $me, 5);
+    $c->add('dbdump_filename_prefix','geeklog_db_backup','text',0,5,NULL,170,TRUE, $me, 5);    
     $c->add('dbdump_tables_only',1,'select',0,5,0,175,TRUE, $me, 5);
     $c->add('dbdump_gzip',1,'select',0,5,0,180,TRUE, $me, 5);
     $c->add('dbdump_max_files',10,'text',0,5,NULL,185,TRUE, $me, 5);
@@ -145,8 +133,6 @@ function install_config(ConfigInterface $c)
     $c->add('page_break_comments','last','select',1,7,7,1250,TRUE, $me, 7);
     $c->add('article_image_align','right','select',1,7,8,1260,TRUE, $me, 7);
     $c->add('show_topic_icon',1,'select',1,7,0,1270,TRUE, $me, 7);
-    $c->add('structured_data_type_default','core-article','select',1,7,39,1275,TRUE, $me, 7);
-	$c->add('structured_data_article_topic',0,'select',1,7,42,1277,TRUE, $me, 7);
     $c->add('draft_flag',0,'select',1,7,0,1280,TRUE, $me, 7);
     $c->add('frontpage',1,'select',1,7,0,1290,TRUE, $me, 7);
     $c->add('hide_no_news_msg',0,'select',1,7,0,1300,TRUE, $me, 7);
@@ -181,7 +167,7 @@ function install_config(ConfigInterface $c)
 
     $c->add('tab_theme', NULL, 'tab', 2, 10, NULL, 0, TRUE, $me, 10);
     $c->add('fs_theme', NULL, 'fieldset', 2, 10, NULL, 0, TRUE, $me, 10);
-    $c->add('theme','denim_three','select',2,10,NULL,190,TRUE, $me, 10);
+    $c->add('theme','denim','select',2,10,NULL,190,TRUE, $me, 10);
     $c->add('doctype','html401strict','select',2,10,21,195,TRUE, $me, 10);
     $c->add('menu_elements',array('contribute','search','stats','directory','plugins'),'%select',2,10,24,200,TRUE, $me, 10);
     $c->add('path_themes','','text',2,10,NULL,210,TRUE, $me, 10);
@@ -266,8 +252,8 @@ function install_config(ConfigInterface $c)
     $c->add('yahoo_consumer_secret','','text',4,16,NULL,367,TRUE, $me, 16);
     $c->add('github_login',0,'select',4,16,1,368,TRUE, $me, 16);
     $c->add('github_consumer_key','','text',4,16,NULL,369,TRUE, $me, 16);
-    $c->add('github_consumer_secret','','text',4,16,NULL,370,TRUE, $me, 16);
-
+    $c->add('github_consumer_secret','','text',4,16,NULL,370,TRUE, $me, 16);    
+    
     $c->add('aftersave_user','item','select',4,16,9,1340,TRUE, $me, 16);
 
     $c->add('tab_spamx', NULL, 'tab', 4, 17, NULL, 0, TRUE, $me, 17);
@@ -333,75 +319,6 @@ function install_config(ConfigInterface $c)
     $c->add('comment_on_same_page',0,'select',4,21,0, 1690, TRUE, $me, 21);
     $c->add('show_comments_at_replying',0,'select',4,21,0, 1691, TRUE, $me, 21);
 
-    // Subgroup: Likes
-    $sg  =  4;      // subgroup
-    $fs  = 51;      // fieldset
-    $tab = 51;      // tab
-    $so  = 1700;    // sort
-    $c->add('tab_likes', NULL, 'tab', $sg, $fs, NULL, 0, TRUE, $me, $tab);
-    $c->add('fs_likes', NULL, 'fieldset', $sg, $fs, NULL, 0, TRUE, $me, $tab);
-    $c->add('likes_enabled',1,'select', $sg, $fs,40,$so,TRUE, $me, $tab);
-    $so += 10;
-    $c->add('likes_articles',1,'select', $sg, $fs,41,$so,TRUE, $me, $tab);
-    $so += 10;
-    $c->add('likes_comments',1,'select', $sg, $fs,41,$so,TRUE, $me, $tab);
-    $so += 10;
-    $c->add('likes_speedlimit',45,'text', $sg, $fs,NULL,$so,TRUE, $me, $tab);
-    $so += 10;
-    $c->add('likes_users_listed', 5, 'text', $sg, $fs, NULL, $so, TRUE, $me, $tab);
-	$so += 10;
-	
-	$fs  = 52;      // fieldset
-    $c->add('fs_likes_block_settings', NULL, 'fieldset', $sg, $fs, NULL, 0, TRUE, $me, $tab);
-    $c->add('likes_block_enable',true, 'select', $sg, $fs, 0, $so, TRUE, $me, $tab);
-	$so += 10;
-    $c->add('likes_block_isleft', 1, 'select', $sg, $fs, 0, $so, TRUE, $me, $tab);
-    $so += 10;
-	$c->add('likes_block_order', 10, 'text', $sg, $fs, 0, $so, TRUE, $me, $tab);
-    $so += 10;
-	// $c->add('likes_block_topic_option', TOPIC_ALL_OPTION,'select', $sg, $fs, 43, $so, TRUE, $me, $tab);
-	$c->add('likes_block_topic_option', 'all','select', $sg, $fs, 43, $so, TRUE, $me, $tab);
-    $so += 10;
-	$c->add('likes_block_topic', array(), '%select', $sg, $fs, NULL, $so, TRUE, $me, $tab);
-	$so += 10;
-    $c->add('likes_block_cache_time',3600,'text', $sg, $fs,NULL,$so,TRUE, $me, $tab);
-    $so += 10;
-    // $c->add('likes_block_displayed_actions',LIKES_BLOCK_DISPLAY_ALL, 'select', $sg, $fs, 46, $so, TRUE, $me, $tab);
-	$c->add('likes_block_displayed_actions', 3, 'select', $sg, $fs, 46, $so, TRUE, $me, $tab);
-	$so += 10;	
-    $c->add('likes_block_include_time',604800,'text', $sg, $fs,NULL,$so,TRUE, $me, $tab);
-    $so += 10;
-    $c->add('likes_block_max_items',10,'text', $sg, $fs,NULL,$so,TRUE, $me, $tab);
-    $so += 10;
-	$c->add('likes_block_title_trim_length',20,'text', $sg, $fs,NULL,$so,TRUE, $me, $tab);
-	$so += 10;
-	$c->add('likes_block_likes_new_line',true, 'select', $sg, $fs, 0, $so, TRUE, $me, $tab);
-	$so += 10;
-    $c->add('likes_block_type', '', 'text', $sg, $fs, NULL, $so, TRUE, $me, $tab);
-	$so += 10;	
-    $c->add('likes_block_subtype', '', 'text', $sg, $fs, NULL, $so, TRUE, $me, $tab);
-	$so += 10;	
-	
-	$fs  = 53;      // fieldset
-    $c->add('fs_likes_block_permissions', NULL, 'fieldset', $sg, $fs, NULL, 0, TRUE, $me, $tab);
-    $new_group_id = 0;
-    if (isset($_GROUPS['Block Admin'])) {
-        $new_group_id = $_GROUPS['Block Admin'];
-    } else {
-        $new_group_id = DB_getItem($_TABLES['groups'], 'grp_id', "grp_name = 'Block Admin'");
-        if ($new_group_id == 0) {
-            if (isset($_GROUPS['Root'])) {
-                $new_group_id = $_GROUPS['Root'];
-            } else {
-                $new_group_id = DB_getItem($_TABLES['groups'], 'grp_id', "grp_name = 'Root'");
-            }
-        }
-    }
-    $c->add('likes_block_group_id', $new_group_id,'select', $sg, $fs, NULL, $so, TRUE, $me, $tab);
-	$so += 10;
-    $c->add('likes_block_permissions', array (2, 2, 2, 2), '@select', $sg, $fs, 44, $so, TRUE, $me, $tab);
-	$so += 10;
-
     // Subgroup: Images
     $c->add('sg_images', NULL, 'subgroup', 5, 0, NULL, 0, TRUE, $me, 0);
 
@@ -420,8 +337,8 @@ function install_config(ConfigInterface $c)
 
     $c->add('tab_articleimg', NULL, 'tab', 5, 24, NULL, 0, TRUE, $me, 24);
     $c->add('fs_articleimg', NULL, 'fieldset', 5, 24, NULL, 0, TRUE, $me, 24);
-    $c->add('max_image_width',300,'text',5,24,NULL,1510,TRUE, $me, 24);
-    $c->add('max_image_height',225,'text',5,24,NULL,1520,TRUE, $me, 24);
+    $c->add('max_image_width',160,'text',5,24,NULL,1510,TRUE, $me, 24);
+    $c->add('max_image_height',160,'text',5,24,NULL,1520,TRUE, $me, 24);
     $c->add('max_image_size',1048576,'text',5,24,NULL,1530,TRUE, $me, 24);
 
     $c->add('tab_topicicon', NULL, 'tab', 5, 25, NULL, 0, TRUE, $me, 25);
@@ -436,8 +353,7 @@ function install_config(ConfigInterface $c)
     $c->add('max_photo_height',128,'text',5,26,NULL,1580,TRUE, $me, 26);
     $c->add('max_photo_size',65536,'text',5,26,NULL,1590,TRUE, $me, 26);
     $c->add('force_photo_width',75,'text',5,26,NULL,1620,FALSE, $me, 26);
-    $c->add('default_photo','https://example.com/images/userphotos/default.png','text',5,26,NULL,1630,FALSE, $me, 26);
-    $c->add('generate_user_icon',true,'select',5,26,1,1640,true, $me, 26);
+    $c->add('default_photo','http://example.com/default.jpg','text',5,26,NULL,1630,FALSE, $me, 26);
 
     $c->add('tab_gravatar', NULL, 'tab', 5, 27, NULL, 0, TRUE, $me, 27);
     $c->add('fs_gravatar', NULL, 'fieldset', 5, 27, NULL, 0, TRUE, $me, 27);
@@ -453,10 +369,9 @@ function install_config(ConfigInterface $c)
     $c->add('language','english','select',6,28,NULL,350,TRUE, $me, 28);
     $c->add('allow_user_language',1,'select',6,28,0,360,TRUE, $me, 28);
     $c->add('switchlang_homepage',0,'select',6,28,0,370,TRUE, $me, 28);
-    $c->add('new_item_set_current_lang',0,'select',6,28,0,380,TRUE, $me, 28);
     $c->add('fs_multilanguage', NULL, 'fieldset', 6, 29, NULL, 0, TRUE, $me, 28);
-    $c->add('language_files',array('en'=>'english_utf-8', 'de'=>'german_formal_utf-8', 'ja'=>'japanese_utf-8'),'*text',6,29,NULL,470,FALSE, $me, 28);
-    $c->add('languages',array('en'=>'English', 'de'=>'Deutsch', 'ja'=>'Japanese'),'*text',6,29,NULL,480,FALSE, $me, 28);
+    $c->add('language_files',array('en'=>'english_utf-8', 'de'=>'german_formal_utf-8'),'*text',6,29,NULL,470,FALSE, $me, 28);
+    $c->add('languages',array('en'=>'English', 'de'=>'Deutsch'),'*text',6,29,NULL,480,FALSE, $me, 28);
 
     $c->add('tab_locale', NULL, 'tab', 6, 29, NULL, 0, TRUE, $me, 29);
     $c->add('fs_locale', NULL, 'fieldset', 6, 29, NULL, 0, TRUE, $me, 29);
@@ -480,10 +395,12 @@ function install_config(ConfigInterface $c)
     $c->add('fs_cookies', NULL, 'fieldset', 7, 30, NULL, 0, TRUE, $me, 30);
     $c->add('cookie_session','gl_session','text',7,30,NULL,530,TRUE, $me, 30);
     $c->add('cookie_name','geeklog','text',7,30,NULL,540,TRUE, $me, 30);
+    $c->add('cookie_password','password','text',7,30,NULL,550,TRUE, $me, 30);
     $c->add('cookie_theme','theme','text',7,30,NULL,560,TRUE, $me, 30);
     $c->add('cookie_language','language','text',7,30,NULL,570,TRUE, $me, 30);
     $c->add('cookie_tzid','timezone','text',7,30,NULL,575,TRUE, $me, 30);
     $c->add('cookie_anon_name','anon_name','text',7,30,NULL,577,TRUE, $me, 30);
+    $c->add('cookie_ip',0,'select',7,30,0,580,TRUE, $me, 30);
     $c->add('default_perm_cookie_timeout',28800,'select',7,30,NULL,590,TRUE, $me, 30);
     $c->add('session_cookie_timeout',7200,'text',7,30,NULL,600,TRUE, $me, 30);
     $c->add('cookie_path','/','text',7,30,NULL,610,TRUE, $me, 30);
@@ -550,8 +467,6 @@ function install_config(ConfigInterface $c)
     $c->add('autotag_permissions_related_topics', array(2, 2, 0, 0), '@select', 7, 41, 28, 1900, TRUE, $me, 37);
     $c->add('autotag_permissions_related_items', array(2, 2, 0, 0), '@select', 7, 41, 28, 1910, TRUE, $me, 37);
     $c->add('autotag_permissions_block', array(2, 2, 0, 0), '@select', 7, 41, 28, 1920, TRUE, $me, 37);
-    $c->add('autotag_permissions_structureddata', array(2, 2, 0, 0), '@select', 7, 41, 28, 1930, TRUE, $me, 37);
-	$c->add('autotag_permissions_likes_block', array(2, 2, 0, 0), '@select', 7, 41, 28, 1940, TRUE, $me, 37);
 
     $c->add('tab_webservices', NULL, 'tab', 7, 40, NULL, 0, TRUE, $me, 40);
     $c->add('fs_webservices', NULL, 'fieldset', 7, 40, NULL, 0, TRUE, $me, 40);
@@ -591,9 +506,9 @@ function install_config(ConfigInterface $c)
     $so += 10;
     $c->add('filemanager_file_sorting', 'default', 'select', $sg, $fs, 35, $so, TRUE, $me, $tab);
     $so += 10;
-    $c->add('filemanager_chars_only_latin', false, 'select', $sg, $fs, 1, $so, TRUE, $me, $tab);
+    $c->add('filemanager_chars_only_latin', TRUE, 'select', $sg, $fs, 1, $so, TRUE, $me, $tab);
     $so += 10;
-    $c->add('filemanager_date_format', 'yMMMdHm', 'text', $sg, $fs, NULL, $so, TRUE, $me, $tab);
+    $c->add('filemanager_date_format', 'Y-m-d H:i:s', 'text', $sg, $fs, NULL, $so, TRUE, $me, $tab);
     $so += 10;
     $c->add('filemanager_logger', FALSE, 'select', $sg, $fs, 1, $so, TRUE, $me, $tab);
     $so += 10;
@@ -609,9 +524,21 @@ function install_config(ConfigInterface $c)
     $c->add('tab_filemanager_upload', NULL, 'tab', $sg, $fs, NULL, 0, TRUE, $me, $tab);
     $c->add('fs_filemanager_upload', NULL, 'fieldset', $sg, $fs, NULL, 0, TRUE, $me, $tab);
 
+    $c->add('filemanager_upload_restrictions', array('jpg', 'jpeg', 'gif', 'png', 'svg', 'txt', 'pdf', 'odp', 'ods', 'odt', 'rtf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'ogv', 'mp4', 'webm', 'ogg', 'mp3', 'wav'), '%text', $sg, $fs, NULL, $so, TRUE, $me, $tab);
+    $so += 10;
     $c->add('filemanager_upload_overwrite', FALSE, 'select', $sg, $fs, 1, $so, TRUE, $me, $tab);
     $so += 10;
+    $c->add('filemanager_upload_images_only', FALSE, 'select', $sg, $fs, 1, $so, TRUE, $me, $tab);
+    $so += 10;
     $c->add('filemanager_upload_file_size_limit', 16, 'text', $sg, $fs, NULL, $so, TRUE, $me, $tab);
+    $so += 10;
+    $c->add('filemanager_unallowed_files', array('.htaccess'), '%text', $sg, $fs, NULL, $so, TRUE, $me, $tab);
+    $so += 10;
+    $c->add('filemanager_unallowed_dirs', array('_thumbs', '.CDN_ACCESS_LOGS', 'cloudservers'), '%text', $sg, $fs, NULL, $so, TRUE, $me, $tab);
+    $so += 10;
+    $c->add('filemanager_unallowed_files_regexp', '/^\\./uis', 'text', $sg, $fs, NULL, $so, TRUE, $me, $tab);
+    $so += 10;
+    $c->add('filemanager_unallowed_dirs_regexp', '/^\\./uis', 'text', $sg, $fs, NULL, $so, TRUE, $me, $tab);
     $so += 10;
 
     // Subgroup: File Manager - Images

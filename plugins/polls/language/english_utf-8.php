@@ -108,7 +108,7 @@ $LANG25 = array(
     40 => 'See all answers to this poll',
     1001 => 'Allow multiple answers',
     1002 => 'Description',
-    1003 => 'Topic Description',
+    1003 => 'Description',
 );
 
 $PLG_polls_MESSAGE15 = 'Your comment has been submitted for review and will be published when approved by a moderator.';
@@ -144,7 +144,6 @@ $LANG_confignames['polls'] = array(
     'hidenewpolls' => 'New Polls',
     'title_trim_length' => 'Title Trim Length',
     'meta_tags' => 'Enable Meta Tags',
-	'likes_polls' => 'Poll Likes',
     'block_enable' => 'Enabled',
     'block_isleft' => 'Display Block on Left',
     'block_order' => 'Block Order',
@@ -175,7 +174,7 @@ $LANG_fs['polls'] = array(
     'fs_block_permissions' => 'Block Permissions'
 );
 
-// Note: entries 0, 1, 12, and 41 are the same as in $LANG_configselects['Core']
+// Note: entries 0, 1, and 12 are the same as in $LANG_configselects['Core']
 $LANG_configselects['polls'] = array(
     0 => array('True' => 1, 'False' => 0),
     1 => array('True' => TRUE, 'False' => FALSE),
@@ -185,6 +184,5 @@ $LANG_configselects['polls'] = array(
     12 => array('No access' => 0, 'Read-Only' => 2, 'Read-Write' => 3),
     13 => array('No access' => 0, 'Use' => 2),
     14 => array('No access' => 0, 'Read-Only' => 2),
-    15 => array('All' => TOPIC_ALL_OPTION, 'Homepage Only' => TOPIC_HOMEONLY_OPTION, 'Select Topics' => TOPIC_SELECTED_OPTION),
-	41 => array('False' => 0, 'Likes and Dislikes' => 1, 'Likes Only' => 2)
+    15 => array('All' => TOPIC_ALL_OPTION, 'Homepage Only' => TOPIC_HOMEONLY_OPTION, 'Select Topics' => TOPIC_SELECTED_OPTION)
 );

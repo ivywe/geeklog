@@ -18,9 +18,8 @@ $(function() {
                 .load($link.attr('href')+ ' #content')
                 .dialog({
                     title: $link.attr("title"),
-                    width: 800,
-                    height: 600,
-                    responsive: true, // used by jquery-ui-dialogoptions and makes dialog responsive for small screens
+                    width: 500,
+                    height: 300,
                     buttons: buttons_obj,
                 });
 

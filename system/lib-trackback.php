@@ -84,7 +84,7 @@ function TRB_logRejected($reason, $url = '')
 
     if ($_TRB_LOG_REJECTS) {
 
-        $logmsg = 'Trackback from IP ' . \Geeklog\IP::getIPAddress()
+        $logmsg = 'Trackback from IP ' . $_SERVER['REMOTE_ADDR']
             . ' rejected for ' . $reason . ', URL: ' . $url;
 
         if (function_exists('SPAMX_log')) {
@@ -153,7 +153,7 @@ function TRB_makeTrackbackUrl($id, $type = 'article')
  */
 function TRB_filterTitle($title)
 {
-    return htmlspecialchars(COM_checkWords(GLText::stripTags($title)));
+    return htmlspecialchars(COM_checkWords(GLText::stripTags(COM_stripslashes($title))));
 }
 
 /**
@@ -164,7 +164,7 @@ function TRB_filterTitle($title)
  */
 function TRB_filterBlogname($blogname)
 {
-    return htmlspecialchars(COM_checkWords(GLText::stripTags($blogname)));
+    return htmlspecialchars(COM_checkWords(GLText::stripTags(COM_stripslashes($blogname))));
 }
 
 /**
@@ -176,7 +176,7 @@ function TRB_filterBlogname($blogname)
  */
 function TRB_filterExcerpt($excerpt)
 {
-    return COM_checkWords(GLText::stripTags($excerpt));
+    return COM_checkWords(GLText::stripTags(COM_stripslashes($excerpt)));
 }
 
 /**
@@ -199,7 +199,8 @@ function TRB_allowDelete($sid, $type)
 
         $result = DB_query($sql);
         $A = DB_fetchArray($result);
-        if (DB_numRows($result) == 1 && SEC_hasRights('story.edit') && (SEC_hasAccess($A['owner_id'],
+
+        if (SEC_hasRights('story.edit') && (SEC_hasAccess($A['owner_id'],
                     $A['group_id'], $A['perm_owner'], $A['perm_group'],
                     $A['perm_members'], $A['perm_anon']) == 3) && TOPIC_hasMultiTopicAccess('article', $sid) == 3
         ) {
@@ -309,9 +310,8 @@ function TRB_saveTrackbackComment($sid, $type, $url, $title = '', $blog = '', $e
             array($url, $sid, $type));
     } // else: multiple trackbacks allowed
 
-    $seq = \Geeklog\IP::getSeq();
-    DB_save($_TABLES['trackback'], 'sid,url,title,blog,excerpt,date,type,seq',
-        "'$sid','$url','$title','$blog','$excerpt',NOW(),'$type',$seq");
+    DB_save($_TABLES['trackback'], 'sid,url,title,blog,excerpt,date,type,ipaddress',
+        "'$sid','$url','$title','$blog','$excerpt',NOW(),'$type','{$_SERVER['REMOTE_ADDR']}'");
 
     $comment_id = DB_insertId();
 
@@ -553,7 +553,7 @@ function TRB_handleTrackbackPing($sid, $type = 'article')
         $speedlimit = $_CONF['commentspeedlimit'];
     }
     COM_clearSpeedlimit($speedlimit, 'trackback');
-    $last = COM_checkSpeedlimit('trackback', SPEED_LIMIT_MAX_TRACKBACK);
+    $last = COM_checkSpeedlimit('trackback');
     if ($last > 0) {
         TRB_sendTrackbackResponse(1, sprintf($TRB_ERROR['speedlimit'],
             $last, $speedlimit), 403, 'Forbidden');
@@ -601,7 +601,7 @@ function TRB_handleTrackbackPing($sid, $type = 'article')
                 return false;
             } else {
                 $ip = gethostbyname($parts['host']);
-                if ($ip !== \Geeklog\IP::getIPAddress()) {
+                if ($ip != $_SERVER['REMOTE_ADDR']) {
                     TRB_sendTrackbackResponse(1, $TRB_ERROR['spam'], 403, 'Forbidden');
                     TRB_logRejected('IP address mismatch', Geeklog\Input::post('url'));
 
@@ -687,14 +687,8 @@ function TRB_renderTrackbackComments($sid, $type, $title, $permalink, $trackback
     $template->set_var('permalink_and_title', $link_and_title);
     $template->set_var('trackback_url', $trackbackUrl);
 
-    $result = DB_query(
-        "SELECT t.cid, t.url, t.title, t.blog, t.excerpt, i.ipaddress, UNIX_TIMESTAMP(t.date) AS day "
-        . "FROM {$_TABLES['trackback']} AS t "
-        . "LEFT JOIN {$_TABLES['ip_addresses']} AS i "
-        . "ON t.seq = i.seq "
-        . " WHERE t.sid = '$sid' AND t.type = '$type' "
-        . "ORDER BY date"
-    );
+    $result = DB_query("SELECT cid,url,title,blog,excerpt,ipaddress,UNIX_TIMESTAMP(date) AS day "
+        . "FROM {$_TABLES['trackback']} WHERE sid = '$sid' AND type = '$type' ORDER BY date");
     $numrows = DB_numRows($result);
 
     $template->set_var('trackback_comment_count', $numrows);
@@ -752,12 +746,6 @@ function TRB_sendTrackbackPing($targeturl, $url, $title, $excerpt, $blog = '')
     }
 
     $target = parse_url($targeturl);
-	if (!isset($target['host'])) {
-		$target['host'] = '';
-	}	
-	if (!isset($target['path'])) {
-		$target['path'] = '';
-	}
     if (!isset($target['query'])) {
         $target['query'] = '';
     } else if (!empty($target['query'])) {
@@ -889,12 +877,7 @@ function TRB_sendNotificationEmail($cid, $what = 'trackback')
     global $_CONF, $_TABLES, $LANG03, $LANG08, $LANG09, $LANG29, $LANG_TRB;
 
     $cid = DB_escapeString($cid);
-    $result = DB_query(
-        "SELECT t.sid, t.type, t.title, t.excerpt, t.url, t.blog, i.ipaddress FROM {$_TABLES['trackback']} AS t "
-        . "LEFT JOIN {$_TABLES['ip_addresses']} AS i "
-        . "ON t.seq = i.seq "
-        . "WHERE (t.cid = '$cid')"
-    );
+    $result = DB_query("SELECT sid,type,title,excerpt,url,blog,ipaddress FROM {$_TABLES['trackback']} WHERE (cid = '$cid')");
     $A = DB_fetchArray($result);
     $type = $A['type'];
     $id = $A['sid'];
@@ -923,8 +906,7 @@ function TRB_sendNotificationEmail($cid, $what = 'trackback')
     // assume that plugins follow the convention and have a 'trackback' anchor
     $trackbackurl = PLG_getItemInfo($type, $id, 'url') . '#trackback';
 
-    $mailbody .= $LANG08[33] . ': ' . $trackbackurl . "\n";
-    $mailbody .= "IP: " . \Geeklog\IP::getIPAddress() . "\n\n";
+    $mailbody .= $LANG08[33] . ' <' . $trackbackurl . ">\n\n";
 
     $mailbody .= "\n------------------------------\n";
     $mailbody .= "\n$LANG08[34]\n";

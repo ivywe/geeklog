@@ -106,7 +106,7 @@ function editdefaultblock($A, $access)
     $block_templates->set_var('lang_blockname', $LANG21[48]);
 
     $block_templates->set_var('topic_selection',
-        TOPIC_getTopicSelectionControl('block', $A['bid'], true, true, false, true, 1));
+        TOPIC_getTopicSelectionControl('block', $A['bid'], true, true));
 
     $block_templates->set_var('lang_position', $LANG21['position']);
     $block_templates->set_var('lang_left', $LANG21[40]);
@@ -385,7 +385,7 @@ function editblock($bid = '')
     $block_templates->set_var('lang_nospaces', $LANG21[49]);
 
     $block_templates->set_var('topic_selection',
-        TOPIC_getTopicSelectionControl('block', $A['bid'], true, true, false, true, 1));
+        TOPIC_getTopicSelectionControl('block', $A['bid'], true, true));
 
     $block_templates->set_var('lang_position', $LANG21['position']);
     $block_templates->set_var('lang_left', $LANG21[40]);
@@ -728,7 +728,7 @@ function listblocks($position = BLOCK_ALL_POSITIONS)
  */
 function cmpDynamicBlocks($a, $b)
 {
-    return ($a["blockorder"] > $b["blockorder"]) ? +1 : -1;;
+    return $a["blockorder"] > $b["blockorder"];
 }
 
 /**
@@ -768,8 +768,8 @@ function saveblock($bid, $name, $title, $help, $type, $blockOrder, $device, $con
 
     $retval = '';
 
-    $title = DB_escapeString(GLText::stripTags($title));
-    $phpBlockFn = DB_escapeString(trim($phpBlockFn));
+    $title = DB_escapeString(COM_stripslashes(GLText::stripTags($title)));
+    $phpBlockFn = DB_escapeString(COM_stripslashes(trim($phpBlockFn)));
     if (empty($title) || !TOPIC_checkTopicSelectionControl()) {
         $retval .= COM_showMessageText($LANG21[64], $LANG21[63])
             . editblock($bid);

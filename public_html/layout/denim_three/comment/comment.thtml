@@ -1,45 +1,29 @@
 {# begin {templatelocation} #}
 
-<article class="uk-comment uk-margin-bottom level-{indent}">
-    <header class="uk-comment-header uk-grid-medium uk-flex-middle" uk-grid>
-        <div class="uk-width-auto">
-            {author_photo}
-        </div>
-        <div class="uk-width-expand">
-			{!if is_comment_only_page}
-			<h2 class="uk-comment-title uk-margin-remove">{title}</h2>
-			{!else}
-			<h3 class="uk-comment-title uk-margin-remove">{title}</h3>
-			{!endif}		
-            <ul class="uk-comment-meta uk-subnav uk-subnav-divider uk-margin-remove-top">
-                <li>{lang_authoredby}&nbsp;{author_link}</li>
-                <li>{lang_on}&nbsp;{date}</li>
-            </ul>
-        </div>
-    </header>
-    <div class="uk-comment-body">
-        {comments}
-        {comment_signature}
-    </div>
-    {comment_edit}
-    <footer {hide_if_preview}>
-    [
-     <span>{reply_option} {parent_link} {likes_control} {delete_option} <a href="{site_url}/comment.php?mode=view&amp;cid={cid}" rel="bookmark" title="{lang_permlink}">#</a></span>
-    ]
-    </footer>
-</article>
+<div class="block-comment-content level-{indent}">
+  <ul class="comment_status">
+    <li class="comment_title">{title}</li>
+    <li class="comment_author">{lang_authoredby}&nbsp;{author_link}&nbsp;{lang_on}&nbsp;{date}</li>
+  </ul>
+
+  <div class="comment_content">{comments}</div>
+  {comment_signature}
+  {comment_edit}
+
+  <div class="comment_navi" role="navigation" {hide_if_preview}>[
+   <span>{reply_option} {parent_link} {delete_option} <a href="{site_url}/comment.php?mode=view&amp;cid={cid}" rel="bookmark" title="{lang_permlink}">#</a></span>
+  ]</div>
+</div>
 
 <!-- BEGIN comment_signature -->
-<div class="">
-    {signature_divider_html}
+<div class="comment-sig">
+    ---<br{xhtml}>
     {user_signature}
 </div>
 <!-- END comment_signature -->
 
 <!-- BEGIN comment_edit -->
-<ul class="uk-text-meta uk-subnav uk-subnav-divider uk-margin-small">
-    <li>{user_edit_info}</li>
-</ul>
+<div class="comment-edit">{user_edit_info}</div>
 <!-- END comment_edit -->
 
 {# end {templatelocation} #}

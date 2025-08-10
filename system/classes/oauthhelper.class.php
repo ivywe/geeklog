@@ -37,12 +37,12 @@ if (stripos($_SERVER['PHP_SELF'], basename(__FILE__)) !== false) {
 }
 
 // As of Geeklog 2.2.0, both oauth-api and httpclient classes are managed by composer.
-// Also see https://www.phpclasses.org/package/7700-PHP-Authorize-and-access-APIs-using-OAuth.html
+
+// Enable to show debug info for OAuth
+$_SYSTEM['debug_oauth'] = false;
 
 class OAuthConsumer
 {
-	private $debug = false;
-	
     protected $consumer = null;
     protected $client = null;
     public $error = '';
@@ -57,12 +57,12 @@ class OAuthConsumer
     {
         global $_CONF, $_SYSTEM;
 
-        $service = strtolower($service); // always deal in lower case since that is how it is stored in the config
-
+        $service = strtolower($service); // always deal in lower case since that is how it is stored in the config 
+        
         if (strpos($service, 'oauth.') === 0) {
             $service = str_replace('oauth.', '', $service);
         }
-
+        
         // Geeklog stores oauth service in all small case
         // Vendor oauth_client.php capitalizes certain letters so update service variable to make sure will match when the vendor oauth_client_class is created
         switch ($service) {
@@ -93,11 +93,8 @@ class OAuthConsumer
 
         $this->client = new oauth_client_class;
         $this->client->server = $service;
-		
-		$this->_debug = COM_isEnableDeveloperModeLog('user');
-		
-        $this->client->debug = $this->_debug;
-        $this->client->debug_http = $this->_debug;
+        $this->client->debug = $_SYSTEM['debug_oauth'];
+        $this->client->debug_http = $_SYSTEM['debug_oauth'];
 
         // Set key and secret for OAuth service if found in config
         if ($this->client->client_id == '') {
@@ -117,23 +114,13 @@ class OAuthConsumer
 
         switch ($this->client->server) {
             case 'Facebook' :
-                //$api_url = 'https://graph.facebook.com/me?fields=name,email,link,id,first_name,last_name,about';
-                //$scope   = 'email,public_profile,user_friends';
-				// About returns no data as of April 4th, 2018 as new version of API
-				// Don't need to request user_friends scope. Fix for permissions now required by Facebook app when requesting non-default data
-                // 2018-10-19 - A link to the person's Timeline. Removed link since even with user_link permission it is not useful anymore.
-                // The link will only resolve if the person clicking the link is logged into Facebook and is a friend of the person whose profile is being viewed.
-                // At one point it use to be visible to non friends
-				$api_url = 'https://graph.facebook.com/me?fields=name,email,id,first_name,last_name,location';
-				$scope   = 'email,public_profile';
+                $api_url = 'https://graph.facebook.com/me?fields=name,email,link,id,first_name,last_name,about';
+                $scope   = 'email,public_profile,user_friends';
                 $q_api   = array();
                 break;
 
             case 'Google' :
-                // For differences see: https://stackoverflow.com/questions/31277898/difference-between-v1-v2-and-v3-in-https-www-googleapis-com-oauth2-v3-certs
-                //$api_url = 'https://www.googleapis.com/oauth2/v1/userinfo';
-                $api_url = 'https://www.googleapis.com/oauth2/v2/userinfo';
-                // $api_url = 'https://www.googleapis.com/oauth2/v3/userinfo';
+                $api_url = 'https://www.googleapis.com/oauth2/v1/userinfo';
                 $scope   = 'https://www.googleapis.com/auth/userinfo.email '.'https://www.googleapis.com/auth/userinfo.profile';
                 $q_api   = array();
                 break;
@@ -182,6 +169,8 @@ class OAuthConsumer
      */
     public function authenticate_user()
     {
+        global $_SYSTEM;
+
         $user = array();
 
         if (($success = $this->client->Initialize())) {
@@ -196,7 +185,7 @@ class OAuthConsumer
             }
             $success = $this->client->Finalize($success);
         }
-        if ($this->debug) {
+        if ($_SYSTEM['debug_oauth']) {
             COM_errorLog($this->client->debug_output, 1);
         }
         if ($this->client->exit) {
@@ -244,62 +233,52 @@ class OAuthConsumer
     {
         global $_TABLES, $status, $uid, $_CONF;
 
-        // remote auth precludes user submission, and integrates user activation
+        // remote auth precludes usersubmission, and integrates user activation
         $status = USER_ACCOUNT_ACTIVE;
-
+        
         $users = $this->_getCreateUserInfo($info);
         $userInfo = $this->_getUpdateUserInfo($info);
+    
+        $sql = "SELECT uid, status FROM {$_TABLES['users']} "
+            . "WHERE remoteusername = '" . DB_escapeString($users['remoteusername']) . "' "
+            . "AND remoteservice = '" . DB_escapeString($users['remoteservice']) . "'";
 
-        // We need to make sure we get a remote username. The odd time it may not get returned do to outside server error
-        if (!empty($users['remoteusername'])) {
-            $sql = "SELECT uid, status FROM {$_TABLES['users']} "
-                . "WHERE remoteusername = '" . DB_escapeString($users['remoteusername']) . "' "
-                . "AND remoteservice = '" . DB_escapeString($users['remoteservice']) . "'";
+        $result = DB_query($sql);
+        $tmp = DB_error();
+        $numRows = DB_numRows($result);
 
-            $result = DB_query($sql);
-            $tmp = DB_error();
-            $numRows = DB_numRows($result);
-
-            if (empty($tmp) && $numRows == 1) {
-                list($uid, $status) = DB_fetchArray($result);
-            } else {
-                // initial login - create account
-                $status = USER_ACCOUNT_ACTIVE;
-                // Treat username same as Geeklog would for normal account (see USER_createAccount) even though they will not use name to login
-                // So remove any unwanted characters
-                $loginName = trim(GLText::remove4byteUtf8Chars(COM_applyFilter($users['loginname'])));
-				// Length of username cannot be larger than 16 characters
-				if (strlen($loginName) > 16) {
-					$loginName = substr($loginName, 0, 16);
-				}
-
-                // Remember some database collations are case and accent insensitive and some are not. They would consider "nina", "nina  ", "Nina", and, "niña" as the same
-                $checkName = DB_getItem($_TABLES['users'], 'username', "TRIM(LOWER(username)) = TRIM(LOWER('" . DB_escapeString($loginName) . "'))");
-                if (!empty($checkName) || empty($loginName)) { // also if for some reason blank login name we should create one
-                    if (function_exists('CUSTOM_uniqueRemoteUsername')) {
-                        /** @noinspection PhpUndefinedVariableInspection */
-                        $loginName = CUSTOM_uniqueRemoteUsername($loginName, $remoteService);
-					} else {
-                        $loginName = USER_uniqueUsername($loginName);
-                    }
+        if (empty($tmp) && $numRows == 1) {
+            list($uid, $status) = DB_fetchArray($result);
+        } else {
+            // initial login - create account
+            $status = USER_ACCOUNT_ACTIVE;
+            $loginName = $users['loginname'];
+            $checkName = DB_getItem($_TABLES['users'], 'username', "username='" . DB_escapeString($loginName) . "'");
+            if (!empty($checkName)) {
+                if (function_exists('CUSTOM_uniqueRemoteUsername')) {
+                    /** @noinspection PhpUndefinedVariableInspection */
+                    $loginName = CUSTOM_uniqueRemoteUsername($loginName, $remoteService);
                 }
-                $users['loginname'] = $loginName;
-                $uid = USER_createAccount($users['loginname'], $users['email'], '', $users['fullname'], $users['homepage'], $users['remoteusername'], $users['remoteservice']);
-
-                if (is_array($users)) {
-                    $this->_DBupdate_users($uid, $users);
+                if (strcasecmp($checkName, $loginName) == 0) {
+                    $loginName = USER_uniqueUsername($loginName);
                 }
+            }
+            $users['loginname'] = $loginName;
+            $uid = USER_createAccount($users['loginname'], $users['email'], '', $users['fullname'], $users['homepage'], $users['remoteusername'], $users['remoteservice']);
 
-                if (is_array($userInfo)) {
-                    $this->_DBupdate_userinfo($uid, $userInfo);
-                }
-
-                $remote_grp = DB_getItem($_TABLES['groups'], 'grp_id', "grp_name = 'Remote Users'");
-                DB_query("INSERT INTO {$_TABLES['group_assignments']} (ug_main_grp_id, ug_uid) VALUES ($remote_grp, $uid)");
+            if (is_array($users)) {
+                $this->_DBupdate_users($uid, $users);
             }
 
-            return true;
+            if (is_array($userInfo)) {
+                $this->_DBupdate_userinfo($uid, $userInfo);
+            }
+
+            $remote_grp = DB_getItem($_TABLES['groups'], 'grp_id', "grp_name = 'Remote Users'");
+            DB_query("INSERT INTO {$_TABLES['group_assignments']} (ug_main_grp_id, ug_uid) VALUES ($remote_grp, $uid)");
         }
+        
+        return true;
     }
 
     public function doSynch($info)
@@ -330,12 +309,9 @@ class OAuthConsumer
                 }
                 $updateColumns .= "homepage='" . DB_escapeString($users['homepage']) . "'";
             }
+            $sql = $sql . $updateColumns . " WHERE uid=" . (int) $_USER['uid'];
 
-            if (!empty($updateColumns)) {
-                $sql = $sql . $updateColumns . " WHERE uid=" . (int) $_USER['uid'];
-
-                DB_query($sql);
-            }
+            DB_query($sql);
 
             // Update rest of users info
             $this->_DBupdate_users($_USER['uid'], $users);
@@ -354,16 +330,12 @@ class OAuthConsumer
 
         switch ($this->client->server) {
             case 'Facebook' :
-				// Facebook removed all access to About in April, 2018
-                //if ( isset($info->about) ) {
-                //    $userinfo['about'] = $info->about;
-                //}
+                if ( isset($info->about) ) {
+                    $userinfo['about'] = $info->about;
+                }
                 if ( isset($info->location->name) ) {
                     $userinfo['location'] = $info->location->name;
                 }
-                if ( isset($info->email ) ) {
-                    $userinfo['email'] = $info->email;
-                }				
                 break;
 
             case 'Google' :
@@ -401,23 +373,18 @@ class OAuthConsumer
     {
         switch ($this->client->server) {
             case 'Facebook' :
-				// Facebook app for website may not have access to email
-				$mail = '';
-                if ( isset($info->email)) {
-                    $mail = $info->email;
-                }			
                 $users = array(
                     'loginname'      => (isset($info->first_name) ? $info->first_name : $info->id),
-                    'email'          => $mail,
+                    'email'          => $info->email,
                     'passwd'         => '',
                     'passwd2'        => '',
                     'fullname'       => $info->name,
-                    'homepage'       => '', // Changed from $info->link, // See above in scope as to why removed (Facebook User must be logged in and a friend to work)
+                    'homepage'       => $info->link,
                     'remoteusername' => DB_escapeString($info->id),
                     'remoteservice'  => 'oauth.facebook',
                     'remotephoto'    => 'http://graph.facebook.com/'.$info->id.'/picture',
                 );
-                break;
+                break;            
 
             case 'github' :
                 $users = array(
@@ -431,24 +398,31 @@ class OAuthConsumer
                     'remoteservice'  => 'oauth.github',
                     'remotephoto'    => $info->{'avatar_url'},
                 );
-                break;
+                break;                
 
             case 'Google' :
+                $homepage = $info->link;
+
+                $plusPos = strpos($homepage,"+");
+                if ( $plusPos !== false ) {
+                    $username = substr($homepage,strlen("https://plug.google.com/+"));
+                } else {
+                    $username = "";
+                }
                 $users = array(
                     'loginname'      => (isset($info->given_name) ? $info->given_name : $info->id),
                     'email'          => $info->email,
                     'passwd'         => '',
                     'passwd2'        => '',
                     'fullname'       => $info->name,
-                    'homepage'       => '', // $info->link, (this is not supported anymore)
+                    'homepage'       => $info->link,
                     'remoteusername' => DB_escapeString($info->id),
                     'remoteservice'  => 'oauth.google',
                     'remotephoto'    => $info->picture,
                 );
-                break;
+                break;                
 
             case 'Twitter' :
-				// Twitter app for website may not have access to email
                 $mail = '';
                 if ( isset($info->email)) {
                     $mail = $info->email;
@@ -464,7 +438,7 @@ class OAuthConsumer
                     'remoteservice'  => 'oauth.twitter',
                     'remotephoto'    => $info->profile_image_url,
                 );
-                break;
+                break;                
 
             case 'Microsoft' :
                 $users = array(
@@ -479,7 +453,7 @@ class OAuthConsumer
                     'remotephoto'    => 'https://apis.live.net/v5.0/me/picture?access_token=' . $this->client->access_token,
                 );
                 break;
-
+                
             case 'Yahoo' :
                 $users = array(
                     'loginname'      => (isset($info->query->results->profile->nickname) ? $info->query->results->profile->nickname : $info->query->results->profile->guid),
@@ -493,7 +467,7 @@ class OAuthConsumer
                     'remotephoto'    => $info->query->results->profile->image->imageUrl,
                 );
                 break;
-
+                
             case 'LinkedIn' :
                 $users = array(
                     'loginname'      => (isset($info->{'firstName'}) ? $info->{'firstName'} : $info->id),
@@ -519,10 +493,8 @@ class OAuthConsumer
     {
         global $_TABLES;
 
-		// Location field returned by several Oauth Providers
-		// About field was returned by Facebook but not anymore. Left in for now in case in future we can set it again or by another OAuth provider
         if (!empty($userInfo['about']) || !empty($userInfo['location'])) {
-            $sql = "UPDATE {$_TABLES['user_attributes']} SET";
+            $sql = "UPDATE {$_TABLES['userinfo']} SET";
             $sql .= !empty($userInfo['about']) ? " about = '" . DB_escapeString($userInfo['about']) . "'" : "";
             $sql .= (!empty($userInfo['about']) && !empty($userInfo['location'])) ? "," : "";
             $sql .= !empty($userInfo['location']) ? " location = '" . DB_escapeString($userInfo['location']) . "'" : "";

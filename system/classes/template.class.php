@@ -57,8 +57,6 @@
 
 class Template
 {
-    const LOCK_FILE = '.lock';
-
     /**
      * Serialization helper, the name of this class.
      *
@@ -275,7 +273,7 @@ class Template
      */
     public function __construct($root = array('.'), $unknowns = 'remove')
     {
-        global $_CONF, $TEMPLATE_OPTIONS, $LANG_ISO639_1;
+        global $_CONF, $TEMPLATE_OPTIONS;
 
         // Set $TEMPLATE_OPTIONS if Template class is called during tests
         if (empty($TEMPLATE_OPTIONS) || !is_array($TEMPLATE_OPTIONS)) {
@@ -296,9 +294,7 @@ class Template
                     'layout_url'      => $_CONF['layout_url'], // Can be set by lib-common on theme change
                     'anonymous_user'  => true,
                     'device_mobile'   => false,
-					'language_code'	  => $LANG_ISO639_1,
-                    'front_page'      => false,
-                    'current_url'     => ''
+                    'front_page'      => false
                 ),
                 'hook'                => array(),
             );
@@ -313,8 +309,7 @@ class Template
         $this->set_root($root);
         $this->set_unknowns($unknowns);
 
-        if (isset($_CONF['cache_templates']) && ($_CONF['cache_templates'] == true) &&
-            !defined('GL_INSTALL_ACTIVE')) {
+        if (isset($_CONF['cache_templates']) && ($_CONF['cache_templates'] == true)) {
             clearstatcache();
         }
 
@@ -350,14 +345,14 @@ class Template
                 $root = call_user_func($function, $root);
             }
         }
-
+        
         // Make root now array if not already (hook above runs CTL_setTemplateRoot for plugins that do not use COM_newTemplate and CTL_core_templatePath which will be required as of Geeklog 3.0.0
-        // CTL_setTemplateRoot needs to figure out things based on if the root passed is an array or not
+        // CTL_setTemplateRoot needs to figure out things based on if the root passed is an array or not 
         // As of Geeklog 3.0.0 this arracy check should be moved to right after setting global variables in this function
         // For more info see COM_newTemplate, CTL_setTemplateRoot, CTL_core_templatePath, CTL_plugin_templatePath
         if (!is_array($root)) {
             $root = array($root);
-        }
+        }        
 
         if ($this->debug & 4) {
             echo '<p><b>set_root:</b> root = array(' . (count($root) > 0 ? '"' . implode('","', $root) . '"' : '') . ")</p>\n";
@@ -550,8 +545,7 @@ class Template
                 return false;
             }
             $tFilename = $this->filename($filename);
-            if (isset($_CONF['cache_templates']) && ($_CONF['cache_templates'] == true) &&
-                !defined('GL_INSTALL_ACTIVE')) {
+            if (isset($_CONF['cache_templates']) && ($_CONF['cache_templates'] == true)) {
                 $filename = $this->check_cache($varName, $tFilename);
                 $this->file[$varName] = $filename;
             } else {
@@ -571,8 +565,7 @@ class Template
                     return false;
                 }
                 $tFilename = $this->filename($f);
-                if (isset($_CONF['cache_templates']) && ($_CONF['cache_templates'] == true) &&
-                    !defined('GL_INSTALL_ACTIVE')) {
+                if (isset($_CONF['cache_templates']) && ($_CONF['cache_templates'] == true)) {
                     $f = $this->check_cache($v, $tFilename);
                     $this->file[$v] = $f;
                 } else {
@@ -617,9 +610,7 @@ class Template
         // Should use parent here when checking view since assumed parent is the view that was set or not.
         // NOTE: This means while blocks can be set in views they CANNOT be nested
         // VIEWS with blocks need to be TESTED better as maybe there is a workaround to this
-        if (isset($_CONF['cache_templates']) && ($_CONF['cache_templates'] == true) &&
-            !defined('GL_INSTALL_ACTIVE') &&
-            (!isset($this->view[$parent]) || ($this->view[$parent] == false))) {
+        if (isset($_CONF['cache_templates']) && ($_CONF['cache_templates'] == true) && (!isset($this->view[$parent]) || ($this->view[$parent] == false))) {
             $filename = $this->file[$parent];
             $p = pathinfo($filename);
             $this->blocks[$varName] = $p['dirname'] . '/' . substr($p['basename'], 0, -(strlen($p['extension']) + 1)) . '__' . $varName . '.' . $p['extension'];
@@ -827,11 +818,10 @@ class Template
      */
     public function subst($varName)
     {
-        global $_CONF, $LANG01;
+        global $_CONF;
 
         // If view always bypass cache
         if (isset($_CONF['cache_templates']) && ($_CONF['cache_templates'] == true) &&
-            !defined('GL_INSTALL_ACTIVE') &&
             (!isset($this->view[$varName]) || ($this->view[$varName] == false))) {
             if (isset($this->blocks[$varName])) {
                 $filename = $this->blocks[$varName];
@@ -884,29 +874,11 @@ class Template
                 return '';
             }
 
-            // Lets try to error gracefully if we need too when evaluating PHP
-            // Cannot use COM_handleEval as that is an outside function as the code we need to evaluate contains references to the template class ($this->...)
-            // This code gets executed when the template class function set_view is used (like in the staticpages plugin when a page is used as a template)
-            $errorMessage = '';
-            $templateCode = '?>' . $templateCode . '<?php ';
             ob_start();
-            if (version_compare(PHP_VERSION, '7.0.0', '<')) {
-                $str = eval($templateCode);
-
-                if ($str === false) {
-                    $errorMessage = $LANG01[144];
-                }
-            } else {
-                try {
-                    $str = eval($templateCode);
-                } catch (ParseError $e) {
-                    COM_errorLog(__FUNCTION__ . ': ' . $e->getMessage());
-                    $errorMessage = $LANG01[144];
-                }
-            }
+            eval('?>' . $templateCode . '<?php ');
             $str = ob_get_clean();
 
-            return empty($errorMessage) ? $str : $errorMessage;
+            return $str;
         }
     }
 
@@ -1488,10 +1460,6 @@ class Template
                         $ret = htmlspecialchars($ret);
                         break;
 
-                    case 'h':
-                        $ret = strip_tags($ret);
-                        break;
-
                     case 't':
                         $ret = substr($ret, 0, intval(substr($mod, 1))); // truncate
                         break;
@@ -1501,9 +1469,9 @@ class Template
             return $ret;
         }
         if ($this->unknowns == 'comment') {
-			return '<!-- Template variable ' . $val . ' undefined -->'; // Do not need to use htmlspecialchars on $ val as in html comment
+            return '<!-- Template variable ' . htmlspecialchars($val) . ' undefined -->';
         } elseif ($this->unknowns == 'keep') {
-			return '{' . htmlspecialchars($val . $modifier) . '}';
+            return '{' . htmlspecialchars($val . $modifier) . '}';
         }
 
         return '';
@@ -1527,11 +1495,11 @@ class Template
                 }
             }
             if (is_scalar($var)) {
-				return $var; // Changed from "return htmlspecialchars($var);" as lang should translate exactly. If need entities then should be that way in language string
+                return htmlspecialchars($var);
             }
         }
         if ($this->unknowns == 'comment') {
-			return '<!-- Language variable ' . $val . ' undefined -->'; // Do not need to use htmlspecialchars on $ val as in html comment
+            return '<!-- Language variable ' . htmlspecialchars($val) . ' undefined -->';
         } elseif ($this->unknowns == 'keep') {
             return '{' . htmlspecialchars($val) . '}';
         }
@@ -1599,7 +1567,7 @@ class Template
             $tmplt = preg_replace(
                 array(
                     '/\{([-\.\w\d_\[\]]+)\}/',                              // matches {identifier}
-                    '/\{([-\.\w\d_\[\]]+)((:u|:s|:h|:t\d+)+)\}/',              // matches {identifier} with optional :s, :u or :t### suffix
+                    '/\{([-\.\w\d_\[\]]+)((:u|:s|:t\d+)+)\}/',              // matches {identifier} with optional :s, :u or :t### suffix
                 ),
                 array(
                     '$this->get_var(\'\1\')',
@@ -1610,7 +1578,7 @@ class Template
             $tmplt = preg_replace(
                 array(
                     '/\{([-\.\w\d_\[\]]+)\}/',                              // matches {identifier}
-                    '/\{([-\.\w\d_\[\]]+)((:u|:s|:h|:t\d+)+)\}/',              // matches {identifier} with optional :s, :u or :t### suffix
+                    '/\{([-\.\w\d_\[\]]+)((:u|:s|:t\d+)+)\}/',              // matches {identifier} with optional :s, :u or :t### suffix
                 ),
                 array(
                     '<?php echo $this->val_echo(\'\1\'); ?>',
@@ -1772,8 +1740,9 @@ class Template
         $tmplt = $this->replace_vars($tmplt);
 
         // clean up concatenation.
-        $tmplt = str_replace('?' . '><' . '?php ', "\n", $tmplt); // makes the cache file easier on the eyes (need the concat to avoid PHP interpreting the ? >< ?php incorrectly)
-		
+        $tmplt = str_replace('?' . '><' . '?php ', // makes the cache file easier on the eyes (need the concat to avoid PHP interpreting the ? >< ?php incorrectly
+            "\n", $tmplt);
+
         if ($this->debug & 4) {
             printf("<b>cache_write:</b> opening $filename<br>\n");
         }
@@ -1875,7 +1844,7 @@ class Template
         }
         $phpFile = $TEMPLATE_OPTIONS['path_cache'] . $extra_path . $baseFile . '.php';
 
-        $template_fstat = is_readable($filename) ? @filemtime($filename) : 0;
+        $template_fstat = @filemtime($filename);
         if (file_exists($phpFile)) {
             $cache_fstat = @filemtime($phpFile);
         } else {
@@ -1952,7 +1921,8 @@ class Template
         $tmplt = $this->replace_vars($tmplt);
 
         // clean up concatenation.
-        $tmplt = str_replace('?' . '><' . '?php ', "\n", $tmplt); // makes the cache file easier on the eyes (need the concat to avoid PHP interpreting the ? >< ?php incorrectly)
+        $tmplt = str_replace('?' . '><' . '?php ', // makes the cache file easier on the eyes (need the concat to avoid PHP interpreting the ? >< ?php incorrectly
+            "\n", $tmplt);
 
         $this->blocks[$parent[1]] = $tmplt;
     }
@@ -2014,7 +1984,8 @@ class Template
         $tmplt = $this->replace_vars($tmplt);
 
         // clean up concatenation.
-        $tmplt = str_replace('?' . '><' . '?php ', "\n", $tmplt); // makes the cache file easier on the eyes (need the concat to avoid PHP interpreting the ? >< ?php incorrectly)
+        $tmplt = str_replace('?' . '><' . '?php ', // makes the cache file easier on the eyes (need the concat to avoid PHP interpreting the ? >< ?php incorrectly
+            "\n", $tmplt);
 
         return $tmplt;
     }
@@ -2142,51 +2113,24 @@ class Template
  * @param  string $needle String matched against cache filenames
  * @param  int    $since
  * @access private
- * @return int            number of files NOT deleted
+ * @return void
  */
 function cache_clean_directories($path, $needle = '', $since = 0)
 {
-    global $_CONF;
-	
-	$lockFile = $path . DIRECTORY_SEPARATOR . Template::LOCK_FILE;
-    if (is_readable($lockFile)) {
-        return -1;
-    }
-
-    if (!@touch($lockFile)) {
-        return -1;
-    }
-
-    $numFiles = 0;
-
     if ($dir = @opendir($path)) {
         while (false !== ($entry = readdir($dir))) {
-            if ($entry === '.' || $entry === '..') {
-                continue;
-            } elseif ($entry === '.svn' || is_link($entry)) {
-                $numFiles++;
+            if ($entry == '.' || $entry == '..' || $entry == '.svn' || is_link($entry)) {
             } elseif (is_dir($path . '/' . $entry)) {
-                if (cache_clean_directories($path . '/' . $entry, $needle) === 0) {
-                    @rmdir($path . '/' . $entry);
-                }
+                cache_clean_directories($path . '/' . $entry, $needle);
+                @rmdir($path . '/' . $entry);
             } elseif (empty($needle) || strpos($entry, $needle) !== false) {
                 if (!$since || @filectime($path . '/' . $entry) <= $since) {
                     @unlink($path . '/' . $entry);
-                } else {
-                    $numFiles++;
                 }
-            } else {
-                $numFiles++;
             }
         }
         @closedir($dir);
     }
-
-    if (is_readable($lockFile)) {
-        @unlink($lockFile);
-    }
-
-    return $numFiles;
 }
 
 /******************************************************************************

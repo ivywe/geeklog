@@ -51,8 +51,8 @@ function plugin_autoinstall_staticpages($pi_name)
     $info = array(
         'pi_name'         => $pi_name,
         'pi_display_name' => $pi_display_name,
-        'pi_version'      => '1.7.3',
-        'pi_gl_version'   => '2.2.2',
+        'pi_version'      => '1.7.0',
+        'pi_gl_version'   => '2.2.0',
         'pi_homepage'     => 'https://www.geeklog.net/'
     );
 
@@ -112,6 +112,7 @@ function plugin_load_configuration_staticpages($pi_name)
 
     $base_path = $_CONF['path'] . 'plugins/' . $pi_name . '/';
 
+    require_once $_CONF['path_system'] . 'classes/config.class.php';
     require_once $base_path . 'install_defaults.php';
 
     return plugin_initconfig_staticpages();
@@ -167,25 +168,17 @@ function plugin_compatible_with_this_version_staticpages($pi_name)
 }
 
 /**
-* Give some Geeklog Core security features to Static Page Admin
+* Give "filemanager.admin" feature to Static Page Admin
 *
 * @param   string   $pi_name   plugin name, i.e., 'staticpages'
 * @return  boolean             TRUE = success, FALSE = otherwise
 */
 function plugin_postinstall_staticpages($pi_name)
 {
-    global $_TABLES;
+    global $_CONF, $_TABLES;
 
-    // Give "filemanager.admin" feature to Static Page Admin
     if (DB_count($_TABLES['features'], 'ft_name', 'filemanager.admin') == 1) {
         $featureId = DB_getItem($_TABLES['features'], 'ft_id', "ft_name = 'filemanager.admin' ");
-        $staticPageAdminId = DB_getItem($_TABLES['groups'], 'grp_id', "grp_name = 'Static Page Admin' ");
-        DB_query("INSERT INTO {$_TABLES['access']} (acc_ft_id, acc_grp_id) VALUES ({$featureId}, {$staticPageAdminId}) ");
-    }
-
-    // Give "structureddata.autotag" feature to Static Page Admin
-    if (DB_count($_TABLES['features'], 'ft_name', 'structureddata.autotag') == 1) {
-        $featureId = DB_getItem($_TABLES['features'], 'ft_id', "ft_name = 'structureddata.autotag' ");
         $staticPageAdminId = DB_getItem($_TABLES['groups'], 'grp_id', "grp_name = 'Static Page Admin' ");
         DB_query("INSERT INTO {$_TABLES['access']} (acc_ft_id, acc_grp_id) VALUES ({$featureId}, {$staticPageAdminId}) ");
     }

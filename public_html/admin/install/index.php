@@ -2,13 +2,13 @@
 
 /* Reminder: always indent with 4 spaces (no tabs). */
 // +---------------------------------------------------------------------------+
-// | Geeklog 2.2                                                               |
+// | Geeklog 2.1                                                               |
 // +---------------------------------------------------------------------------+
 // | index.php                                                                 |
 // |                                                                           |
 // | Geeklog installation script.                                              |
 // +---------------------------------------------------------------------------+
-// | Copyright (C) 2007-2020 by the following authors:                         |
+// | Copyright (C) 2007-2011 by the following authors:                         |
 // |                                                                           |
 // | Authors: Matt West         - matt AT mattdanger DOT net                   |
 // |          Dirk Haun         - dirk AT haun-online DOT de                   |
@@ -33,25 +33,12 @@
 // | docs/english/install.html which describes how to install Geeklog.         |
 // +---------------------------------------------------------------------------+
 
-// Used to tell Geeklog when it's own libraries like lib-common.php is required and being used by the install
-define('GL_INSTALL_ACTIVE', true); // Introduced in Geeklog v2.2.1
-
 define('PATH_INSTALL', __DIR__ . '/');
 define('PATH_LAYOUT', PATH_INSTALL . 'layout');
 define('BASE_FILE', str_replace('\\', '/', __FILE__));
 
 require_once __DIR__ . '/classes/micro_template.class.php';
-require_once __DIR__ . '/classes/Common.php';
-require_once __DIR__ . '/classes/Install.php';
-require_once __DIR__ . '/classes/Upgrade.php';
-require_once __DIR__ . '/classes/Migrate.php';
 require_once __DIR__ . '/classes/installer.class.php';
-
-// Note: PHP error reporting uses the settings found in siteconfig.php for developer mode
-//  PHP error reporting is set in the spots below and should be covered by most parts of install (except in help and stuff above):
-//  - installer run function (not construct)
-//  - By lib-common.php when required
-//  - bigdump.php
 
 $installer = new Installer();
 $installer->run();
