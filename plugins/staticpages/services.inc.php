@@ -49,6 +49,8 @@ if (stripos($_SERVER['PHP_SELF'], basename(__FILE__)) !== false) {
  */
 define('STATICPAGE_MAX_ID_LENGTH', 128);
 
+require_once $_CONF['path_system'] . 'lib-comment.php';
+
 /**
  * Submit static page. The page is updated if it exists, or a new one is created
  *
