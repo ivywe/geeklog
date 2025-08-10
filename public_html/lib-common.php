@@ -41,13 +41,6 @@ use Geeklog\Mail;
 use Geeklog\Resource;
 use Geeklog\Session;
 
-
-
-
-
-
-
-
 // Prevent PHP from reporting uninitialized variables - Same setting as Geeklog installer
 error_reporting(E_ERROR | E_WARNING | E_PARSE | E_CORE_ERROR | E_COMPILE_ERROR | E_USER_ERROR | E_RECOVERABLE_ERROR);
 
@@ -163,13 +156,6 @@ $_CONF['language_site_default'] = $_CONF['language']; // Store original site def
 // If this version and the gl version of the theme are not compatible (checked in COM_validateTheme) then theme will not load and alternate will be selected
 // If default site theme is not compatible then a warning message will be displayed to the Root user
 $_CONF['min_theme_gl_version'] = '2.2.2'; // Updated to 2.2.1 since index.thtml file added and header and footer files removed. Multiple new Template Variables also exist
-
-
-
-
-require_once $_CONF['path_system'] . 'classes/url.class.php';
-
-
 
 // Installer calls lib-common so make sure it doesn't get affected by certain config options
 if (defined('GL_INSTALL_ACTIVE')) {
@@ -7269,29 +7255,21 @@ function COM_isAjax()
 }
 
 /**
- * Figure out our current URL, including all parameters.
- * See URL Class and getCurrentURL function for more info
+ * Try to figure out our current URL, including all parameters.
+ * This is an ugly hack since there's no single variable that returns what
+ * we want and the variables used here may not be available on all servers
+ * and / or setups.
+ * Seems to work on Apache (1.3.x and 2.x), nginx, and IIS.
  *
  * @return   string  complete URL, e.g. 'http://www.example.com/blah.php?foo=bar'
  */
- 
- // 設定ファイル読み込み（$_CONF 定義）
-require_once __DIR__ . '/siteconfig.php';
-
-// 必要なクラス読み込み（旧Geeklog構造）
-require_once $_CONF['path_system'] . 'classes/url.class.php';
-// 他にも必要なら：require_once $_CONF['path_system'] . 'lib-database.php'; など
-
-
-
 function COM_getCurrentURL()
 {
     global $_CONF;
 
-    require_once $_CONF['path_system'] . 'classes/url.class.php';
-
     return Url::getCurrentURL($_CONF['site_url']);
 }
+
 /**
  * Check if we're on Geeklog's index page.
  * See if we're on the main index page (first page, no topics selected).
@@ -7922,24 +7900,27 @@ function COM_getLanguageIdForObject($id)
  * @param    string $language current language file name (optional)
  * @return   string           language ID, e.g 'en'; empty string on error
  */
-function COM_getLanguageId()
+function COM_getLanguageId($language = '')
 {
-    // 現在のリクエスト URI を取得
-    $requestUri = $_SERVER['REQUEST_URI'];
+    global $_CONF;
 
-    // URI をスラッシュで分解
-    $segments = explode('/', trim($requestUri, '/'));
+	$lang_id = '';
+	if (COM_isMultiLanguageEnabled()) { // this checks if $_CONF['language_files'] is set
+		if (empty($language)) {
+			$language = COM_getLanguage();
+		}
 
-    // 最初のセグメントを言語IDとみなす（例: en, ja, fr）
-    $langId = isset($segments[0]) ? strtolower($segments[0]) : 'en'; // デフォルトを 'en' に
+		$lang_id = array_search($language, $_CONF['language_files']);
 
-    // 必要に応じて有効な言語IDをチェック（例: 'en', 'ja', 'fr' など）
-    $supportedLangs = array('en', 'ja', 'fr');  // 必要に応じて増やす
-    if (!in_array($langId, $supportedLangs)) {
-        $langId = 'en'; // 無効な言語IDならデフォルトに戻す
-    }
+		if ($lang_id === false) {
+			// that looks like a misconfigured $_CONF['language_files'] array
+			COM_errorLog('Language "' . $language . '" not found in $_CONF[\'language_files\'] array!');
 
-    return $langId;
+			$lang_id = ''; // not much we can do here ...
+		}
+	}
+
+    return $lang_id;
 }
 
 /**
@@ -8354,9 +8335,9 @@ function COM_handle404($alternate_url = '')
     // send 404 in any case
     header('HTTP/1.1 404 Not Found');
     header('Status: 404 Not Found');
-		
+
 	// sanitize url since for display purposes. URL could contain tags, svg embeds, etc...
-	// 20250806v$url = Url::cleanUrl(COM_getCurrentURL());
+	$url = htmlspecialchars(COM_getCurrentURL());
 
     // Add file log stuff
     if (isset($_CONF['404_log']) && $_CONF['404_log']) {
