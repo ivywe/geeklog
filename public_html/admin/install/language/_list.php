@@ -31,7 +31,7 @@ return [
         'langCode' => 'de',
         'langName' => 'Deutsch',
         'english'  => 'German',
-        'charset'  => 'utf-8',
+        'charset'  => 'iso-8859-15',
     ],
     'hebrew_utf-8.php'              => [
         'langCode' => 'he',
